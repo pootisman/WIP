@@ -4,7 +4,7 @@ import os.path
 TX_EXTR = "SELECT tx_id, x, y, z FROM tx"
 RX_EXTR = "SELECT rx_id, x, y, z FROM rx"
 TX_PAIRS = "SELECT channel_id, rx_id FROM channel WHERE tx_id = {}"
-CHAN_PTH = "select path_utd_id, received_power, time_of_arrival from path_utd where path_id in (select path_id from path where channel_id = {});"
+CHAN_PTH = "SELECT path_utd_id, received_power, time_of_arrival FROM path_utd WHERE path_id IN (SELECT path_id FROM path WHERE channel_id = {});"
 
 class Node():
     def __init__(self, typ: str):
