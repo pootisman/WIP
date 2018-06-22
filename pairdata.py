@@ -4,13 +4,13 @@ import numpy as np
 
 TX_EXTR = "SELECT tx_id, x, y, z FROM tx"
 RX_EXTR = "SELECT rx_id, x, y, z FROM rx"
+TX_PAIRS = "SELECT channel_id, rx_id FROM channel WHERE tx_id = {}"
 
 
 class Node():
     def __init__(self, typ: str):
-        self.paths_to_pairs = None
-        self.pairs = None
-        self.node_id = None
+        self.chan_to_pairs = dict()
+        self.node_id = 0
         self.coords = [0, 0, 0]
         self.rot = [0, 0, 0]
 
@@ -19,6 +19,9 @@ class Node():
         else:
             self.rxpow = 0.0
 
+class chan():
+    def __init__(self):
+        self.paths = map()
 
 class path():
     def __init__(self):
@@ -29,7 +32,7 @@ class path():
 
 class interaction():
     def __init__(self):
-        self.typ = None
+        self.typ = 'TX'
         self.coord = list()
 
 
@@ -73,10 +76,12 @@ class data_stor():
                 self.dbname = dbname
 
         for i in self.txs:
-            i.
+            for j in self.dbcurs.execute(TX_PAIRS.format(i.node_id)):
+                i.chan_to_pairs[j[1]] = j[0]
+
 
 
 if __name__ == '__main__':
     DS = data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/Mobile_TXRX/Class@60GHz.Mobile_TXRX.sqlite')
+    DS.load_rxtx('/home/alexey/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/Mobile_TXRX/Class@60GHz.Mobile_TXRX.sqlite')
     exit()
