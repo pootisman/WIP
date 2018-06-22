@@ -1,11 +1,10 @@
 import sqlite3
 import os.path
-import numpy as np
 
 TX_EXTR = "SELECT tx_id, x, y, z FROM tx"
 RX_EXTR = "SELECT rx_id, x, y, z FROM rx"
 TX_PAIRS = "SELECT channel_id, rx_id FROM channel WHERE tx_id = {}"
-
+CHAN_PTH = "select path_utd_id, received_power, time_of_arrival from path_utd where path_id in (select path_id from path where channel_id = {});"
 
 class Node():
     def __init__(self, typ: str):
@@ -20,12 +19,14 @@ class Node():
             self.rxpow = 0.0
 
 class chan():
-    def __init__(self):
-        self.paths = map()
+    def __init__(self, dest: int = 0):
+        self.paths = dict()
+        self.dest = dest
 
 class path():
     def __init__(self):
-        self.pow = -np.Inf
+        self.pow = 0.0
+        self.delay = 0.0
         self.dist = 0.0
         self.interactions = list()
 
@@ -77,11 +78,17 @@ class data_stor():
 
         for i in self.txs:
             for j in self.dbcurs.execute(TX_PAIRS.format(i.node_id)):
-                i.chan_to_pairs[j[1]] = j[0]
+                i.chan_to_pairs[j[1]] = chan(j[0])
+                for k in self.dbcurs.execute(CHAN_PTH.format(j[0])):
+                    i.chan_to_pairs[j[1]].paths[k[0]] = path()
+                    i.chan_to_pairs[j[1]].paths[k[0]].pow = k[1]
+                    i.chan_to_pairs[j[1]].paths[k[0]].delay = k[2]
+
 
 
 
 if __name__ == '__main__':
     DS = data_stor()
     DS.load_rxtx('/home/alexey/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/Mobile_TXRX/Class@60GHz.Mobile_TXRX.sqlite')
+    DS.load_path()
     exit()
