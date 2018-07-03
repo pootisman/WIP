@@ -19,6 +19,7 @@ from auxfun import *
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
 import matplotlib.collections as mpc
+import matplotlib.colors as mpcl
 import numba
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
@@ -80,7 +81,6 @@ class distanced_hist_extractor():
             cumulator += self.hist.bins[i[0]]
             self.hist.bins[i[0]] = cumulator
 
-
     def plot_hist(self):
         fig = mpl.figure()
         ax = fig.add_subplot(111)
@@ -92,8 +92,11 @@ class distanced_hist_extractor():
         ax.set_title('Total hits {}'.format(self.hist.tothits))
         bars = []
 
+        #cmap = mpl.colors.C
+
         for i in self.hist.bins.items():
             bars.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1]))
+        #    bars[-1].set_color(mpl.colo)
 
         bc = mpc.PatchCollection(bars)
 
@@ -108,41 +111,43 @@ class distanced_delta_hist_extractor():
         self.source = src
         self.type = None
 
-    def hist_keying(self, path: pairdata.path, typ: str = 'LOS', thresh: int = -95):
+    def hist_keying(self, path: pairdata.path, typ: str = 'LOS', thresh: float = -95.0, crx: pairdata.Node = None):
         if path.interactions.__len__() == 0 and l2db(path.pow) > thresh and typ == 'LOS':
-            self.hist.append(path.chan.dist)
+            self.hist.append(np.linalg.norm(path.chan.dest.coords - crx.coords))
         elif path.interactions.__len__() > 0 and l2db(path.pow) > thresh and typ == 'NLOS':
-            self.hist.append(path.chan.dist)
+            self.hist.append(np.linalg.norm(path.chan.dest.coords - crx.coords))
         elif path.interactions.__len__() == 0 and l2db(path.pow) < thresh and typ == 'noLOS':
-            self.hist.append(path.chan.dist)
+            self.hist.append(np.linalg.norm(path.chan.dest.coords - crx.coords))
         elif path.interactions.__len__() > 0 and l2db(path.pow) < thresh and typ == 'noNLOS':
-            self.hist.append(path.chan.dist)
+            self.hist.append(np.linalg.norm(path.chan.dest.coords - crx.coords))
 
     #@numba.jit
-    def build(self, txgrp: int = -1, rxgrp: int = -1, thresh: float = -95, typ: str = 'LOS'):
+    def build(self, txgrp: int = -1, rxgrp: int = -1, thresh: float = -95, start_typ: str = 'LOS', sw_typ: str = 'LOS'):
         excluderx = []
-        self.type = typ
+        self.type = '{}->{}'.format(start_typ, sw_typ)
+
         for i in self.source.txs.items():
             if i[1].setid == txgrp or txgrp == -1:
                 for j in i[1].chan_to_pairs.items():
+                    excluderx.append(j[1].dest)
                     if j[1].dest.setid == rxgrp or rxgrp == -1:
                         for k in j[1].paths.items():
                             # No interactions indicate LOS link
-                            if k[1].interactions.__len__() == 0 and 10.0 * np.log10(k[1].pow) > thresh and typ == 'LOS':
+                            if k[1].interactions.__len__() == 0 and 10.0 * np.log10(k[1].pow) > thresh and start_typ == 'LOS':
                                 self.hist.append(j[1].dist)
                                 for l in self.source.rxs.items():
-                                    if l[1].setid == rxgrp or rxgrp == -1:
-                                        excluderx.append(l[0])
+                                    if (l[1].setid == rxgrp or rxgrp == -1) and l[1] not in excluderx:
+                                        self.hist_keying(crx=j[1].dest, path=k[1], typ=sw_typ, thresh=thresh)
+                                        print('Analyzing transfer from {} to {}'.format(j[1].dest.node_id, l[0]))
 
-                                    print(l[0])
-                            elif k[1].interactions.__len__() > 0 and 10.0 * np.log10(k[1].pow) > thresh and typ == 'NLOS':
+                            elif k[1].interactions.__len__() > 0 and 10.0 * np.log10(k[1].pow) > thresh and start_typ == 'NLOS':
                                 self.hist.append(j[1].dist)
                             elif k[1].interactions.__len__() == 0 and 10.0 * np.log10(
-                                    k[1].pow) < thresh and typ == 'noLOS':
+                                    k[1].pow) < thresh and start_typ == 'noLOS':
                                 self.hist.append(j[1].dist)
-                            elif 10.0 * np.log10(k[1].pow) < thresh and typ == 'nolink':
+                            elif 10.0 * np.log10(k[1].pow) < thresh and start_typ == 'nolink':
                                 self.hist.append(j[1].dist)
-                            elif 10.0 * np.log10(k[1].pow) > thresh and typ == 'link':
+                            elif 10.0 * np.log10(k[1].pow) > thresh and start_typ == 'link':
                                 self.hist.append(j[1].dist)
 
     def CDF_mutate(self):
@@ -163,9 +168,14 @@ class distanced_delta_hist_extractor():
         ax.set_ylabel('{} probability'.format(self.type))
         ax.set_title('Total hits {}'.format(self.hist.tothits))
         bars = []
+        tcks = []
 
         for i in self.hist.bins.items():
             bars.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1]))
+            tcks.append(i[0][0])
+        tcks.append(self.hist.ceiling)
+
+        mpl.xticks(tcks)
 
         bc = mpc.PatchCollection(bars)
 
@@ -180,8 +190,8 @@ if __name__ == "__main__":
     DS = pairdata.data_stor()
     DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
     DS.load_path()
-    DE = distanced_delta_hist_extractor(DS, range=(4, 16), histbins=20, frac=0.8)
-    DE.build(txgrp=-1, rxgrp=4, thresh=-125, typ='LOS')
-    #DE.CDF_mutate()
-    #DE.plot_hist()
+    DE = distanced_delta_hist_extractor(DS, range=(0, 10), histbins=50, frac=0.85)
+    DE.build(txgrp=-1, rxgrp=4, thresh=-125, start_typ='LOS', sw_typ='LOS')
+    DE.CDF_mutate()
+    DE.plot_hist()
     exit()
