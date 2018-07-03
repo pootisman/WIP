@@ -1,7 +1,26 @@
+# Copyright (C) Aleksei Ponomarenko-Timofeev
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 import numpy as np
 import matplotlib.pyplot as mpl
 import pairdata
+from auxfun import *
+import numba
 
+__author__ = 'Aleksei Ponomarenko-Timofeev'
 
 class rec_pat():
     def __init__(self, source):
@@ -21,8 +40,8 @@ class rec_pat():
                 rr = 0
                 for j in range(1, rxrange):
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
-                        mpl.figure(rr)
-                        rr+=1
+                        f = mpl.figure(rr)
+                        rr += 1
                         th = []
                         tt = []
                         r = []
@@ -32,6 +51,8 @@ class rec_pat():
                         for t in th:
                             r.append(t[1])
                             tt.append(t[0])
+
+                        (tt, r) = basint2(tt, r, 360)
                         ax = mpl.subplot(111, projection='polar')
                         ax.plot(np.deg2rad(tt), r)
                         ax.set_rmax(-100)
@@ -39,6 +60,8 @@ class rec_pat():
                         mpl.title('RX #{}'.format(j))
                         if print:
                             mpl.savefig('Recpat_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.close(f)
+
         if print is False:
             mpl.show()
 

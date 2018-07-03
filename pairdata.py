@@ -1,7 +1,25 @@
+# Copyright (C) Aleksei Ponomarenko-Timofeev
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 import sqlite3
 import os
 import numpy as np
 import numba
+
+__author__ = 'Aleksei Ponomarenko-Timofeev'
 
 TX_EXTR = "SELECT tx_id, x, y, z, tx_set_id FROM tx"
 RX_EXTR = "SELECT rx_id, x, y, z, rx_set_id FROM rx"
@@ -31,10 +49,10 @@ class Node():
             self.rxpow = 0.0
 
 class chan():
-    def __init__(self, dest: int = 0):
+    def __init__(self, dest: Node = None, src: Node = None):
         self.paths = dict()
         self.dest = dest
-        self.src = None
+        self.src = src
         self.pow_trans = 0.0
         self.delay = 0.0
         self.ds = 0.0
@@ -100,7 +118,7 @@ class data_stor():
 
         for i in self.txs.keys():
             for j in self.dbcurs.execute(TX_PAIRS.format(i,i)):
-                self.txs[i].chan_to_pairs[j[0]] = chan(j[-1])
+                self.txs[i].chan_to_pairs[j[0]] = chan(self.rxs[j[-1]])
                 self.rxs[j[-1]].chan_to_pairs[i] = self.txs[i].chan_to_pairs[j[0]]
                 self.txs[i].chan_to_pairs[j[0]].pow_trans = j[1]
                 self.txs[i].chan_to_pairs[j[0]].delay = j[2]
