@@ -48,6 +48,12 @@ class Node():
         else:
             self.rxpow = 0.0
 
+    def chan_to(self, dest):
+        for i in self.chan_to_pairs.keys():
+            if self.chan_to_pairs[i].dest == dest:
+                return self.chan_to_pairs[i]
+        return None
+
 class chan():
     def __init__(self, dest: Node = None, src: Node = None):
         self.paths = dict()

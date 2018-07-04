@@ -20,8 +20,8 @@ import numpy as np
 import numba
 
 @numba.jit
-def basint2(X, Y, xc):
-    Xlim = [np.min(X), np.max(X)]
+def basint2(X: list, Y: list, xc: int):
+    Xlim = [np.nanmin(X), np.nanmax(X)]
 
     stepX = 360.0 / xc
 
@@ -34,32 +34,38 @@ def basint2(X, Y, xc):
             j = j - 1
 
         if Yo[j] < Y[i]:
-            Yo[j] = Y[i]
+            if not np.isnan(Y[i]):
+                Yo[j] = Y[i]
+            else:
+                Yo[j] = np.nanmin(Y)
 
     return (Xo, Yo)
 
 @numba.jit
-def basint3(X, Y, Z, xc, yc):
-    Xlim = [np.min(X), np.max(X)]
-    Ylim = [np.min(Y), np.max(Y)]
+def basint3(X: list, Y: list, Z: list, xc: float, yc: float):
+    Xlim = [np.nanmin(X), np.nanmax(X)]
+    Ylim = [np.nanmin(Y), np.nanmax(Y)]
 
     stepX = (Xlim[1] - Xlim[0]) / xc
     stepY = (Ylim[1] - Ylim[0]) / yc
 
     Xo = np.arange(start=Xlim[0], step=stepX, stop=Xlim[1])
     Yo = np.arange(start=Ylim[0], step=stepY, stop=Ylim[1])
-    Zo = np.tile(np.min(Z), [xc, yc])
+    Zo = np.tile(np.nanmin(Z), [Xo.__len__(), Yo.__len__()])
 
     for i in range(Z.__len__()):
         j = int(np.round((X[i] - Xlim[0]) / stepX))
         k = int(np.round((Y[i] - Ylim[0]) / stepY))
-        if j == xc:
+        if j == Xo.__len__():
             j = j - 1
-        if k == yc:
+        if k == Yo.__len__():
             k = k - 1
 
         if Zo[j, k] < Z[i]:
-            Zo[j, k] = Z[i]
+            if not np.isnan(Z[i]):
+                Zo[j, k] = Z[i]
+            else:
+                Zo[j, k] = np.nanmin(Z)
 
     return (Xo, Yo, Zo)
 

@@ -34,24 +34,53 @@ class cirs():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange, rxrange, txgrp: int = -1, rxgrp: int = -1, print: bool = False, cmap: str = 'viridis'):
-        for i in range(txrange):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, print: bool = False, cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200):
+        if txrange == -1:
+            txrange = self.source.txs.keys()
+        else:
+            txrange = range(txrange)
+
+        if rxrange == -1:
+            rxrange = self.source.rxs.keys()
+        else:
+            rxrange = range(rxrange)
+
+        for i in txrange:
+            self.xdata = []
+            self.ydata = []
+            self.zdata = []
             if self.source.txs[i].setid == txgrp or txgrp == -1:
                 f = mpl.figure(i)
                 nn = 0
-
-                for j in range(rxrange):
+                maxy = 0
+                for j in rxrange:
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
                         nn += 1
-                        for k in self.source.txs[i].chan_to_pairs[j].paths.keys():
-                            self.xdata.append(j)
-                            self.ydata.append(self.source.txs[i].chan_to_pairs[j].paths[k].delay * 1e9)
-                            self.zdata.append(10.0 * np.log10(self.source.txs[i].chan_to_pairs[j].paths[k].pow))
+                        if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
+                            for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.keys():
+                                self.xdata.append(j)
+                                self.ydata.append(self.source.txs[i].chan_to(self.source.rxs[j]).paths[k].delay * 1e9)
+                                self.zdata.append(l2db(self.source.txs[i].chan_to(self.source.rxs[j]).paths[k].pow))
+                        else:
+                            if self.ydata.__len__() > 0 and maxy == 0:
+                                maxy = np.max(self.ydata)
 
-                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, 250)
+                            for k in range(ydim):
+                                self.xdata.append(j)
+                                self.ydata.append(maxy)
+                                self.zdata.append(np.NaN)
+
+                if np.max(self.ydata) == 0:
+                    self.ydata[-1] = 1e-9
+
+                if np.isnan(np.nanmin(self.zdata)):
+                    for z in range(self.zdata.__len__()):
+                        self.zdata[z] = zmin
+
+                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim)
                 [X, Y] = np.meshgrid(X, Y)
-                mpl.contourf(np.transpose(X), np.transpose(Y), Z, 40)
-                mpl.clim([np.min(self.zdata), np.max(self.zdata) + 0.1 * np.max(self.zdata)])
+                mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20)
+                mpl.clim([np.min(Z), np.max(Z) + np.abs(0.1 * np.max(Z))])
                 mpl.colorbar().set_label('RX power, [dBm]')
                 mpl.xlabel('RX Position')
                 mpl.ylabel('Delay, [ns]')
@@ -66,7 +95,7 @@ class cirs():
 
 if __name__ == "__main__":
     DS = pairdata.data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
+    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
     DS.load_path()
     cir = cirs(DS)
-    cir.draw(1, 120, rxgrp=4, print=True)
+    cir.draw(-1, -1, txgrp=9, rxgrp=10, print=True)
