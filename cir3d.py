@@ -79,7 +79,7 @@ class cirs():
 
                 (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim)
                 [X, Y] = np.meshgrid(X, Y)
-                mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20)
+                mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20, cmap=cmap)
                 mpl.clim([np.min(Z), np.max(Z) + np.abs(0.1 * np.max(Z))])
                 mpl.colorbar().set_label('RX power, [dBm]')
                 mpl.xlabel('RX Position')
@@ -98,4 +98,4 @@ if __name__ == "__main__":
     DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
     DS.load_path()
     cir = cirs(DS)
-    cir.draw(-1, -1, txgrp=9, rxgrp=10, print=True)
+    cir.draw(-1, -1, txgrp=1, rxgrp=4, print=True)

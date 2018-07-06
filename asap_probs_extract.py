@@ -189,10 +189,10 @@ class distanced_delta_hist_extractor():
 
 if __name__ == "__main__":
     DS = pairdata.data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/Mobile_TXRX/Class@60GHz.Mobile_TXRX.sqlite')
+    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
     DS.load_path()
-    DE = distanced_hist_extractor(DS, range=(0, 18), histbins=50, frac=0.85)
-    DE.build(txgrp=-1, rxgrp=4, thresh=-125, typ='LOS')
+    DE = distanced_delta_hist_extractor(DS, range=(0, 18), histbins=50, frac=0.85)
+    DE.build(txgrp=-1, rxgrp=-1, thresh=-125, start_typ='LOS', sw_typ='nolink')
     DE.CDF_mutate()
     DE.plot_hist()
     exit()

@@ -34,11 +34,21 @@ class rec_pat():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange, rxrange, txgrp: int = -1, rxgrp: int = -1, print: bool = False):
-        for i in range(txrange):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, print: bool = False):
+        if txrange == -1:
+            txrange = self.source.txs.keys()
+        else:
+            txrange = range(txrange)
+
+        if rxrange == -1:
+            rxrange = self.source.rxs.keys()
+        else:
+            rxrange = range(rxrange)
+
+        for i in txrange:
             if self.source.txs[i].setid == txgrp or txgrp == -1:
                 rr = 0
-                for j in range(1, rxrange):
+                for j in rxrange:
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
                         f = mpl.figure(rr)
                         rr += 1
@@ -46,8 +56,8 @@ class rec_pat():
                         tt = []
                         r = []
                         for k in self.source.txs[i].chan_to_pairs[j].paths.keys():
-                            th.append((self.source.txs[i].chan_to_pairs[j].paths[k].AoA, 10.0 * np.log10(self.source.txs[i].chan_to_pairs[j].paths[k].pow)))
-                        th = sorted(th, key=lambda t: t[0])
+                            th.append((self.source.txs[i].chan_to_pairs[j].paths[k].AoA, l2db(self.source.txs[i].chan_to_pairs[j].paths[k].pow)))
+                        th = sorted(th, key=lambda x: x[0])
                         for t in th:
                             r.append(t[1])
                             tt.append(t[0])

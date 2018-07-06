@@ -123,9 +123,9 @@ class data_stor():
             exit(1)
 
         for i in self.txs.keys():
-            for j in self.dbcurs.execute(TX_PAIRS.format(i,i)):
+            for j in self.dbcurs.execute(TX_PAIRS.format(i, i)):
                 self.txs[i].chan_to_pairs[j[0]] = chan(self.rxs[j[-1]])
-                self.rxs[j[-1]].chan_to_pairs[i] = self.txs[i].chan_to_pairs[j[0]]
+                self.rxs[j[-1]].chan_to_pairs[j[0]] = self.txs[i].chan_to_pairs[j[0]]
                 self.txs[i].chan_to_pairs[j[0]].pow_trans = j[1]
                 self.txs[i].chan_to_pairs[j[0]].delay = j[2]
                 self.txs[i].chan_to_pairs[j[0]].ds = j[3]
