@@ -42,6 +42,7 @@ class Node():
         self.coords = [0, 0, 0]
         self.rot = [0, 0, 0]
         self.setid = 0
+        self.type = typ
 
         if typ == 'TX':
             self.txpow = 0.0
@@ -63,6 +64,7 @@ class chan():
         self.delay = 0.0
         self.ds = 0.0
         self.dist = 0.0
+        self.chid = 0
 
 class path():
     def __init__(self):
@@ -116,7 +118,7 @@ class data_stor():
             n.setid = i[4]
             self.rxs[i[0]] = n
 
-    @numba.jit
+    #@numba.jit
     def load_path(self, dbname: str = None):
         if self.dbconn is None:
             print('Error: connect to DB and load txs/rxs first!')
@@ -124,16 +126,18 @@ class data_stor():
 
         for i in self.txs.keys():
             for j in self.dbcurs.execute(TX_PAIRS.format(i, i)):
-                self.txs[i].chan_to_pairs[j[0]] = chan(self.rxs[j[-1]])
-                self.rxs[j[-1]].chan_to_pairs[j[0]] = self.txs[i].chan_to_pairs[j[0]]
-                self.txs[i].chan_to_pairs[j[0]].pow_trans = j[1]
-                self.txs[i].chan_to_pairs[j[0]].delay = j[2]
-                self.txs[i].chan_to_pairs[j[0]].ds = j[3]
-                self.txs[i].chan_to_pairs[j[0]].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
-                self.txs[i].chan_to_pairs[j[0]].src = self.txs[i]
+                dst = self.rxs[j[-1]]
+                self.txs[i].chan_to_pairs[dst] = chan(self.rxs[j[-1]])
+                self.rxs[j[-1]].chan_to_pairs[self.txs[i]] = self.txs[i].chan_to_pairs[dst]
+                self.txs[i].chan_to_pairs[dst].pow_trans = j[1]
+                self.txs[i].chan_to_pairs[dst].delay = j[2]
+                self.txs[i].chan_to_pairs[dst].ds = j[3]
+                self.txs[i].chan_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
+                self.txs[i].chan_to_pairs[dst].src = self.txs[i]
+                self.txs[i].chan_to_pairs[dst].chid = j[0]
 
             for j in self.txs[i].chan_to_pairs.keys():
-                for k in self.dbcurs.execute(CHAN_PTH.format(j)):
+                for k in self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chan_to_pairs[j].chid)):
                     self.txs[i].chan_to_pairs[j].paths[k[0]] = path()
                     self.txs[i].chan_to_pairs[j].paths[k[0]].chan = self.txs[i].chan_to_pairs[j]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].pow = k[1]
