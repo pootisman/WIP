@@ -30,7 +30,7 @@ TX_PAIRS = "SELECT * FROM (SELECT channel_utd.channel_utd_id, channel_utd.receiv
            "JOIN " \
            "(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan " \
            "ON utd.channel_id = chan.channel_id"
-CHAN_PTH = "SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi, arrival_theta FROM path_utd WHERE path_id IN (SELECT path_id FROM" \
+CHAN_PTH = "SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi, arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM" \
            " path WHERE channel_id = {})"
 INTERS = "SELECT * FROM interaction_type"
 INTERS_SPEC = "SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {}"
@@ -68,6 +68,7 @@ class chan():
 
 class path():
     def __init__(self):
+        self.pathid = 0
         self.pow = 0.0
         self.delay = 0.0
         self.len = 0.0
@@ -76,6 +77,7 @@ class path():
         self.EoA = 0.0
         self.AoD = 0.0
         self.EoD = 0.0
+        self.FSPL = 0.0
         self.chan = None
 
 
@@ -118,7 +120,7 @@ class data_stor():
             n.setid = i[4]
             self.rxs[i[0]] = n
 
-    #@numba.jit
+    @numba.jit
     def load_path(self, dbname: str = None):
         if self.dbconn is None:
             print('Error: connect to DB and load txs/rxs first!')
@@ -139,8 +141,10 @@ class data_stor():
             for j in self.txs[i].chan_to_pairs.keys():
                 for k in self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chan_to_pairs[j].chid)):
                     self.txs[i].chan_to_pairs[j].paths[k[0]] = path()
+                    self.txs[i].chan_to_pairs[j].paths[k[0]].pathid = k[0]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].chan = self.txs[i].chan_to_pairs[j]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].pow = k[1]
+                    self.txs[i].chan_to_pairs[j].paths[k[0]].FSPL = k[7]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].delay = k[2]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].AoD = k[3]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].EoD = k[4]
