@@ -50,15 +50,15 @@ class plPlot():
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
-                            elif k[1].interactions.__len__() == 1 and typ == 'nLOS-1' and l2db(k[1].pow) >= self.thrshld:
+                            elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
-                            elif k[1].interactions.__len__() == 2 and typ == 'nLOS-2' and l2db(k[1].pow) >= self.thrshld:
+                            elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
-                            elif k[1].interactions.__len__() >= 1 and typ == 'nLOS-*' and l2db(k[1].pow) >= self.thrshld:
+                            elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
@@ -79,17 +79,18 @@ class plPlot():
                                                                                         self.mean_res, self.var_res))
         mpl.xlabel('Distance, [meters]')
         mpl.ylabel('Pathloss, [dB]')
-        mpl.grid()
-        mpl.xlim([0, np.max(np.power(10.0, self.xdata))])
+        mpl.grid(linestyle='--')
+        mpl.xlim([0, np.nanmax(np.power(10.0, self.xdata))])
         mpl.show()
 
 
 if __name__ == '__main__':
     DS = pairdata.data_stor()
-    DS.load_rxtx('class.sqlite')
+    #DS.load_rxtx('class.sqlite')
+    DS.load_rxtx('Human_crawl.TEST.sqlite')
     DS.load_paths()
     DS.load_interactions()
     plp = plPlot(source=DS)
-    print(plp.regr_comp(typ='nLOS-1', threshold=-95))
+    print(plp.regr_comp(typ='NLOS', threshold=-95))
     plp.plot_reg()
     exit()

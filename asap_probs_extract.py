@@ -16,65 +16,12 @@
 
 import pairdata
 from auxfun import *
+from auxclass import *
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
 import matplotlib.collections as mpc
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
-
-class varhist():
-    def __init__(self, binc, rstart, rstop, frac: float = 0.6, minbins: float = 1.0):
-        self.bins = dict()
-        self.floor = rstart
-        self.ceiling = rstop
-        self.tothits = 0
-
-        intsize = rstop - rstart
-
-        for i in range(binc - 1):
-            if intsize - intsize * frac >= minbins:
-                self.bins[(rstart + intsize * frac, rstop)] = 0
-                rstop = rstart + intsize * frac
-                intsize = intsize * frac
-            else:
-                binsleft = intsize/minbins
-                # We want small bins
-                binsleft = int(np.ceil(binsleft))
-                binsize = intsize/binsleft
-                for j in range(binsleft):
-                    self.bins[(rstart + binsize * j, rstart + binsize * (j + 1))] = 0
-                break
-
-    def append(self, val):
-        if val < self.ceiling and val > self.floor:
-            for i in self.bins.keys():
-                if val > i[0] and val < i[1]:
-                    self.bins[i]+=1
-                    self.tothits+=1
-                    return True
-        return False
-
-class probhist(varhist):
-    def __init__(self, binc, rstart, rstop, frac: float = 0.6, minbins: float = 1.0):
-        varhist.__init__(self, binc, rstart, rstop, frac, minbins)
-        # First element in a tuple is number of staisfactory items
-        # Second is total number of hits
-        for i in self.bins.keys():
-            self.bins[i] = (0, 0)
-
-    def append_succ(self, val):
-        if val < self.ceiling and val > self.floor:
-            for i in self.bins.keys():
-                if val > i[0] and val < i[1]:
-                    self.tothits += 1
-                    self.bins[i] = (self.bins[i][0] + 1, self.bins[i][1] + 1)
-
-    def append_fail(self, val):
-        if val < self.ceiling and val > self.floor:
-            for i in self.bins.keys():
-                if val > i[0] and val < i[1]:
-                    self.tothits += 1
-                    self.bins[i] = (self.bins[i][0], self.bins[i][1] + 1)
 
 
 class distanced_hist_extractor():
@@ -165,10 +112,10 @@ class distanced_hist_extractor():
                     self.hist.append_fail(shift)
 
 
-    def plot_hist(self):
+    def plot_hist(self, log: bool = False):
         fig = mpl.figure()
         ax = fig.add_subplot(211)
-        ax.grid()
+        ax.grid(linestyle='--')
         ax.set_xlim([self.hist.floor, self.hist.ceiling])
         ax.set_ylim([0, 1])
         ax.set_xlabel('Distance, [m]')
@@ -190,9 +137,11 @@ class distanced_hist_extractor():
         ax.add_collection(bc)
 
         ax = fig.add_subplot(212)
-        ax.grid()
+        ax.grid(linestyle='--')
         ax.set_xlim([self.hist.floor, self.hist.ceiling])
         ax.set_ylim([0, 1])
+        if log:
+            mpl.semilogy()
         ax.set_xlabel('Distance, [m]')
         ax.set_ylabel('Hit probability'.format(self.type))
         ax.set_title('Total hits {} @ {} dBm threshold'.format(self.hist.tothits, self.thresh))
@@ -215,10 +164,11 @@ if __name__ == "__main__":
     DS = pairdata.data_stor()
     #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/HumanCrawl/Human_crawl_X3D_Control/Human_crawl.Human_crawl_X3D_Control.sqlite')
     DS.load_rxtx('Human_crawl.TEST.sqlite')
+    #DS.load_rxtx('class.sqlite')
     DS.load_paths(npaths=75)
     DS.load_interactions(store=False)
 
-    DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.02)
-    DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->nolink')
-    DE.plot_hist()
+    DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
+    DE.build_trans(txgrp=-1, rxgrp=-1, typ='link->link')
+    DE.plot_hist(log=False)
     exit()
