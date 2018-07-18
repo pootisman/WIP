@@ -55,8 +55,8 @@ class rec_pat():
                         th = []
                         tt = []
                         r = []
-                        for k in self.source.txs[i].chan_to_pairs[self.source.rxs[j]].paths.keys():
-                            th.append((self.source.txs[i].chan_to_pairs[self.source.rxs[j]].paths[k].AoA, l2db(self.source.txs[i].chan_to_pairs[self.source.rxs[j]].paths[k].pow)))
+                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
+                            th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].AoA, l2db(self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow)))
                         th = sorted(th, key=lambda x: x[0])
                         for t in th:
                             r.append(t[1])

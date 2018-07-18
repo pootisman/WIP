@@ -41,7 +41,7 @@ class plPlot():
             # TX is in valid group or group is ignored?
             if i[1].setid == txgrp or txgrp == -1:
                 # Which RXes are reached by TX
-                for j in i[1].chan_to_pairs.items():
+                for j in i[1].chans_to_pairs.items():
                     # Destination in a valid group or group is ignored?
                     if j[0].setid == rxgrp or rxgrp == -1:
                         # Check paths for the RX-TX, only pick valid ones

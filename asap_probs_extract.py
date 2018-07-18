@@ -82,13 +82,16 @@ class distanced_hist_extractor():
         self.hist = probhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
         self.type = None
+        self.trans_type = None
         self.mut = False
         self.thresh = thrs
+        self.rx_proc = {pairdata.Node: list}
+
 
     def has_path(self, src: pairdata.Node, dest: pairdata.Node, typ: str):
-        if dest in src.chan_to_pairs:
+        if dest in src.chans_to_pairs:
             # Go over all paths
-            for i in src.chan_to_pairs[dest].paths.items():
+            for i in src.chans_to_pairs[dest].paths.items():
                 if typ == 'LOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
                     return True
                 elif typ == 'NLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
@@ -127,6 +130,40 @@ class distanced_hist_extractor():
                             self.hist.append_succ(j[1].dist)
                         else:
                             self.hist.append_fail(j[1].dist)
+
+    def build_trans(self, txgrp: int = -1, rxgrp: int = -1, typ: str = 'LOS->LOS'):
+        self.type = typ
+        start, stop = typ.split('->')
+        for i in self.source.txs.items():
+            if i[1].setid == txgrp or txgrp == -1:
+                for j in i[1].chans_to_pairs.keys():
+                    if j.setid == rxgrp or rxgrp == -1:
+                        if self.has_path(i[1], j, start):
+                            self.build_delta(ctx=i[1], crx=j, trans_typ=stop)
+                        else:
+                            self.build_delta(ctx=i[1], crx=j, trans_typ=False)
+
+
+
+    '''Builds delta histogram for one point, called multiple times for eac individual TX'''
+    def build_delta(self, ctx: pairdata.Node, crx: pairdata.Node, trans_typ: str = 'LOS'):
+        if ctx not in self.rx_proc.keys():
+            self.rx_proc[ctx] = list()
+
+        self.rx_proc[ctx].append(crx)
+
+        for i in ctx.chans_to_pairs.keys():
+            if i not in self.rx_proc[ctx]:
+                shift = np.linalg.norm(crx.coords - i.coords)
+
+                if isinstance(trans_typ, str):
+                    if self.has_path(ctx, i, trans_typ):
+                        self.hist.append_succ(shift)
+                    else:
+                        self.hist.append_fail(shift)
+                elif trans_typ:
+                    self.hist.append_fail(shift)
+
 
     def plot_hist(self):
         fig = mpl.figure()
@@ -181,7 +218,7 @@ if __name__ == "__main__":
     DS.load_paths(npaths=75)
     DS.load_interactions(store=False)
 
-    DE = distanced_hist_extractor(DS, range=(0.04, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.02)
-    DE.build(txgrp=-1, rxgrp=-1, typ='LOS')
+    DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.02)
+    DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->nolink')
     DE.plot_hist()
     exit()

@@ -36,7 +36,7 @@ INTERS_SPEC = "SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id =
 
 class Node():
     def __init__(self, typ: str):
-        self.chan_to_pairs = dict()
+        self.chans_to_pairs = dict()
         self.node_id = 0
         self.coords = [0, 0, 0]
         self.rot = [0, 0, 0]
@@ -49,9 +49,9 @@ class Node():
             self.rxpow = 0.0
 
     def chan_to(self, dest):
-        for i in self.chan_to_pairs.keys():
-            if self.chan_to_pairs[i].dest == dest:
-                return self.chan_to_pairs[i]
+        for i in self.chans_to_pairs.keys():
+            if self.chans_to_pairs[i].dest == dest:
+                return self.chans_to_pairs[i]
         return None
 
 class chan():
@@ -131,29 +131,29 @@ class data_stor():
         for i in self.txs.keys():
             for j in self.dbcurs.execute(TX_PAIRS.format(i, i)):
                 dst = self.rxs[j[-1]]
-                self.txs[i].chan_to_pairs[dst] = chan(dst, self.txs[i])
-                self.rxs[j[-1]].chan_to_pairs[self.txs[i]] = self.txs[i].chan_to_pairs[dst]
-                self.txs[i].chan_to_pairs[dst].pow = j[1] * 1e3
-                self.txs[i].chan_to_pairs[dst].delay = j[2]
-                self.txs[i].chan_to_pairs[dst].ds = j[3]
-                self.txs[i].chan_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
-                self.txs[i].chan_to_pairs[dst].chid = j[0]
+                self.txs[i].chans_to_pairs[dst] = chan(dst, self.txs[i])
+                self.rxs[j[-1]].chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
+                self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
+                self.txs[i].chans_to_pairs[dst].delay = j[2]
+                self.txs[i].chans_to_pairs[dst].ds = j[3]
+                self.txs[i].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
+                self.txs[i].chans_to_pairs[dst].chid = j[0]
 
-            for j in self.txs[i].chan_to_pairs.keys():
-                self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chan_to_pairs[j].chid))
+            for j in self.txs[i].chans_to_pairs.keys():
+                self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chans_to_pairs[j].chid))
                 d = self.dbcurs.fetchall()
                 d = sorted(d, key=lambda t: t[1], reverse=True)
                 for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
-                    self.txs[i].chan_to_pairs[j].paths[k[0]] = path()
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].pathid = k[0]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].chan = self.txs[i].chan_to_pairs[j]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].FSPL = k[7]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].delay = k[2]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].AoD = k[3]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].EoD = k[4]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].AoA = k[5]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].EoA = k[6]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
+                    self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
 
     def load_interactions(self, store: bool = True):
         if self.dbconn is None:
@@ -164,7 +164,7 @@ class data_stor():
             self.possible_inters[i[0]] = i[1]
 
         for i in self.txs.items():
-            for j in i[1].chan_to_pairs.items():
+            for j in i[1].chans_to_pairs.items():
                 for k in j[1].paths.items():
                     for l in self.dbcurs.execute(INTERS_SPEC.format(k[0])):
                         if store:
