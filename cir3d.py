@@ -18,7 +18,6 @@ import numpy as np
 import matplotlib.pyplot as mpl
 import pairdata
 from auxfun import *
-import numba
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
@@ -26,15 +25,11 @@ class cirs():
     def __init__(self, source):
         self.source = source
 
-        self.xlim = [-np.Inf, np.Inf]
-        self.ylim = [-np.Inf, np.Inf]
-        self.zlim = [-np.Inf, np.Inf]
-
         self.xdata = []
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, print: bool = False, cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, tofile: bool = False, cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -46,10 +41,10 @@ class cirs():
             rxrange = range(rxrange)
 
         for i in txrange:
-            self.xdata = []
-            self.ydata = []
-            self.zdata = []
             if self.source.txs[i].setid == txgrp or txgrp == -1:
+                self.xdata = []
+                self.ydata = []
+                self.zdata = []
                 f = mpl.figure(i)
                 nn = 0
                 maxy = 0
@@ -57,15 +52,14 @@ class cirs():
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
                         nn += 1
                         if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
-                            for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.keys():
+                            for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
                                 self.xdata.append(j)
-                                self.ydata.append(self.source.txs[i].chan_to(self.source.rxs[j]).paths[k].delay * 1e9)
-                                self.zdata.append(l2db(self.source.txs[i].chan_to(self.source.rxs[j]).paths[k].pow))
+                                self.ydata.append(k[1].delay * 1e9)
+                                self.zdata.append(l2db(k[1].pow))
                         else:
                             if self.ydata.__len__() > 0 and maxy == 0:
-                                maxy = np.max(self.ydata)
+                                maxy = np.nanmax(self.ydata)
 
-                            for k in range(ydim):
                                 self.xdata.append(j)
                                 self.ydata.append(maxy)
                                 self.zdata.append(np.NaN)
@@ -85,17 +79,22 @@ class cirs():
                 mpl.xlabel('RX Position')
                 mpl.ylabel('Delay, [ns]')
                 mpl.title('CIR@TX #{}'.format(i))
-                if print:
+                mpl.tight_layout()
+                if tofile:
                     mpl.savefig('CIR3D_tx{0:03d}.png'.format(i))
                     mpl.close(f)
 
-        if print is False:
+        if tofile is False:
             mpl.show()
 
 
 if __name__ == "__main__":
     DS = pairdata.data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
-    DS.load_path()
+    #DS.load_rxtx('class.sqlite')
+    DS.load_rxtx('Human_crawl.TEST.sqlite')
+    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
+    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
+    DS.load_paths(npaths=250)
     cir = cirs(DS)
-    cir.draw(-1, -1, txgrp=1, rxgrp=4, print=True)
+    cir.draw(-1, -1, txgrp=-1, rxgrp=2, tofile=False, ydim=250)
+    exit()

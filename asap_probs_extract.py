@@ -19,15 +19,12 @@ from auxfun import *
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
 import matplotlib.collections as mpc
-import threading as trd
-import numba
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 class varhist():
-    def __init__(self, binc, rstart, rstop, frac: float = 0.6):
+    def __init__(self, binc, rstart, rstop, frac: float = 0.6, minbins: float = 1.0):
         self.bins = dict()
-        self.samps = 0
         self.floor = rstart
         self.ceiling = rstop
         self.tothits = 0
@@ -35,10 +32,18 @@ class varhist():
         intsize = rstop - rstart
 
         for i in range(binc - 1):
-            self.bins[(rstart + intsize * frac, rstop)] = 0
-            rstop = rstart + intsize * frac
-            intsize = intsize * frac
-
+            if intsize - intsize * frac >= minbins:
+                self.bins[(rstart + intsize * frac, rstop)] = 0
+                rstop = rstart + intsize * frac
+                intsize = intsize * frac
+            else:
+                binsleft = intsize/minbins
+                # We want small bins
+                binsleft = int(np.ceil(binsleft))
+                binsize = intsize/binsleft
+                for j in range(binsleft):
+                    self.bins[(rstart + binsize * j, rstart + binsize * (j + 1))] = 0
+                break
 
     def append(self, val):
         if val < self.ceiling and val > self.floor:
@@ -46,94 +51,99 @@ class varhist():
                 if val > i[0] and val < i[1]:
                     self.bins[i]+=1
                     self.tothits+=1
-                    return
+                    return True
+        return False
 
 class probhist(varhist):
-    def __init__(self, binc, rstart, rstop, frac: float = 0.6):
-        varhist.__init__(self, binc, rstart, rstop, frac)
-        self.bins.clear()
-        intsize = rstop - rstart
+    def __init__(self, binc, rstart, rstop, frac: float = 0.6, minbins: float = 1.0):
+        varhist.__init__(self, binc, rstart, rstop, frac, minbins)
         # First element in a tuple is number of staisfactory items
         # Second is total number of hits
-        for i in range(binc - 1):
-            self.bins[(rstart + intsize * frac, rstop)] = (0, 0)
-            rstop = rstart + intsize * frac
-            intsize = intsize * frac
+        for i in self.bins.keys():
+            self.bins[i] = (0, 0)
 
-    def append(self, val, cond: callable = None, kwargs: dict = None):
-        assert cond != None and kwargs != None
+    def append_succ(self, val):
         if val < self.ceiling and val > self.floor:
             for i in self.bins.keys():
                 if val > i[0] and val < i[1]:
                     self.tothits += 1
-                    if cond(kwargs['val']):
-                        self.bins[i] = (self.bins[i][0] + 1, self.bins[i][1] + 1)
-                        return True
-                    else:
-                        self.bins[i] = (self.bins[i][0], self.bins[i][1] + 1)
-                        return False
+                    self.bins[i] = (self.bins[i][0] + 1, self.bins[i][1] + 1)
+
+    def append_fail(self, val):
+        if val < self.ceiling and val > self.floor:
+            for i in self.bins.keys():
+                if val > i[0] and val < i[1]:
+                    self.tothits += 1
+                    self.bins[i] = (self.bins[i][0], self.bins[i][1] + 1)
+
 
 class distanced_hist_extractor():
-    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7, thrs: float = -115):
-        self.hist = probhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac)
+    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7, thrs: float = -115, minbins: float = 0.2):
+        self.hist = probhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
         self.type = None
         self.mut = False
         self.thresh = thrs
 
-    def sig_more(self, val):
-        return l2db(val) > self.thresh
+    def has_path(self, src: pairdata.Node, dest: pairdata.Node, typ: str):
+        if dest in src.chan_to_pairs:
+            # Go over all paths
+            for i in src.chan_to_pairs[dest].paths.items():
+                if typ == 'LOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
+                    return True
+                elif typ == 'NLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
+                    return True
+                elif typ == 'NLOS-1' and i[1].interactions.__len__() == 1 and l2db(i[1].pow) >= self.thresh:
+                    return True
+                elif typ == 'NLOS-2' and i[1].interactions.__len__() == 2 and l2db(i[1].pow) >= self.thresh:
+                    return True
+                elif typ == 'NLOS-3' and i[1].interactions.__len__() == 3 and l2db(i[1].pow) >= self.thresh:
+                    return True
+                elif typ == 'noLOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
+                    return False
+                elif typ == 'noNLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
+                    return False
+                elif typ == 'link' and l2db(i[1].pow) >= self.thresh:
+                    return True
+                elif typ == 'nolink' and l2db(i[1].pow) >= self.thresh:
+                    return False
+        else:
+            return False
 
-    def sig_less(self, val):
-        return l2db(val) < self.thresh
+        if typ in ['LOS', 'NLOS', 'link', 'NLOS-1', 'NLOS-2', 'NLOS-3']:
+            return False
+        else:
+            return True
 
-    @numba.jit
     def build(self, txgrp: int = -1, rxgrp: int = -1, typ: str = 'LOS'):
         self.type = typ
         for i in self.source.txs.items():
+            #print(i[0])
             if i[1].setid == txgrp or txgrp == -1:
                 for j in i[1].chan_to_pairs.items():
-                    if j[1].dest.setid == rxgrp or rxgrp == -1:
-                        for k in j[1].paths.items():
-                            # No interactions indicate LOS link, check if it fits
-                            if k[1].interactions.__len__() == 0 and typ == 'LOS':
-                                self.hist.append(j[1].dist, cond=self.sig_more, kwargs={'self': self, 'val': k[1].pow})
-                            elif k[1].interactions.__len__() > 0 and typ == 'NLOS':
-                                self.hist.append(j[1].dist, cond=self.sig_more, kwargs={'self': self, 'val': k[1].pow})
-                            elif k[1].interactions.__len__() == 0 and typ == 'noLOS':
-                                self.hist.append(j[1].dist, cond=self.sig_less, kwargs={'self': self, 'val': k[1].pow})
-                            elif typ == 'nolink':
-                                self.hist.append(j[1].dist, cond=self.sig_less, kwargs={'self': self, 'val': k[1].pow})
-                            elif typ == 'link':
-                                self.hist.append(j[1].dist, cond=self.sig_more, kwargs={'self': self, 'val': k[1].pow})
-
-        #for i in sorted(self.hist.bins.items(), key=lambda t: t[0][0]):
-        #    self.hist.bins[i[0]] = self.hist.bins[i[0]]
-
-    def CDF_mutate(self):
-        cumulator = 0.0
-        self.mut = True
-        for i in sorted(self.hist.bins.items(), key=lambda t: t[0][0]):
-            cumulator += self.hist.bins[i[0]]
-            self.hist.bins[i[0]] = cumulator
+                    #print('{} {}'.format(j[0].node_id, l2db(j[1].pow)))
+                    if j[0].setid == rxgrp or rxgrp == -1:
+                        if self.has_path(i[1], j[0], typ):
+                            self.hist.append_succ(j[1].dist)
+                        else:
+                            self.hist.append_fail(j[1].dist)
 
     def plot_hist(self):
         fig = mpl.figure()
-        ax = fig.add_subplot(111)
+        ax = fig.add_subplot(211)
         ax.grid()
         ax.set_xlim([self.hist.floor, self.hist.ceiling])
-        if self.mut:
-            ax.set_ylim([0, 1])
+        ax.set_ylim([0, 1])
         ax.set_xlabel('Distance, [m]')
         ax.set_ylabel('{} probability'.format(self.type))
-        ax.set_title('Total hits {}'.format(self.hist.tothits))
+        ax.set_title('Total hits {} @ {} dBm threshold'.format(self.hist.tothits, self.thresh))
         bars = []
         tcks = []
 
         for i in self.hist.bins.items():
             bars.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][0]/i[1][1] if i[1][1] > 0 else 0.0))
             tcks.append(i[0][0])
-            ax.text(i[0][0] + (i[0][1] - i[0][0]), 0.5, s='{}'.format(i[1][1]))
+            ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][0]), rotation='vertical', horizontalalignment='center', verticalalignment='center')
         tcks.append(self.hist.ceiling)
 
         mpl.xticks(tcks, rotation='vertical')
@@ -142,166 +152,36 @@ class distanced_hist_extractor():
 
         ax.add_collection(bc)
 
-        mpl.tight_layout()
-        mpl.show()
-
-
-class distanced_delta_hist_extractor():
-    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7):
-        self.hist = varhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac)
-        self.source = src
-        self.type = None
-        self.thread_pool = []
-        self.mut = False
-
-    @numba.jit
-    def hist_keying(self, path: pairdata.path, typ: str = 'LOS', thresh: float = -95.0, crx: pairdata.Node = None):
-        if path.interactions.__len__() == 0 and l2db(path.pow) > thresh and typ == 'LOS':
-            self.hist.append(np.linalg.norm(path.chan.src.coords - crx.coords))
-            return True
-        elif path.interactions.__len__() > 0 and l2db(path.pow) > thresh and typ == 'NLOS':
-            self.hist.append(np.linalg.norm(path.chan.src.coords - crx.coords))
-            return True
-        elif path.interactions.__len__() == 0 and l2db(path.pow) < thresh and typ == 'noLOS':
-            self.hist.append(np.linalg.norm(path.chan.src.coords - crx.coords))
-            return True
-        elif path.interactions.__len__() >= 0 and l2db(path.pow) < thresh and typ == 'noNLOS':
-            self.hist.append(np.linalg.norm(path.chan.src.coords - crx.coords))
-            return True
-        elif path.interactions.__len__() >= 0 and l2db(path.pow) > thresh and typ == 'link':
-            self.hist.append(np.linalg.norm(path.chan.src.coords - crx.coords))
-            return True
-        elif path.interactions.__len__() >= 0 and l2db(path.pow) < thresh and typ == 'nolink':
-            self.hist.append(np.linalg.norm(path.chan.src.coords - crx.coords))
-            return True
-
-        return False
-
-    @numba.jit
-    def build(self, txgrp: int = -1, rxgrp: int = -1, thresh: float = -95, start_typ: str = 'LOS', sw_typ: str = 'LOS'):
-        excluderx = []
-        self.type = '{}->{}'.format(start_typ, sw_typ)
-
-        # Iterate over all TXs
-        for i in self.source.txs.items():
-            # Do we filter TXs? What group TX is in?
-            if i[1].setid == txgrp or txgrp == -1:
-                print('TX[{}]'.format(i[0]))
-                # Iterate over channels of the TX
-                for j in i[1].chan_to_pairs.items():
-                    # Exclude destination of each channel from stats, avoid double counting!
-                    excluderx.append(j[1].dest)
-                    # Do we filter destinations? What group dest has?
-                    if j[1].dest.setid == rxgrp or rxgrp == -1:
-                        print('CHAN[{}->{}]'.format(j[1].src.node_id, j[1].dest.node_id))
-                        # Iterate over all paths in a channel
-                        for k in j[1].paths.items():
-                            # No interactions and power over threshold -> LOS
-                            if k[1].interactions.__len__() == 0 and l2db(k[1].pow) > thresh and start_typ == 'LOS':
-                                # Iterate over all RXs
-                                for l in self.source.rxs.items():
-                                    # Check RX group and if it was already counted
-                                    if (l[1].setid == rxgrp or rxgrp == -1) and l[1] not in excluderx:
-                                        # Iterate over all paths
-                                        for m in l[1].chan_to_pairs[i[1]].paths.items():
-                                            if self.hist_keying(crx=j[1].dest, path=m[1], typ=sw_typ, thresh=thresh):
-                                                break
-                                            print('Analyzing {}->{} path transfer from {} to {}'.format(start_typ, sw_typ, k[1].pathid, m[1].pathid))
-                            elif k[1].interactions.__len__() > 0 and l2db(k[1].pow) > thresh and start_typ == 'NLOS':
-                                for l in self.source.rxs.items():
-                                    if (l[1].setid == rxgrp or rxgrp == -1) and l[1] not in excluderx:
-                                        # Iterate over all paths
-                                        for m in l[1].chan_to_pairs[i[1]].paths.items():
-                                            if self.hist_keying(crx=j[1].dest, path=m[1], typ=sw_typ, thresh=thresh):
-                                                break
-                                            print('Analyzing {}->{} path transfer from {} to {}'.format(start_typ, sw_typ, k[1].pathid, m[1].pathid))
-                            elif k[1].interactions.__len__() == 0 and l2db(k[1].pow) < thresh and start_typ == 'noLOS':
-                                for l in self.source.rxs.items():
-                                    if (l[1].setid == rxgrp or rxgrp == -1) and l[1] not in excluderx:
-                                        # Iterate over all paths
-                                        for m in l[1].chan_to_pairs[i[1]].paths.items():
-                                            if self.hist_keying(crx=j[1].dest, path=m[1], typ=sw_typ, thresh=thresh):
-                                                break
-                                            print('Analyzing {}->{} path transfer from {} to {}'.format(start_typ, sw_typ, k[1].pathid, m[1].pathid))
-                            elif l2db(k[1].pow) < thresh and start_typ == 'nolink':
-                                for l in self.source.rxs.items():
-                                    if (l[1].setid == rxgrp or rxgrp == -1) and l[1] not in excluderx:
-                                        # Iterate over all paths
-                                        for m in l[1].chan_to_pairs[i[1]].paths.items():
-                                            if self.hist_keying(crx=j[1].dest, path=m[1], typ=sw_typ, thresh=thresh):
-                                                break
-                                            print('Analyzing {}->{} path transfer from {} to {}'.format(start_typ, sw_typ, k[1].pathid, m[1].pathid))
-                            elif l2db(k[1].pow) > thresh and start_typ == 'link':
-                                for l in self.source.rxs.items():
-                                    if (l[1].setid == rxgrp or rxgrp == -1) and l[1] not in excluderx:
-                                        # Iterate over all paths
-                                        for m in l[1].chan_to_pairs[i[1]].paths.items():
-                                            if self.hist_keying(crx=j[1].dest, path=m[1], typ=sw_typ, thresh=thresh):
-                                                break
-                                            print('Analyzing {}->{} path transfer from {} to {}'.format(start_typ, sw_typ, k[1].pathid, m[1].pathid))
-
-        for i in sorted(self.hist.bins.items(), key=lambda t: t[0][0]):
-            self.hist.bins[i[0]] = self.hist.bins[i[0]] / self.hist.tothits
-
-    def CDF_mutate(self):
-        self.mut = True
-        cumulator = 0.0
-        for i in sorted(self.hist.bins.items(), key=lambda t: t[0][0]):
-            cumulator += self.hist.bins[i[0]]
-            self.hist.bins[i[0]] = cumulator
-
-    def plot_hist(self):
-        fig = mpl.figure()
-        ax = fig.add_subplot(111)
+        ax = fig.add_subplot(212)
         ax.grid()
         ax.set_xlim([self.hist.floor, self.hist.ceiling])
-        if self.mut:
-            ax.set_ylim([0, 1])
+        ax.set_ylim([0, 1])
         ax.set_xlabel('Distance, [m]')
-        ax.set_ylabel('{} probability'.format(self.type))
-        ax.set_title('Total hits {}'.format(self.hist.tothits))
-        bars = []
-        tcks = []
+        ax.set_ylabel('Hit probability'.format(self.type))
+        ax.set_title('Total hits {} @ {} dBm threshold'.format(self.hist.tothits, self.thresh))
+        bars2 = []
 
         for i in self.hist.bins.items():
-            bars.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1]))
-            tcks.append(i[0][0])
-        tcks.append(self.hist.ceiling)
+            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][1]/self.hist.tothits))
+            ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][1]), rotation='vertical', horizontalalignment='center', verticalalignment='center')
 
         mpl.xticks(tcks, rotation='vertical')
 
-        bc = mpc.PatchCollection(bars)
+        bc = mpc.PatchCollection(bars2)
 
         ax.add_collection(bc)
-
         mpl.tight_layout()
         mpl.show()
-
-    class probplot():
-        def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7):
-            self.hist = varhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac)
-            self.source = src
-            self.type = None
-            self.thread_pool = []
-            self.mut = False
-
-
 
 
 if __name__ == "__main__":
     DS = pairdata.data_stor()
     #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/HumanCrawl/Human_crawl_X3D_Control/Human_crawl.Human_crawl_X3D_Control.sqlite')
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
+    DS.load_rxtx('Human_crawl.TEST.sqlite')
+    DS.load_paths(npaths=75)
+    DS.load_interactions(store=False)
 
-    DS.load_path()
-
-    DE = distanced_hist_extractor(DS, range=(0.08, 18), histbins=50, frac=0.85, thrs=-125)
+    DE = distanced_hist_extractor(DS, range=(0.04, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.02)
     DE.build(txgrp=-1, rxgrp=-1, typ='LOS')
-    #    DE.CDF_mutate()
     DE.plot_hist()
-
-    #DDE = distanced_delta_hist_extractor(DS, range=(0, 18), histbins=50, frac=0.85)
-    #DDE.build(txgrp=-1, rxgrp=-1, thresh=-115, start_typ='nolink', sw_typ='link')
-    #DDE.CDF_mutate()
-    #DDE.plot_hist()
     exit()

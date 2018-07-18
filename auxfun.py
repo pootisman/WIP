@@ -17,16 +17,13 @@
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
-import numba
 
-@numba.jit
-def basint2(X: list, Y: list, xc: int):
+
+def basint2(X: list, Y: list, xc: int, threaded: bool = False):
     Xlim = [np.nanmin(X), np.nanmax(X)]
 
-    stepX = 360.0 / xc
-
-    Xo = np.arange(start=-180, step=stepX, stop=180)
-    Yo = np.tile(np.min(Y), [xc])
+    Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)
+    Yo = np.tile(np.nanmin(Y), [Xo.__len__()])
 
     for i in range(Y.__len__()):
         j = int(np.round((X[i] - Xlim[0]) / stepX))
@@ -39,23 +36,28 @@ def basint2(X: list, Y: list, xc: int):
             else:
                 Yo[j] = np.nanmin(Y)
 
-    return (Xo, Yo)
+    return Xo, Yo
 
-@numba.jit
 def basint3(X: list, Y: list, Z: list, xc: float, yc: float):
     Xlim = [np.nanmin(X), np.nanmax(X)]
     Ylim = [np.nanmin(Y), np.nanmax(Y)]
 
-    stepX = (Xlim[1] - Xlim[0]) / xc
-    stepY = (Ylim[1] - Ylim[0]) / yc
+    Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)
+    Yo, stepY = np.linspace(start=Ylim[0], stop=Ylim[1], num=yc, retstep=True)
 
-    Xo = np.arange(start=Xlim[0], step=stepX, stop=Xlim[1])
-    Yo = np.arange(start=Ylim[0], step=stepY, stop=Ylim[1])
     Zo = np.tile(np.nanmin(Z), [Xo.__len__(), Yo.__len__()])
 
     for i in range(Z.__len__()):
-        j = int(np.round((X[i] - Xlim[0]) / stepX))
-        k = int(np.round((Y[i] - Ylim[0]) / stepY))
+        if stepX != 0:
+            j = int(np.round((X[i] - Xlim[0]) / stepX))
+        else:
+            j = Xlim[0]
+
+        if stepY != 0:
+            k = int(np.round((Y[i] - Ylim[0]) / stepY))
+        else:
+            k = Ylim[0]
+
         if j == Xo.__len__():
             j = j - 1
         if k == Yo.__len__():
@@ -67,12 +69,10 @@ def basint3(X: list, Y: list, Z: list, xc: float, yc: float):
             else:
                 Zo[j, k] = np.nanmin(Z)
 
-    return (Xo, Yo, Zo)
+    return Xo, Yo, Zo
 
-@numba.jit
 def l2db(val: float):
     return 10.0 * np.log10(val)
 
-@numba.jit
 def db2l(val: float):
     return np.power(10.0, val / 10.0)

@@ -55,8 +55,8 @@ class rec_pat():
                         th = []
                         tt = []
                         r = []
-                        for k in self.source.txs[i].chan_to_pairs[j].paths.keys():
-                            th.append((self.source.txs[i].chan_to_pairs[j].paths[k].AoA, l2db(self.source.txs[i].chan_to_pairs[j].paths[k].pow)))
+                        for k in self.source.txs[i].chan_to_pairs[self.source.rxs[j]].paths.keys():
+                            th.append((self.source.txs[i].chan_to_pairs[self.source.rxs[j]].paths[k].AoA, l2db(self.source.txs[i].chan_to_pairs[self.source.rxs[j]].paths[k].pow)))
                         th = sorted(th, key=lambda x: x[0])
                         for t in th:
                             r.append(t[1])
@@ -79,6 +79,6 @@ class rec_pat():
 if __name__ == "__main__":
     DS = pairdata.data_stor()
     DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
-    DS.load_path()
+    DS.load_paths()
     cir =  rec_pat(DS)
     cir.draw(1, 120, rxgrp=4, print=True)

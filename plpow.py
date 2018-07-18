@@ -1,8 +1,22 @@
-import numpy as np
+# Copyright (C) Aleksei Ponomarenko-Timofeev
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 import matplotlib.pyplot as mpl
 import pairdata
 from auxfun import *
-import numba
 
 class plPlot():
     def __init__(self, source: pairdata.data_stor = None):
@@ -11,12 +25,12 @@ class plPlot():
         self.ydata = None
         self.nsamps = 0
         self.source = source
-        self.a = 0
-        self.b = 0
+        self.a = 0.0
+        self.b = 0.0
         self.typ = None
+        self.thrshld = 0.0
 
-    @numba.jit
-    def regr_comp(self, rxgrp: int = -1, txgrp: int = -1, typ: str ='LOS', threshold: int = -130):
+    def regr_comp(self, rxgrp: int = -1, txgrp: int = -1, typ: str ='LOS', threshold: float = -130):
         self.xdata = []
         self.ydata = []
         self.typ = typ
@@ -32,19 +46,19 @@ class plPlot():
                     if j[0].setid == rxgrp or rxgrp == -1:
                         # Check paths for the RX-TX, only pick valid ones
                         for k in j[1].paths.items():
-                            if k[1].interactions.__len__() == 0 and typ == 'LOS' and k[1].pow > self.thrshld:
+                            if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
-                            elif k[1].interactions.__len__() == 1 and typ == 'nLOS-1' and k[1].pow > self.thrshld:
+                            elif k[1].interactions.__len__() == 1 and typ == 'nLOS-1' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
-                            elif k[1].interactions.__len__() == 2 and typ == 'nLOS-2' and k[1].pow > self.thrshld:
+                            elif k[1].interactions.__len__() == 2 and typ == 'nLOS-2' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
-                            elif k[1].interactions.__len__() >= 1 and typ == 'nLOS-*' and k[1].pow > self.thrshld:
+                            elif k[1].interactions.__len__() >= 1 and typ == 'nLOS-*' and l2db(k[1].pow) >= self.thrshld:
                                 self.xdata.append(np.log10(j[1].dist))
                                 self.ydata.append(k[1].FSPL)
                                 self.nsamps += 1
@@ -61,7 +75,8 @@ class plPlot():
         mpl.plot(np.power(10, self.xdata), self.b + self.a * self.xdata, 'b.', label='Fitted model')
         self.mean_res = np.mean(self.ydata - self.b - self.a * self.xdata)
         self.var_res = np.sqrt(np.var(self.ydata - self.b - self.a * self.xdata))
-        mpl.title('{} Regression b={}dBm, a={}dBm, m={}dBm , s={}dBm'.format(self.typ, self.a, self.b, self.mean_res, self.var_res, width=6))
+        mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm, m={:3.2}dBm , s={:3.2}dBm'.format(self.typ, self.a, self.b,
+                                                                                        self.mean_res, self.var_res))
         mpl.xlabel('Distance, [meters]')
         mpl.ylabel('Pathloss, [dB]')
         mpl.grid()
@@ -71,9 +86,10 @@ class plPlot():
 
 if __name__ == '__main__':
     DS = pairdata.data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
-    DS.load_path()
+    DS.load_rxtx('class.sqlite')
+    DS.load_paths()
+    DS.load_interactions()
     plp = plPlot(source=DS)
-    print(plp.regr_comp(typ='LOS'))
+    print(plp.regr_comp(typ='nLOS-1', threshold=-95))
     plp.plot_reg()
     exit()

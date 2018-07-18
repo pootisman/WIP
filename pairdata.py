@@ -17,13 +17,12 @@
 import sqlite3
 import os
 import numpy as np
-import numba
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 TX_EXTR = "SELECT tx_id, x, y, z, tx_set_id FROM tx"
 RX_EXTR = "SELECT rx_id, x, y, z, rx_set_id FROM rx"
-TX_PAIRS = "SELECT * FROM (SELECT channel_utd.channel_utd_id, channel_utd.received_power, " \
+TX_PAIRS = "SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, " \
            "channel_utd.mean_time_of_arrival, channel_utd.delay_spread, channel_utd.channel_id " \
            "FROM channel_utd WHERE channel_utd.channel_id IN " \
            "(SELECT channel_id FROM channel WHERE tx_id = {})) utd " \
@@ -60,7 +59,7 @@ class chan():
         self.paths = dict()
         self.dest = dest
         self.src = src
-        self.pow_trans = 0.0
+        self.pow = 0.0
         self.delay = 0.0
         self.ds = 0.0
         self.dist = 0.0
@@ -96,6 +95,8 @@ class data_stor():
         self.dbconn = None
         self.dbcurs = None
         self.possible_inters = dict()
+        self.threshold_chan = -115
+        self.threshold_path = -125
 
     def load_rxtx(self, dbname: str = None):
         if self.dbconn is None:
@@ -120,8 +121,9 @@ class data_stor():
             n.setid = i[4]
             self.rxs[i[0]] = n
 
-    @numba.jit
-    def load_path(self, dbname: str = None):
+    def load_paths(self, npaths: int = 25):
+        self.npaths = npaths
+
         if self.dbconn is None:
             print('Error: connect to DB and load txs/rxs first!')
             exit(1)
@@ -129,21 +131,23 @@ class data_stor():
         for i in self.txs.keys():
             for j in self.dbcurs.execute(TX_PAIRS.format(i, i)):
                 dst = self.rxs[j[-1]]
-                self.txs[i].chan_to_pairs[dst] = chan(self.rxs[j[-1]])
+                self.txs[i].chan_to_pairs[dst] = chan(dst, self.txs[i])
                 self.rxs[j[-1]].chan_to_pairs[self.txs[i]] = self.txs[i].chan_to_pairs[dst]
-                self.txs[i].chan_to_pairs[dst].pow_trans = j[1]
+                self.txs[i].chan_to_pairs[dst].pow = j[1] * 1e3
                 self.txs[i].chan_to_pairs[dst].delay = j[2]
                 self.txs[i].chan_to_pairs[dst].ds = j[3]
                 self.txs[i].chan_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
-                self.txs[i].chan_to_pairs[dst].src = self.txs[i]
                 self.txs[i].chan_to_pairs[dst].chid = j[0]
 
             for j in self.txs[i].chan_to_pairs.keys():
-                for k in self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chan_to_pairs[j].chid)):
+                self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chan_to_pairs[j].chid))
+                d = self.dbcurs.fetchall()
+                d = sorted(d, key=lambda t: t[1], reverse=True)
+                for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
                     self.txs[i].chan_to_pairs[j].paths[k[0]] = path()
                     self.txs[i].chan_to_pairs[j].paths[k[0]].pathid = k[0]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].chan = self.txs[i].chan_to_pairs[j]
-                    self.txs[i].chan_to_pairs[j].paths[k[0]].pow = k[1]
+                    self.txs[i].chan_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
                     self.txs[i].chan_to_pairs[j].paths[k[0]].FSPL = k[7]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].delay = k[2]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].AoD = k[3]
@@ -151,8 +155,7 @@ class data_stor():
                     self.txs[i].chan_to_pairs[j].paths[k[0]].AoA = k[5]
                     self.txs[i].chan_to_pairs[j].paths[k[0]].EoA = k[6]
 
-    @numba.jit
-    def load_interactions(self, dbname: str = None):
+    def load_interactions(self, store: bool = True):
         if self.dbconn is None:
             print('Error: connect to DB and load txs/rxs first!')
             exit(1)
@@ -164,10 +167,13 @@ class data_stor():
             for j in i[1].chan_to_pairs.items():
                 for k in j[1].paths.items():
                     for l in self.dbcurs.execute(INTERS_SPEC.format(k[0])):
-                        intr = interaction()
-                        intr.path = k[1]
-                        intr.coord = [l[0], l[1], l[2]]
-                        intr.typ = self.possible_inters[l[3]]
+                        if store:
+                            intr = interaction()
+                            intr.path = k[1]
+                            intr.coord = [l[0], l[1], l[2]]
+                            intr.typ = self.possible_inters[l[3]]
+                        else:
+                            intr = False
                         k[1].interactions.append(intr)
 
 
@@ -176,6 +182,6 @@ class data_stor():
 if __name__ == '__main__':
     DS = data_stor()
     DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
-    DS.load_path()
+    DS.load_paths()
     DS.load_interactions()
     exit()
