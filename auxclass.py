@@ -50,9 +50,9 @@ class varhist():
         self.bins[binidx] += val
 
     def append(self, val):
-        if val < self.ceiling and val > self.floor:
+        if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
-                if val > i[0] and val < i[1]:
+                if i[0] < val < i[1]:
                     self.addfun(i, 1)
                     self.tothits+=1
                     return True
@@ -71,16 +71,16 @@ class probhist(varhist):
         self.bins[binidx] = (self.bins[binidx][0] + tuple_val[0], self.bins[binidx][1] + tuple_val[1])
 
     def append_succ(self, val):
-        if val < self.ceiling and val > self.floor:
+        if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
-                if val > i[0] and val < i[1]:
+                if i[0] < val < i[1]:
                     self.tothits += 1
                     self.linadd(i, (1, 1))
 
     def append_fail(self, val):
-        if val < self.ceiling and val > self.floor:
+        if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
-                if val > i[0] and val < i[1]:
+                if i[0] < val < i[1]:
                     self.tothits += 1
                     self.linadd(i, (0, 1))
 
@@ -104,9 +104,43 @@ class anghist():
         self.bins[binidx] += val
 
     def append(self, ang, linpow):
-        if ang < self.ceiling and ang > self.floor:
+        if self.floor <= ang <= self.ceiling:
             for i in self.bins.keys():
-                if ang > i[0] and ang < i[1]:
+                if i[0] < ang < i[1]:
+                    self.addfun(i, linpow)
+                    self.tothits += 1
+                    return True
+        return False
+
+
+class anghist2():
+    def __init__(self, azbinc: int = 36, elbinc: int = 18, azstart: float = -180, azstop: float = 180.0, elstart=0.0, elstop=180.0, addfun: callable = None):
+        self.bins = dict()
+        self.azfloor = azstart
+        self.azceiling = azstop
+        self.elfloor = elstart
+        self.elceiling = elstop
+        self.tothits = 0
+        self.azbinc = azbinc
+        self.elbinc = elbinc
+
+        if addfun is None:
+            self.addfun = self.linadd
+        else:
+            self.addfun = addfun
+
+        for i in range(elbinc):
+            for j in range(azbinc):
+                self.bins[(azstart + j * (azstop - azstart) / azbinc, azstart + (j + 1) * (azstop - azstart) / azbinc,
+                        elstart + i * (elstop - elstart) / elbinc, elstart + (i + 1) * (elstop - elstart) / elbinc)] = 0.0
+
+    def linadd(self, binidx, val):
+        self.bins[binidx] += val
+
+    def append(self, azang, elang, linpow):
+        if self.azfloor <= azang <= self.azceiling and self.elfloor <= elang <= self.elceiling:
+            for i in self.bins.keys():
+                if i[0] < azang < i[1] and i[2] < elang < i[3]:
                     self.addfun(i, linpow)
                     self.tothits += 1
                     return True

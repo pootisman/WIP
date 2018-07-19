@@ -1,0 +1,178 @@
+# Copyright (C) Aleksei Ponomarenko-Timofeev
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+import matplotlib.pyplot as mpl
+import pairdata
+from auxclass import *
+from auxfun import *
+
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
+class chimage_RX():
+    def __init__(self, source):
+        self.source = source
+
+        self.xlim = [-np.Inf, np.Inf]
+        self.ylim = [-np.Inf, np.Inf]
+        self.zlim = [-np.Inf, np.Inf]
+
+        self.xdata = []
+        self.ydata = []
+        self.zdata = []
+
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False, cmap: str = 'viridis'):
+        if txrange == -1:
+            txrange = self.source.txs.keys()
+        else:
+            txrange = range(txrange)
+
+        if rxrange == -1:
+            rxrange = self.source.rxs.keys()
+        else:
+            rxrange = range(rxrange)
+
+        for i in txrange:
+            if self.source.txs[i].setid == txgrp or txgrp == -1:
+                rr = 0
+                for j in rxrange:
+                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                        f = mpl.figure(rr)
+                        rr += 1
+                        hist = anghist2()
+
+                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                            hist.append(k[1].AoA, k[1].EoA, k[1].pow)
+
+                        X = []
+                        Y = []
+                        Z = []
+
+                        for k in hist.bins.items():
+                            X.append(k[0][0])
+                            X.append(k[0][1])
+                            Y.append(k[0][2])
+                            Y.append(k[0][3])
+                            Z.append(k[1] if k[1] > 0 else np.nan)
+                            Z.append(Z[-1])
+
+                        minz = np.nanmin(Z) if not np.isnan(np.nanmin(Z)) else np.finfo(float).eps
+
+                        for k in range(Z.__len__()):
+                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else l2db(minz)
+
+                        X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
+
+                        mpl.contourf(X, Y, Z.T, 20, cmap=cmap)
+                        cbr = mpl.colorbar()
+                        cbr.set_label('RX Power, [dBm]')
+                        mpl.clim([np.nanmin(Z), np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))])
+                        mpl.grid(linestyle='--')
+                        mpl.title('Channel RX Image@[TX #{} -> RX #{}]'.format(i, j))
+                        mpl.xlabel('Azimuth, [degrees]')
+                        mpl.ylabel('Elevation, [degrees]')
+                        mpl.tight_layout()
+                        if mkpng:
+                            mpl.savefig('RXCImage_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.close(f)
+
+        if mkpng is False:
+            mpl.show()
+
+
+class chimage_TX():
+    def __init__(self, source):
+        self.source = source
+
+        self.xlim = [-np.Inf, np.Inf]
+        self.ylim = [-np.Inf, np.Inf]
+        self.zlim = [-np.Inf, np.Inf]
+
+        self.xdata = []
+        self.ydata = []
+        self.zdata = []
+
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False, cmap: str = 'viridis'):
+        if txrange == -1:
+            txrange = self.source.txs.keys()
+        else:
+            txrange = range(txrange)
+
+        if rxrange == -1:
+            rxrange = self.source.rxs.keys()
+        else:
+            rxrange = range(rxrange)
+
+        for i in txrange:
+            if self.source.txs[i].setid == txgrp or txgrp == -1:
+                rr = 0
+                for j in rxrange:
+                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                        f = mpl.figure(rr)
+                        rr += 1
+                        hist = anghist2()
+
+                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                            hist.append(k[1].AoD, k[1].EoD, k[1].pow)
+
+                        X = []
+                        Y = []
+                        Z = []
+
+                        for k in hist.bins.items():
+                            X.append(k[0][0])
+                            X.append(k[0][1])
+                            Y.append(k[0][2])
+                            Y.append(k[0][3])
+                            Z.append(k[1] if k[1] > 0 else np.nan)
+                            Z.append(Z[-1])
+
+                        minz = np.nanmin(Z)
+
+                        for k in range(Z.__len__()):
+                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else l2db(minz)
+
+                        X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
+
+                        mpl.contourf(X, Y, Z.T, 20, cmap=cmap)
+                        cbr = mpl.colorbar()
+                        cbr.set_label('RX Power, [dBm]')
+                        mpl.clim([np.nanmin(Z), np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))])
+                        mpl.grid(linestyle='--')
+                        mpl.title('Channel TX Image@[TX #{} -> RX #{}]'.format(i, j))
+                        mpl.xlabel('Azimuth, [degrees]')
+                        mpl.ylabel('Elevation, [degrees]')
+                        mpl.tight_layout()
+                        if mkpng:
+                            mpl.savefig('TXCImage_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.close(f)
+
+        if mkpng is False:
+            mpl.show()
+
+if __name__ == "__main__":
+    DS = pairdata.data_stor()
+    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/HumanCrawl/Human_crawl_X3D_Control/Human_crawl.Human_crawl_X3D_Control.sqlite')
+    #DS.load_rxtx('Human_crawl.TEST.sqlite')
+    #DS.load_rxtx('class.sqlite')
+    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
+    DS.load_paths(npaths=250)
+    DS.load_interactions(store=False)
+
+    DE = chimage_RX(DS)
+    DE.draw(rxgrp=4, mkpng=True)
+    DT = chimage_TX(DS)
+    DT.draw(rxgrp=4, mkpng=True)
+    exit()
