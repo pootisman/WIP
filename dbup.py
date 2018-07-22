@@ -1,0 +1,118 @@
+import mysql.connector as msc
+import sqlite3
+import concurrent.futures as cof
+
+stepping = 1e3
+
+WI_TABLES = {'path': [('path_id', 'INT PRIMARY KEY'), ('channel_id', 'INT'), ('foliage_distance', 'REAL')],
+             'path_utd': [('path_id', 'INT'), ('path_utd_id', 'INT PRIMARY KEY'), ('tx_sub_antenna', 'INT'), ('rx_sub_antenna', 'INT'),
+                          ('utd_instance_id', 'INT'), ('received_power', 'REAL'), ('time_of_arrival', 'REAL'),
+                          ('departure_phi', 'REAL'), ('departure_theta', 'REAL'), ('arrival_phi', 'REAL'), ('arrival_theta', 'REAL'),
+                          ('cmp_e_x_r', 'REAL'), ('cmp_e_y_r', 'REAL'), ('cmp_e_z_r', 'REAL'), ('cmp_e_x_i', 'REAL'), ('cmp_e_y_i', 'REAL'), ('cmp_e_z_i', 'REAL'),
+                          ('cmp_h_x_r', 'REAL'), ('cmp_h_y_r', 'REAL'), ('cmp_h_z_r', 'REAL'), ('cmp_h_x_i', 'REAL'), ('cmp_h_y_i', 'REAL'), ('cmp_h_z_i', 'REAL'),
+                          ('freespace_path_loss', 'REAL'), ('freespace_path_loss_woa', 'REAL'), ('e_theta_r', 'REAL'), ('e_theta_i', 'REAL'),
+                          ('e_phi_r', 'REAL'), ('e_phi_i', 'REAL'), ('cir_phs', 'REAL'), ('cmp_volt_r', 'REAL'), ('cmp_volt_i', 'REAL')],
+             'channel': [('channel_id', 'INT PRIMARY KEY'), ('tx_id', 'INT'), ('rx_id', 'INT')],
+             'channel_utd': [('channel_utd_id', 'INT PRIMARY KEY'), ('channel_id', 'INT'), ('utd_instance_id', 'INT'), ('received_power', 'REAL'),
+                             ('mean_time_of_arrival', 'REAL'), ('delay_spread', 'REAL')],
+             'rx': [('rx_id', 'INT'), ('rx_set_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL')],
+             'tx': [('tx_id', 'INT'), ('tx_set_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL')],
+             'diffraction_edge': [('edge_id', 'INT PRIMARY KEY'), ('vertex_a', 'INT'), ('vertex_b', 'INT'), ('edgefacet_a', 'INT'), ('edgefacet_b', 'INT'), ('angle', 'REAL')],
+             'interaction': [('interaction_id', 'INT PRIMARY KEY'), ('path_id', 'INT'), ('interaction_type_id', 'INT'), ('object_id', 'INT'), ('sub_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL'),
+                             ('has_location', 'INT')],
+             'interaction_type': [('interaction_type_id', 'INT PRIMARY KEY'), ('description', 'CHAR(64)')],
+             'rx_set': [('rx_set_id', 'INT PRIMARY KEY'), ('txrx_set_type_id', 'INT'), ('spacing1', 'REAL'), ('spacing2', 'REAL'), ('spacing3', 'REAL')],
+             'rx_metadata': ['rx_metadata_id', 'rx_id', 'utd_instance_id', 'max_gain'],
+             'tx_metadata': ['tx_metadata_id', 'tx_id', 'utd_instance_id', 'max_gain', 'power'],
+             'txrx_set_type': ['txrx_set_type_id', 'description'],
+             'utd_instance': [],
+             'utd_instance_param': [],
+             'utd_instance_param_index': []}
+
+conf = open('dbconf.txt')
+
+host = conf.readline()
+user = conf.readline()
+pw = conf.readline()
+
+sqlconn = msc.connect(host=host.strip('\n'), user=user.strip('\n'), password=pw.strip('\n'))
+sqlcurs = sqlconn.cursor()
+
+dbn = input('Type in DB filename:')
+
+sqlcurs.execute('CREATE DATABASE {};'.format(dbn.replace('.', '_')))
+sqlcurs.execute('USE {};'.format(dbn.replace('.', '_')))
+
+# Create table on MySQL server
+for i in WI_TABLES.items():
+    # Compile request
+    if i[0] in ['path', 'path_utd', 'channel', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
+        rstr = 'CREATE TABLE {}('.format(i[0])
+        for j in i[1]:
+            rstr = rstr + j[0] + ' ' + j[1] + (',\n' if i[1][-1] != j else '\n')
+
+        rstr = rstr + ');'
+        sqlcurs.execute(rstr)
+
+sqlicon = sqlite3.connect(dbn)
+sqlicon.row_factory = sqlite3.Row
+sqlicurs = sqlicon.cursor()
+
+def sqlins(dbn, data, host, user, pw):
+    conn = msc.connect(host=host.strip('\n'), user=user.strip('\n'), password=pw.strip('\n'))
+    curs = conn.cursor()
+    curs.execute('USE {};'.format(dbn))
+    curs.execute(data)
+    conn.commit()
+    conn.close()
+
+TPE = cof.ThreadPoolExecutor()
+
+for i in WI_TABLES.items():
+    if i[0] in ['path', 'path_utd', 'channel', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
+        # Construct request
+        req = "SELECT "
+        for j in i[1]:
+            req = req + j[0] + (', ' if i[1][-1] != j else ' FROM {}'.format(i[0]))
+
+        comm = 0
+
+        key_prep = False
+
+        print('Writing {}'.format(i[0]))
+
+        for j in sqlicurs.execute(req):
+            if comm % stepping == 0:
+                myreq = ["INSERT INTO {} ".format(i[0])]
+                myreq.append('(')
+                myreq.append(','.join(j.keys()))
+                myreq.append(') VALUES ')
+
+            myreq.append('(')
+
+            te = 1
+            for k in j.keys():
+                myreq.append(str(j[k]))
+                myreq.append((',' if te < j.keys().__len__() else ')'))
+                te+=1
+
+            if (comm + 1) % stepping == 0:
+                myreq.append(';')
+                TPE.submit(sqlins, dbn.replace('.', '_'), ''.join(myreq), host, user, pw)
+                print('Writing to {} at row {}'.format(i[0], comm))
+            else:
+                myreq.append(',')
+
+            comm+=1
+
+        if (comm + 1) % stepping != 0:
+            myreq[-1] = ';'
+            TPE.submit(sqlins, dbn.replace('.', '_'), ''.join(myreq), host, user, pw)
+            print('Writing to {} at row {}'.format(i[0], comm))
+
+        print('Finished writing {}'.format(i[0]))
+
+TPE.shutdown(wait=True)
+sqlconn.commit()
+sqlconn.close()
+exit()
