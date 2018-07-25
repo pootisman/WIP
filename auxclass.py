@@ -114,7 +114,8 @@ class anghist():
 
 
 class anghist2():
-    def __init__(self, azbinc: int = 36, elbinc: int = 18, azstart: float = -180, azstop: float = 180.0, elstart=0.0, elstop=180.0, addfun: callable = None):
+    def __init__(self, azbinc: int = 36, elbinc: int = 18, azstart: float = -180, azstop: float = 180.0, elstart=0.0,
+                 elstop=180.0, addfun: callable = None):
         self.bins = dict()
         self.azfloor = azstart
         self.azceiling = azstop
@@ -132,7 +133,8 @@ class anghist2():
         for i in range(elbinc):
             for j in range(azbinc):
                 self.bins[(azstart + j * (azstop - azstart) / azbinc, azstart + (j + 1) * (azstop - azstart) / azbinc,
-                        elstart + i * (elstop - elstart) / elbinc, elstart + (i + 1) * (elstop - elstart) / elbinc)] = 0.0
+                           elstart + i * (elstop - elstart) / elbinc, elstart + (i + 1) * (elstop - elstart) / elbinc)]\
+                    = 0.0
 
     def linadd(self, binidx, val):
         self.bins[binidx] += val

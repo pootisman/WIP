@@ -31,10 +31,12 @@ TX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_p
            'JOIN ' \
            '(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan ' \
            'ON utd.channel_id = chan.channel_id;'
-CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi, arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
+CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi,' \
+           ' arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
            ' path WHERE channel_id = {});'
 INTERS = 'SELECT * FROM interaction_type;'
 INTERS_SPEC = 'SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {};'
+
 
 class Node():
     def __init__(self, typ: str):
@@ -56,6 +58,7 @@ class Node():
                 return self.chans_to_pairs[i]
         return None
 
+
 class chan():
     def __init__(self, dest: Node = None, src: Node = None):
         self.paths = dict()
@@ -66,7 +69,16 @@ class chan():
         self.ds = 0.0
         self.dist = 0.0
         self.chid = 0
-        self.clusts = dict()
+        self.clusters = dict()
+
+    def __repr__(self):
+        return 'Radio channel'
+
+    def __str__(self):
+        return 'Sumpow = {}, delay = {}, ds = {}, Ncl = {}, {} -> {}'.format(self.pow, self.delay, self.ds,
+                                                                            self.clusters.__len__(), self.src.node_id,
+                                                                            self.dest.node_id)
+
 
 class path():
     def __init__(self):
@@ -81,13 +93,28 @@ class path():
         self.EoD = 0.0
         self.FSPL = 0.0
         self.chan = None
+        self.cluster = None
         self.near_field_failed = False
+
+    def __repr__(self):
+        return 'Propagation path'
+
+    def __str__(self):
+        return 'Inters = {}, pow = {} mW, len = {} m, {} [Az:{},El:{}]-->[Az:{},El:{}] {}'.format(self.interactions.__len__(), self.pow, self.len,
+                                                                    self.chan.src.node_id, self.AoD, self.EoD, self.AoA, self.EoA, self.chan.dest.node_id)
+
 
 class interaction():
     def __init__(self):
         self.typ = 'TX'
         self.coords = [0, 0, 0]
         self.path = None
+
+    def __repr__(self):
+        print('Interaction')
+
+    def __str__(self):
+        print('{}@{}'.format(self.typ, self.coords))
 
 
 class data_stor():
@@ -107,6 +134,15 @@ class data_stor():
             self.pasw = conff.readline().strip('\n')
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
+
+    def __repr__(self):
+        return 'SQL data storage'
+
+    def __str__(self):
+        if hasattr(self, 'host'):
+            return 'Database {} at {}.'.format(self.dbname, self.host)
+        else:
+            return 'Database in file {}.'.format(self.dbname)
 
     def load_rxtx(self, dbname: str = None):
         print('Loading TX/RX nodes...', end='', flush=True)
@@ -210,7 +246,7 @@ class data_stor():
                         if store:
                             intr = interaction()
                             intr.path = k[1]
-                            intr.coords = [l[0], l[1], l[2]]
+                            intr.coords = np.asarray([l[0], l[1], l[2]])
                             intr.typ = l[3]
                         else:
                             intr = False
@@ -219,11 +255,15 @@ class data_stor():
         self.dbconn.close()
         self.dbconn = None
 
+    #def save_procd_to(self, suffix: str = 'procd'):
+
+
+
 if __name__ == '__main__':
     DS = data_stor(conf='dbconf.txt')
     DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
     DS.load_paths()
     DS.load_interactions()
-    from phys_path_procs import  *
+    from phys_path_procs import *
     check_data_NF(DS)
     exit()

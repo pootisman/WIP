@@ -15,7 +15,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import pairdata
-from auxfun import *
 from auxclass import *
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
@@ -25,7 +24,8 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 class distanced_hist_extractor():
-    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7, thrs: float = -115, minbins: float = 0.2, nffilt: bool = True):
+    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7,
+                 thrs: float = -115, minbins: float = 0.2, nffilt: bool = True):
         self.hist = probhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
         self.type = None
@@ -33,13 +33,13 @@ class distanced_hist_extractor():
         self.mut = False
         self.thresh = thrs
         self.rx_proc = {pairdata.Node: list}
-
+        self.nffilt = nffilt
 
     def has_path(self, src: pairdata.Node, dest: pairdata.Node, typ: str):
         if dest in src.chans_to_pairs:
             # Go over all paths
             for i in src.chans_to_pairs[dest].paths.items():
-                if not i[1].near_field_failed:
+                if not (i[1].near_field_failed and self.nffilt):
                     if typ == 'LOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
                         return True
                     elif typ == 'NLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
@@ -58,6 +58,9 @@ class distanced_hist_extractor():
                         return True
                     elif typ == 'nolink' and l2db(i[1].pow) >= self.thresh:
                         return False
+                else:
+                    print('NF test failed, ignoring path {} in chan {}->{}'.format(i[1].pathid, src.node_id,
+                                                                                   dest.node_id))
         else:
             return False
 
@@ -69,10 +72,8 @@ class distanced_hist_extractor():
     def build(self, txgrp: int = -1, rxgrp: int = -1, typ: str = 'LOS'):
         self.type = typ
         for i in self.source.txs.items():
-            #print(i[0])
             if i[1].setid == txgrp or txgrp == -1:
-                for j in i[1].chan_to_pairs.items():
-                    #print('{} {}'.format(j[0].node_id, l2db(j[1].pow)))
+                for j in i[1].chans_to_pairs.items():
                     if j[0].setid == rxgrp or rxgrp == -1:
                         if self.has_path(i[1], j[0], typ):
                             self.hist.append_succ(j[1].dist)
@@ -90,8 +91,6 @@ class distanced_hist_extractor():
                             self.build_delta(ctx=i[1], crx=j, trans_typ=stop)
                         else:
                             self.build_delta(ctx=i[1], crx=j, trans_typ=False)
-
-
 
     '''Builds delta histogram for one point, called multiple times for eac individual TX'''
     def build_delta(self, ctx: pairdata.Node, crx: pairdata.Node, trans_typ: str = 'LOS'):
@@ -112,7 +111,6 @@ class distanced_hist_extractor():
                 elif trans_typ:
                     self.hist.append_fail(shift)
 
-
     def plot_hist(self, log: bool = False):
         fig = mpl.figure()
         ax = fig.add_subplot(211)
@@ -128,7 +126,8 @@ class distanced_hist_extractor():
         for i in self.hist.bins.items():
             bars.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][0]/i[1][1] if i[1][1] > 0 else 0.0))
             tcks.append(i[0][0])
-            ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][0]), rotation='vertical', horizontalalignment='center', verticalalignment='center')
+            ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][0]), rotation='vertical',
+                    horizontalalignment='center', verticalalignment='center')
         tcks.append(self.hist.ceiling)
 
         mpl.xticks(tcks, rotation='vertical')
@@ -150,7 +149,8 @@ class distanced_hist_extractor():
 
         for i in self.hist.bins.items():
             bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][1]/self.hist.tothits))
-            ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][1]), rotation='vertical', horizontalalignment='center', verticalalignment='center')
+            ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][1]), rotation='vertical',
+                    horizontalalignment='center', verticalalignment='center')
 
         mpl.xticks(tcks, rotation='vertical')
 
@@ -162,19 +162,19 @@ class distanced_hist_extractor():
 
 
 if __name__ == "__main__":
-    #DS = pairdata.data_stor()
-    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/HumanCrawl/Human_crawl_X3D_Control/Human_crawl.Human_crawl_X3D_Control.sqlite')
-    #DS.load_rxtx('Human_crawl.TEST.sqlite')
-    #DS.load_rxtx('class.sqlite')
     DS = pairdata.data_stor(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
-    DS.load_paths(npaths=75)
+    DS.load_rxtx(dbname='Human_crawl_NOMIMO_sqlite')
+    DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
 
     from phys_path_procs import *
     check_data_NF(DS)
 
     DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
-    DE.build_trans(txgrp=-1, rxgrp=-1, typ='link->link')
+    DA = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
+    DA.build(txgrp=-1,rxgrp=-1, typ='NLOS')
+    DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->NLOS')
+    gen_data_clusters(DS, threshold=0.00001)
     DE.plot_hist(log=False)
+    DA.plot_hist(log=False)
     exit()
