@@ -1,7 +1,12 @@
 import mysql.connector as msc
+from mysql.connector.constants import ClientFlag
 import sqlite3
 import concurrent.futures as cof
+from multiprocessing import cpu_count
+from time import sleep
+from sys import argv
 
+max_waiting = 5 * cpu_count()
 stepping = 1e3
 
 WI_TABLES = {'path': [('path_id', 'INT PRIMARY KEY'), ('channel_id', 'INT'), ('foliage_distance', 'REAL')],
@@ -15,8 +20,8 @@ WI_TABLES = {'path': [('path_id', 'INT PRIMARY KEY'), ('channel_id', 'INT'), ('f
              'channel': [('channel_id', 'INT PRIMARY KEY'), ('tx_id', 'INT'), ('rx_id', 'INT')],
              'channel_utd': [('channel_utd_id', 'INT PRIMARY KEY'), ('channel_id', 'INT'), ('utd_instance_id', 'INT'), ('received_power', 'REAL'),
                              ('mean_time_of_arrival', 'REAL'), ('delay_spread', 'REAL')],
-             'rx': [('rx_id', 'INT'), ('rx_set_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL')],
-             'tx': [('tx_id', 'INT'), ('tx_set_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL')],
+             'rx': [('rx_id', 'INT PRIMARY KEY'), ('rx_set_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL')],
+             'tx': [('tx_id', 'INT PRIMARY KEY'), ('tx_set_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL')],
              'diffraction_edge': [('edge_id', 'INT PRIMARY KEY'), ('vertex_a', 'INT'), ('vertex_b', 'INT'), ('edgefacet_a', 'INT'), ('edgefacet_b', 'INT'), ('angle', 'REAL')],
              'interaction': [('interaction_id', 'INT PRIMARY KEY'), ('path_id', 'INT'), ('interaction_type_id', 'INT'), ('object_id', 'INT'), ('sub_id', 'INT'), ('x', 'REAL'), ('y', 'REAL'), ('z', 'REAL'),
                              ('has_location', 'INT')],
@@ -35,18 +40,31 @@ host = conf.readline()
 user = conf.readline()
 pw = conf.readline()
 
-sqlconn = msc.connect(host=host.strip('\n'), user=user.strip('\n'), password=pw.strip('\n'))
+conf.close()
+
+sqlconn = msc.connect(host=host.strip('\n'), user=user.strip('\n'), password=pw.strip('\n'), client_flags=[ClientFlag.SSL])
 sqlcurs = sqlconn.cursor()
 
-dbn = input('Type in DB filename:')
 
-sqlcurs.execute('CREATE DATABASE {};'.format(dbn.replace('.', '_')))
-sqlcurs.execute('USE {};'.format(dbn.replace('.', '_')))
+
+if argv.__len__() == 1:
+    dbf = input('Type in DB path: ')
+    dbn = input('Type in database name: ')
+else:
+    dbf = ' '.join(argv[1:argv.__len__()]).strip('"').strip("'")
+    dbn = dbf.split('\\')[-1]
+
+dbn = dbn.replace('.', '_').replace('@','at').replace(' ', '_')
+
+
+
+sqlcurs.execute('CREATE DATABASE {};'.format(dbn))
+sqlcurs.execute('USE {};'.format(dbn))
 
 # Create table on MySQL server
 for i in WI_TABLES.items():
     # Compile request
-    if i[0] in ['path', 'path_utd', 'channel', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
+    if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
         rstr = 'CREATE TABLE {}('.format(i[0])
         for j in i[1]:
             rstr = rstr + j[0] + ' ' + j[1] + (',\n' if i[1][-1] != j else '\n')
@@ -54,22 +72,30 @@ for i in WI_TABLES.items():
         rstr = rstr + ');'
         sqlcurs.execute(rstr)
 
-sqlicon = sqlite3.connect(dbn)
+print(dbf)
+sleep(5)
+
+sqlicon = sqlite3.connect(dbf)
 sqlicon.row_factory = sqlite3.Row
 sqlicurs = sqlicon.cursor()
 
+waiting = 0
+
 def sqlins(dbn, data, host, user, pw):
+    global waiting
+    waiting += 1
     conn = msc.connect(host=host.strip('\n'), user=user.strip('\n'), password=pw.strip('\n'))
     curs = conn.cursor()
     curs.execute('USE {};'.format(dbn))
     curs.execute(data)
     conn.commit()
     conn.close()
+    waiting -= 1
 
 TPE = cof.ThreadPoolExecutor()
 
 for i in WI_TABLES.items():
-    if i[0] in ['path', 'path_utd', 'channel', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
+    if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
         # Construct request
         req = "SELECT "
         for j in i[1]:
@@ -98,7 +124,10 @@ for i in WI_TABLES.items():
 
             if (comm + 1) % stepping == 0:
                 myreq.append(';')
-                TPE.submit(sqlins, dbn.replace('.', '_'), ''.join(myreq), host, user, pw)
+                while waiting >= max_waiting:
+                    sleep(0.1)
+
+                TPE.submit(sqlins, dbn, ''.join(myreq), host, user, pw)
                 print('Writing to {} at row {}'.format(i[0], comm))
             else:
                 myreq.append(',')
@@ -107,12 +136,21 @@ for i in WI_TABLES.items():
 
         if (comm + 1) % stepping != 0:
             myreq[-1] = ';'
-            TPE.submit(sqlins, dbn.replace('.', '_'), ''.join(myreq), host, user, pw)
+            TPE.submit(sqlins, dbn, ''.join(myreq), host, user, pw)
             print('Writing to {} at row {}'.format(i[0], comm))
 
         print('Finished writing {}'.format(i[0]))
 
 TPE.shutdown(wait=True)
+
+sqlcurs.execute('CREATE INDEX channel_tx_rx_index ON channel(tx_id,rx_id);')
+sqlcurs.execute('CREATE INDEX channel_utd_channel_index ON channel_utd(channel_id);')
+sqlcurs.execute('CREATE INDEX interaction_path_index ON interaction(path_id);')
+sqlcurs.execute('CREATE INDEX path_channel_index ON path(channel_id);')
+sqlcurs.execute('CREATE INDEX path_utd_path_index ON path_utd(path_id);')
+
 sqlconn.commit()
 sqlconn.close()
+print('ALL DONE, CONNECTIONS TERMINATED')
+input('')
 exit()

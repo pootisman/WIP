@@ -25,7 +25,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 class distanced_hist_extractor():
-    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7, thrs: float = -115, minbins: float = 0.2):
+    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7, thrs: float = -115, minbins: float = 0.2, nffilt: bool = True):
         self.hist = probhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
         self.type = None
@@ -39,24 +39,25 @@ class distanced_hist_extractor():
         if dest in src.chans_to_pairs:
             # Go over all paths
             for i in src.chans_to_pairs[dest].paths.items():
-                if typ == 'LOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
-                    return True
-                elif typ == 'NLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
-                    return True
-                elif typ == 'NLOS-1' and i[1].interactions.__len__() == 1 and l2db(i[1].pow) >= self.thresh:
-                    return True
-                elif typ == 'NLOS-2' and i[1].interactions.__len__() == 2 and l2db(i[1].pow) >= self.thresh:
-                    return True
-                elif typ == 'NLOS-3' and i[1].interactions.__len__() == 3 and l2db(i[1].pow) >= self.thresh:
-                    return True
-                elif typ == 'noLOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
-                    return False
-                elif typ == 'noNLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
-                    return False
-                elif typ == 'link' and l2db(i[1].pow) >= self.thresh:
-                    return True
-                elif typ == 'nolink' and l2db(i[1].pow) >= self.thresh:
-                    return False
+                if not i[1].near_field_failed:
+                    if typ == 'LOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-1' and i[1].interactions.__len__() == 1 and l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-2' and i[1].interactions.__len__() == 2 and l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-3' and i[1].interactions.__len__() == 3 and l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'noLOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
+                        return False
+                    elif typ == 'noNLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
+                        return False
+                    elif typ == 'link' and l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'nolink' and l2db(i[1].pow) >= self.thresh:
+                        return False
         else:
             return False
 
@@ -161,12 +162,17 @@ class distanced_hist_extractor():
 
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor()
+    #DS = pairdata.data_stor()
     #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/HumanCrawl/Human_crawl_X3D_Control/Human_crawl.Human_crawl_X3D_Control.sqlite')
-    DS.load_rxtx('Human_crawl.TEST.sqlite')
+    #DS.load_rxtx('Human_crawl.TEST.sqlite')
     #DS.load_rxtx('class.sqlite')
+    DS = pairdata.data_stor(conf='dbconf.txt')
+    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
     DS.load_paths(npaths=75)
-    DS.load_interactions(store=False)
+    DS.load_interactions(store=True)
+
+    from phys_path_procs import *
+    check_data_NF(DS)
 
     DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
     DE.build_trans(txgrp=-1, rxgrp=-1, typ='link->link')

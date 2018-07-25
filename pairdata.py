@@ -15,24 +15,26 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import sqlite3
+import mysql.connector as msqlc
+from mysql.connector.constants import ClientFlag
 import os
 import numpy as np
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
-TX_EXTR = "SELECT tx_id, x, y, z, tx_set_id FROM tx"
-RX_EXTR = "SELECT rx_id, x, y, z, rx_set_id FROM rx"
-TX_PAIRS = "SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, " \
-           "channel_utd.mean_time_of_arrival, channel_utd.delay_spread, channel_utd.channel_id " \
-           "FROM channel_utd WHERE channel_utd.channel_id IN " \
-           "(SELECT channel_id FROM channel WHERE tx_id = {})) utd " \
-           "JOIN " \
-           "(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan " \
-           "ON utd.channel_id = chan.channel_id"
-CHAN_PTH = "SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi, arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM" \
-           " path WHERE channel_id = {})"
-INTERS = "SELECT * FROM interaction_type"
-INTERS_SPEC = "SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {}"
+TX_EXTR = 'SELECT tx_id, x, y, z, tx_set_id FROM tx;'
+RX_EXTR = 'SELECT rx_id, x, y, z, rx_set_id FROM rx;'
+TX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
+           'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
+           'FROM channel_utd WHERE channel_utd.channel_id IN ' \
+           '(SELECT channel_id FROM channel WHERE tx_id = {})) utd ' \
+           'JOIN ' \
+           '(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan ' \
+           'ON utd.channel_id = chan.channel_id;'
+CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi, arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
+           ' path WHERE channel_id = {});'
+INTERS = 'SELECT * FROM interaction_type;'
+INTERS_SPEC = 'SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {};'
 
 class Node():
     def __init__(self, typ: str):
@@ -64,6 +66,7 @@ class chan():
         self.ds = 0.0
         self.dist = 0.0
         self.chid = 0
+        self.clusts = dict()
 
 class path():
     def __init__(self):
@@ -78,17 +81,17 @@ class path():
         self.EoD = 0.0
         self.FSPL = 0.0
         self.chan = None
-
+        self.near_field_failed = False
 
 class interaction():
     def __init__(self):
         self.typ = 'TX'
-        self.coord = [0, 0, 0]
+        self.coords = [0, 0, 0]
         self.path = None
 
 
 class data_stor():
-    def __init__(self):
+    def __init__(self, conf: str = None):
         self.txs = dict()
         self.rxs = dict()
         self.dbname = None
@@ -97,16 +100,32 @@ class data_stor():
         self.possible_inters = dict()
         self.threshold_chan = -115
         self.threshold_path = -125
+        if conf is not None:
+            conff = open(conf)
+            self.host = conff.readline().strip('\n')
+            self.user = conff.readline().strip('\n')
+            self.pasw = conff.readline().strip('\n')
+            print('Connecting to {} as {}'.format(self.host, self.user))
+            conff.close()
 
     def load_rxtx(self, dbname: str = None):
+        print('Loading TX/RX nodes...', end='', flush=True)
         if self.dbconn is None:
-            if os.path.isfile(dbname):
+            if os.path.isfile(dbname) and not hasattr(self, 'host'):
                 self.dbconn = sqlite3.connect(dbname)
                 self.dbcurs = self.dbconn.cursor()
                 self.dbname = dbname
+            else:
+                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
+                                            client_flags=[ClientFlag.SSL], database=dbname)
+                self.dbcurs = self.dbconn.cursor()
+                self.dbcurs.execute('USE {};'.format(dbname))
+                self.dbname = dbname
 
         # Read TX data
-        for i in self.dbcurs.execute(TX_EXTR):
+        self.dbcurs.execute(TX_EXTR)
+        j = self.dbcurs.fetchall()
+        for i in j:
             n = Node('TX')
             n.coords = np.asarray([i[1], i[2], i[3]])
             n.node_id = i[0]
@@ -114,22 +133,34 @@ class data_stor():
             self.txs[i[0]] = n
 
         # Read RX data
-        for i in self.dbcurs.execute(RX_EXTR):
+        self.dbcurs.execute(RX_EXTR)
+        j = self.dbcurs.fetchall()
+        for i in j:
             n = Node('RX')
             n.coords = np.asarray([i[1], i[2], i[3]])
             n.node_id = i[0]
             n.setid = i[4]
             self.rxs[i[0]] = n
+        print('Success!', flush=True)
+        self.dbconn.close()
+        self.dbconn = None
 
     def load_paths(self, npaths: int = 25):
+        print('Loading paths...', end='', flush=True)
         self.npaths = npaths
-
         if self.dbconn is None:
-            print('Error: connect to DB and load txs/rxs first!')
-            exit(1)
+            if os.path.isfile(self.dbname) and not hasattr(self, 'host'):
+                print('Error: connect to DB and load txs/rxs first!')
+                exit(1)
+            else:
+                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
+                                            client_flags=[ClientFlag.SSL], database=self.dbname)
+                self.dbcurs = self.dbconn.cursor()
 
         for i in self.txs.keys():
-            for j in self.dbcurs.execute(TX_PAIRS.format(i, i)):
+            self.dbcurs.execute(TX_PAIRS.format(i, i))
+            k = self.dbcurs.fetchall()
+            for j in k:
                 dst = self.rxs[j[-1]]
                 self.txs[i].chans_to_pairs[dst] = chan(dst, self.txs[i])
                 self.rxs[j[-1]].chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
@@ -154,34 +185,45 @@ class data_stor():
                     self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
                     self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
                     self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+        print('Success!')
+        self.dbconn.close()
+        self.dbconn = None
 
     def load_interactions(self, store: bool = True):
-        if self.dbconn is None:
-            print('Error: connect to DB and load txs/rxs first!')
-            exit(1)
+        print('Loading interactions...', end='', flush=True)
 
-        for i in self.dbcurs.execute(INTERS):
-            self.possible_inters[i[0]] = i[1]
+        if self.dbconn is None:
+            if os.path.isfile(self.dbname) and not hasattr(self, 'host'):
+                print('Error: connect to DB and load txs/rxs first!')
+                exit(1)
+            else:
+                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
+                                            client_flags=[ClientFlag.SSL], database=self.dbname)
+                self.dbcurs = self.dbconn.cursor()
 
         for i in self.txs.items():
             for j in i[1].chans_to_pairs.items():
                 for k in j[1].paths.items():
-                    for l in self.dbcurs.execute(INTERS_SPEC.format(k[0])):
+                    self.dbcurs.execute(INTERS_SPEC.format(k[0]))
+                    m = self.dbcurs.fetchall()
+                    for l in m:
                         if store:
                             intr = interaction()
                             intr.path = k[1]
-                            intr.coord = [l[0], l[1], l[2]]
-                            intr.typ = self.possible_inters[l[3]]
+                            intr.coords = [l[0], l[1], l[2]]
+                            intr.typ = l[3]
                         else:
                             intr = False
                         k[1].interactions.append(intr)
-
-
-
+        print('Success!', flush=True)
+        self.dbconn.close()
+        self.dbconn = None
 
 if __name__ == '__main__':
-    DS = data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
+    DS = data_stor(conf='dbconf.txt')
+    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
     DS.load_paths()
     DS.load_interactions()
+    from phys_path_procs import  *
+    check_data_NF(DS)
     exit()

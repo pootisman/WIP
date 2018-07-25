@@ -163,11 +163,8 @@ class chimage_TX():
             mpl.show()
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor()
-    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/HumanCrawl/Human_crawl_X3D_Control/Human_crawl.Human_crawl_X3D_Control.sqlite')
-    #DS.load_rxtx('Human_crawl.TEST.sqlite')
-    #DS.load_rxtx('class.sqlite')
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
+    DS = pairdata.data_stor(conf='dbconf.txt')
+    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=False)
 
