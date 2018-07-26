@@ -29,7 +29,8 @@ class cirs():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, tofile: bool = False, cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, tofile: bool = False,
+             cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200, nff: bool = True):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -53,9 +54,14 @@ class cirs():
                         nn += 1
                         if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
                             for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
-                                self.xdata.append(j)
-                                self.ydata.append(k[1].delay * 1e9)
-                                self.zdata.append(l2db(k[1].pow))
+                                if nff and not k[1].near_field_failed:
+                                    self.xdata.append(j)
+                                    self.ydata.append(k[1].delay * 1e9)
+                                    self.zdata.append(l2db(k[1].pow))
+                                elif not nff:
+                                    self.xdata.append(j)
+                                    self.ydata.append(k[1].delay * 1e9)
+                                    self.zdata.append(l2db(k[1].pow))
                         else:
                             if self.ydata.__len__() > 0 and maxy == 0:
                                 maxy = np.nanmax(self.ydata)

@@ -174,7 +174,7 @@ if __name__ == "__main__":
     DA = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
     DA.build(txgrp=-1,rxgrp=-1, typ='NLOS')
     DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->NLOS')
-    gen_data_clusters(DS, threshold=0.00001)
+    gen_data_clusters(DS, threshold=0.00001, nff=True)
     DE.plot_hist(log=False)
     DA.plot_hist(log=False)
     exit()

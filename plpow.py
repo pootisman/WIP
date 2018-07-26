@@ -30,7 +30,7 @@ class plPlot():
         self.typ = None
         self.thrshld = 0.0
 
-    def regr_comp(self, rxgrp: int = -1, txgrp: int = -1, typ: str ='LOS', threshold: float = -130):
+    def regr_comp(self, rxgrp: int = -1, txgrp: int = -1, typ: str ='LOS', threshold: float = -130, nff: bool = True):
         self.xdata = []
         self.ydata = []
         self.typ = typ
@@ -46,22 +46,40 @@ class plPlot():
                     if j[0].setid == rxgrp or rxgrp == -1:
                         # Check paths for the RX-TX, only pick valid ones
                         for k in j[1].paths.items():
-                            if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld:
-                                self.xdata.append(np.log10(j[1].dist))
-                                self.ydata.append(k[1].FSPL)
-                                self.nsamps += 1
-                            elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and l2db(k[1].pow) >= self.thrshld:
-                                self.xdata.append(np.log10(j[1].dist))
-                                self.ydata.append(k[1].FSPL)
-                                self.nsamps += 1
-                            elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and l2db(k[1].pow) >= self.thrshld:
-                                self.xdata.append(np.log10(j[1].dist))
-                                self.ydata.append(k[1].FSPL)
-                                self.nsamps += 1
-                            elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and l2db(k[1].pow) >= self.thrshld:
-                                self.xdata.append(np.log10(j[1].dist))
-                                self.ydata.append(k[1].FSPL)
-                                self.nsamps += 1
+                            if nff and not k[1].near_field_failed:
+                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                            elif not nff:
+                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
+                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and l2db(k[1].pow) >= self.thrshld:
+                                    self.xdata.append(np.log10(j[1].dist))
+                                    self.ydata.append(k[1].FSPL)
+                                    self.nsamps += 1
 
         self.xdata = np.asarray(self.xdata)
         self.ydata = np.asarray(self.ydata)

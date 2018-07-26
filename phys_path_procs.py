@@ -113,16 +113,27 @@ class cluster(list):
             return False
 
 
-def gen_chan_clusters(chan: pd.chan = None, threshold: float = 1e-5):
+def gen_chan_clusters(chan: pd.chan = None, threshold: float = 1e-5, nff: bool = False):
     assert chan is not None, 'None given instead of channel in gen_clusters!'
     for i in chan.paths.items():
-        if i[1].cluster is None:
+        if not nff:
+            if i[1].cluster is None:
+                c = cluster(threshold=threshold, inipath=i[1])
+                for j in chan.paths.items():
+                    if nff and not j[1].near_field_failed:
+                        c.cappend(j[1])
+                    elif not nff:
+                        c.cappend(j[1])
+        elif not i[1].near_field_failed and (i[1].cluster is None):
             c = cluster(threshold=threshold, inipath=i[1])
             for j in chan.paths.items():
-                c.cappend(j[1])
+                if nff and not j[1].near_field_failed:
+                    c.cappend(j[1])
+                elif not nff:
+                    c.cappend(j[1])
 
 
-def gen_data_clusters(data: pd.data_stor, threshold: float = 1e-5):
+def gen_data_clusters(data: pd.data_stor, threshold: float = 1e-5, nff: bool = False):
     for i in data.txs.items():
         for j in i[1].chans_to_pairs.items():
-            gen_chan_clusters(j[1], threshold=threshold)
+            gen_chan_clusters(j[1], threshold=threshold, nff=nff)

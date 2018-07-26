@@ -35,7 +35,7 @@ class chimage_RX():
         self.zdata = []
 
     def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis'):
+             cmap: str = 'viridis', nff: bool = True):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -56,7 +56,8 @@ class chimage_RX():
                         hist = anghist2()
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
-                            hist.append(k[1].AoA, k[1].EoA, k[1].pow)
+                            if nff and not k[1].near_field_failed:
+                                hist.append(k[1].AoA, k[1].EoA, k[1].pow)
 
                         X = []
                         Y = []
@@ -107,7 +108,7 @@ class chimage_TX():
         self.zdata = []
 
     def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis'):
+             cmap: str = 'viridis', nff: bool = True):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -128,7 +129,8 @@ class chimage_TX():
                         hist = anghist2()
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
-                            hist.append(k[1].AoD, k[1].EoD, k[1].pow)
+                            if nff and not k[1].near_field_failed:
+                                hist.append(k[1].AoD, k[1].EoD, k[1].pow)
 
                         X = []
                         Y = []
@@ -170,10 +172,13 @@ if __name__ == "__main__":
     DS = pairdata.data_stor(conf='dbconf.txt')
     DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
     DS.load_paths(npaths=250)
-    DS.load_interactions(store=False)
+    DS.load_interactions(store=True)
+
+    from phys_path_procs import *
+    check_data_NF(DS)
 
     DE = chimage_RX(DS)
-    DE.draw(rxgrp=4, mkpng=True)
+    DE.draw(rxgrp=5, mkpng=True, nff=True)
     DT = chimage_TX(DS)
-    DT.draw(rxgrp=4, mkpng=True)
+    DT.draw(rxgrp=5, mkpng=True, nff=True)
     exit()

@@ -33,7 +33,8 @@ class rec_pat():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+             nff: bool = True):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -55,8 +56,12 @@ class rec_pat():
                         tt = []
                         r = []
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
-                            th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].AoA,
-                                       self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow))
+                            if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].near_field_failed:
+                                th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].AoA,
+                                           self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow))
+                            elif not nff:
+                                th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].AoA,
+                                           self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow))
 
                         th = sorted(th, key=lambda x: x[0])
 
