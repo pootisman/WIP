@@ -35,6 +35,8 @@ CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, 
            ' arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
            ' path WHERE channel_id = {});'
 INTERS = 'SELECT * FROM interaction_type;'
+INTERS_SPEC_CHAN = 'SELECT x, y, z, interaction_type_id, path_id FROM interaction WHERE path_id IN' \
+                   '(SELECT path_id FROM path WHERE channel_id = {});'
 INTERS_SPEC = 'SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {};'
 
 
@@ -178,8 +180,9 @@ class data_stor():
             n.setid = i[4]
             self.rxs[i[0]] = n
         print('Success!', flush=True)
-        self.dbconn.close()
-        self.dbconn = None
+        if hasattr(self, 'host'):
+            self.dbconn.close()
+            self.dbconn = None
 
     def load_paths(self, npaths: int = 25):
         print('Loading paths...', end='', flush=True)
@@ -222,8 +225,10 @@ class data_stor():
                     self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
                     self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
         print('Success!')
-        self.dbconn.close()
-        self.dbconn = None
+
+        if hasattr(self, 'host'):
+            self.dbconn.close()
+            self.dbconn = None
 
     def load_interactions(self, store: bool = True):
         print('Loading interactions...', end='', flush=True)
@@ -239,21 +244,24 @@ class data_stor():
 
         for i in self.txs.items():
             for j in i[1].chans_to_pairs.items():
+                self.dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
+                inters = self.dbcurs.fetchall()
                 for k in j[1].paths.items():
-                    self.dbcurs.execute(INTERS_SPEC.format(k[0]))
-                    m = self.dbcurs.fetchall()
-                    for l in m:
-                        if store:
-                            intr = interaction()
-                            intr.path = k[1]
-                            intr.coords = np.asarray([l[0], l[1], l[2]])
-                            intr.typ = l[3]
-                        else:
-                            intr = False
-                        k[1].interactions.append(intr)
+                    for l in inters:
+                        if l[4] == k[1].pathid:
+                            if store:
+                                intr = interaction()
+                                intr.path = k[1]
+                                intr.coords = np.asarray([l[0], l[1], l[2]])
+                                intr.typ = l[3]
+                            else:
+                                intr = False
+                            k[1].interactions.append(intr)
         print('Success!', flush=True)
-        self.dbconn.close()
-        self.dbconn = None
+
+        if hasattr(self, 'host'):
+            self.dbconn.close()
+            self.dbconn = None
 
     #def save_procd_to(self, suffix: str = 'procd'):
 

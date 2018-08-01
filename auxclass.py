@@ -85,6 +85,30 @@ class probhist(varhist):
                     self.linadd(i, (0, 1))
 
 
+class probhist4d():
+    def __init__(self, binc: int = 40, dxstart: float = -10.0, dxstop: float = 10.0, dystart: float = -10.0,
+                 dystop: float = 10.0, dzstart: float = -10.0, dzstop: float = 10.0, frac: float = 0.6,
+                 minbins: float = 1.0, addfun: callable = None):
+        pass
+
+    def linadd(self, binidx, tuple_val):
+        self.bins[binidx] = (self.bins[binidx][0] + tuple_val[0], self.bins[binidx][1] + tuple_val[1])
+
+    def append_succ(self, val):
+        if self.floor <= val <= self.ceiling:
+            for i in self.bins.keys():
+                if i[0] < val < i[1]:
+                    self.tothits += 1
+                    self.linadd(i, (1, 1))
+
+    def append_fail(self, val):
+        if self.floor <= val <= self.ceiling:
+            for i in self.bins.keys():
+                if i[0] < val < i[1]:
+                    self.tothits += 1
+                    self.linadd(i, (0, 1))
+
+
 class anghist():
     def __init__(self, binc: int = 36, rstart: float = 0.0, rstop: float = 360.0, addfun: callable = None):
         self.bins = dict()
