@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     DA.build(txgrp=-1,rxgrp=-1, typ='NLOS')
     DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->NLOS')
-    gen_data_clusters(DS, threshold=0.00001, nff=True)
+    #gen_data_clusters(DS, threshold=0.00001, nff=True)
     DE.plot_hist(log=False)
     DA.plot_hist(log=False)
     exit()
