@@ -46,11 +46,15 @@ class chimage_RX():
         else:
             rxrange = range(rxrange)
 
+        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
+        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+
+
         for i in txrange:
-            if self.source.txs[i].setid == txgrp or txgrp == -1:
+            if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 rr = 0
                 for j in rxrange:
-                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                    if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         f = mpl.figure(rr)
                         rr += 1
                         hist = anghist2()
@@ -119,11 +123,14 @@ class chimage_TX():
         else:
             rxrange = range(rxrange)
 
+        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
+        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+
         for i in txrange:
-            if self.source.txs[i].setid == txgrp or txgrp == -1:
+            if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 rr = 0
                 for j in rxrange:
-                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                    if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         f = mpl.figure(rr)
                         rr += 1
                         hist = anghist2()
@@ -170,7 +177,7 @@ class chimage_TX():
 
 if __name__ == "__main__":
     DS = pairdata.data_stor(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
+    DS.load_rxtx(dbname='Human_sitting_Sitting_3traj_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
 
@@ -178,7 +185,7 @@ if __name__ == "__main__":
     check_data_NF(DS)
 
     DE = chimage_RX(DS)
-    DE.draw(rxgrp=5, mkpng=True, nff=True)
+    DE.draw(rxgrp=[7,8,9], mkpng=True, nff=True)
     DT = chimage_TX(DS)
-    DT.draw(rxgrp=5, mkpng=True, nff=True)
+    DT.draw(rxgrp=[7,8,9], mkpng=True, nff=True)
     exit()

@@ -19,6 +19,9 @@ import mysql.connector as msqlc
 from mysql.connector.constants import ClientFlag
 import os
 import numpy as np
+import concurrent.futures as cof
+from multiprocessing import cpu_count
+
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
@@ -136,6 +139,9 @@ class data_stor():
             self.pasw = conff.readline().strip('\n')
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
+            self.nthreads = cpu_count()
+            print('Preparing {} threads...'.format(self.nthreads))
+            self.pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
 
     def __repr__(self):
         return 'SQL data storage'
@@ -149,7 +155,7 @@ class data_stor():
     def load_rxtx(self, dbname: str = None):
         print('Loading TX/RX nodes...', end='', flush=True)
         if self.dbconn is None:
-            if os.path.isfile(dbname) and not hasattr(self, 'host'):
+            if not hasattr(self, 'host'):
                 self.dbconn = sqlite3.connect(dbname)
                 self.dbcurs = self.dbconn.cursor()
                 self.dbname = dbname

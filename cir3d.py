@@ -41,8 +41,11 @@ class cirs():
         else:
             rxrange = range(rxrange)
 
+        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
+        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+
         for i in txrange:
-            if self.source.txs[i].setid == txgrp or txgrp == -1:
+            if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 self.xdata = []
                 self.ydata = []
                 self.zdata = []
@@ -50,7 +53,7 @@ class cirs():
                 nn = 0
                 maxy = 0
                 for j in rxrange:
-                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                    if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         nn += 1
                         if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
                             for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
@@ -95,12 +98,12 @@ class cirs():
 
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor()
-    #DS.load_rxtx('class.sqlite')
-    DS.load_rxtx('Human_crawl.TEST.sqlite')
+    DS = pairdata.data_stor('dbconf.txt')
+    DS.load_rxtx('Human_sitting_Sitting_3traj_sqlite')
+    #DS.load_rxtx('Human_crawl_TEST_sqlite')
     #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
     #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
     DS.load_paths(npaths=250)
     cir = cirs(DS)
-    cir.draw(-1, -1, txgrp=-1, rxgrp=2, tofile=False, ydim=250)
+    cir.draw(-1, -1, txgrp=-1, rxgrp=[9], tofile=False, ydim=250, nff=True)
     exit()
