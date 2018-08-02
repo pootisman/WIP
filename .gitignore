@@ -1,4 +1,5 @@
 *.sqlite
 *.png
 *.gif
+*.csv
 dbconf.txt

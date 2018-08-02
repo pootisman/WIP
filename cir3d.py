@@ -17,7 +17,7 @@
 import numpy as np
 import matplotlib.pyplot as mpl
 import pairdata
-from auxfun import *
+from auxclass import *
 from phys_path_procs import *
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
@@ -97,7 +97,8 @@ class cirs():
         if tofile is False:
             mpl.show()
 
-    def draw_pdp(self, tx: list, rx: list, nff: bool = True, avg: bool = False):
+    def draw_pdp(self, tx: list, rx: list, nff: bool = True, avg: bool = False, thresh: float = -110,
+                 csvsav: bool = False, plot: bool = True):
 
         tx = [tx] if not isinstance(tx, list) else tx
         rx = [rx] if not isinstance(rx, list) else rx
@@ -112,47 +113,72 @@ class cirs():
             for i in self.source.rxs.keys():
                 rx.append(i)
 
+        delay = []
+        pow = []
+
         for i in tx:
             for j in rx:
                 if not avg:
-                    f = mpl.figure(i*j)
+                    delay = []
+                    pow = []
 
-                delay = []
-                pow = []
 
                 if self.source.txs[i].chan_to(self.source.rxs[j]):
                     for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
-                        if nff and not k[1].near_field_failed:
-                            delay.append(k[1].delay)
-                            pow.append(l2db(k[1].pow))
-                        elif not nff:
-                            delay.append(k[1].delay)
-                            pow.append(l2db(k[1].pow))
+                        if l2db(k[1].pow) >= thresh:
+                            if nff and not k[1].near_field_failed:
+                                delay.append(k[1].delay)
+                                pow.append(l2db(k[1].pow))
+                            elif not nff:
+                                delay.append(k[1].delay)
+                                pow.append(l2db(k[1].pow))
                 else:
                     print('Error, no route between TX {} and RX {}!'.format(i, j))
+                    return
                     
                 if not avg:
-                    f = mpl.figure(i*j)
-                    mpl.stem(delay, pow, bottom=-110)
-                    mpl.xlabel('Delay, [s]')
-                    mpl.ylabel('Power, [dBm]')
-                    mpl.title('PDP@ [TX{}<->RX{}]'.format(i, j))
-                    offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
-                    mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
-                    mpl.grid(linestyle='--')
-                    mpl.tight_layout()
+                    if plot:
+                        f = mpl.figure((i+1)*(j+1))
+                        mpl.stem(delay, pow, bottom=-120)
+                        mpl.xlabel('Delay, [s]')
+                        mpl.ylabel('Power, [dBm]')
+                        mpl.title('PDP@[TX{}<->RX{}]'.format(i, j))
+                        offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
+                        mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
+                        mpl.grid(linestyle='--')
+                        mpl.tight_layout()
+                    if csvsav:
+                        file = open('PDP@[TX{}<->RX{}].csv'.format(i, j), mode='w')
+                        file.write('Delay [sec],Power [dBm]\n')
+                        for k in range(pow.__len__()):
+                            file.write('{},{}\n'.format(delay[k], pow[k]))
+                        file.close()
+        if avg:
+            if plot:
+                f = mpl.figure(i * j)
+                mpl.stem(delay, pow, bottom=-120)
+                mpl.xlabel('Delay, [s]')
+                mpl.ylabel('Power, [dBm]')
+                mpl.title('PDP@[TX{}<->RX{}]'.format(i, j))
+                offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
+                mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
+                mpl.grid(linestyle='--')
+                mpl.tight_layout()
+            if csvsav:
+                file = open('PDP@[TX{}<->RX{}].csv'.format(i, j), mode='w')
+                file.write('Delay [sec],Power [dBm]\n')
+                for k in range(pow.__len__()):
+                    file.write('{},{}\n'.format(delay[k], pow[k]))
+                file.close()
+
         mpl.show()
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')
-    #DS.load_rxtx('Human_sitting_Sitting_3traj_sqlite')
-    DS.load_rxtx('Human_crawl_TEST_sqlite')
-    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
-    #DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
+    DS.load_rxtx('Human_sitting_Sitting_3traj_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions()
     check_data_NF(DS)
     cir = cirs(DS)
-    #cir.draw(-1, -1, txgrp=-1, rxgrp=[9], tofile=False, ydim=250, nff=True)
-    cir.draw_pdp(tx=0, rx=20, nff=True)
+    cir.draw_pdp(tx=0, rx=20, nff=True, avg=False, thresh=-120, csvsav=True, plot=True)
     exit()

@@ -109,12 +109,14 @@ class probhist4d():
                     self.linadd(i, (0, 1))
 
 
-class anghist():
+class powhist():
     def __init__(self, binc: int = 36, rstart: float = 0.0, rstop: float = 360.0, addfun: callable = None):
         self.bins = dict()
         self.floor = rstart
         self.ceiling = rstop
         self.tothits = 0
+        self.binc = binc
+        self.adds = 1
 
         if addfun is None:
             self.addfun = self.linadd
@@ -136,8 +138,16 @@ class anghist():
                     return True
         return False
 
+    def __add__(self, other):
+        assert (self.binc != other.binc or self.floor != other.floor or self.ceiling != other.ceiling),\
+            'Histograms must be same, bailing out!'
 
-class anghist2():
+        result = powhist(binc=self.binc, rstart=self.floor, rstop=self.ceiling, addfun=self.addfun)
+
+        for i in self.bins.items():
+            pass
+
+class powhist2():
     def __init__(self, azbinc: int = 36, elbinc: int = 18, azstart: float = -180, azstop: float = 180.0, elstart=0.0,
                  elstop=180.0, addfun: callable = None):
         self.bins = dict()
