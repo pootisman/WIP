@@ -30,7 +30,7 @@ class cirs():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
              cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200, nff: bool = True,
              matsav: bool = False, plot: bool = True):
 
@@ -106,7 +106,7 @@ class cirs():
         if topng is False and plot:
             mpl.show()
 
-    def draw_pdp(self, tx: list, rx: list, nff: bool = True, avg: bool = False, thresh: float = -110,
+    def export(self, tx: list, rx: list, nff: bool = True, avg: bool = False, thresh: float = -110,
                  matsav: bool = False, csvsav: bool = False, plot: bool = True):
 
         tx = [tx] if not isinstance(tx, list) else tx

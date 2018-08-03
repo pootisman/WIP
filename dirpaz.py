@@ -31,7 +31,7 @@ class RX_pat_az():
         self.ylim = [-np.Inf, np.Inf]
         self.zlim = [-np.Inf, np.Inf]
 
-    def output(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -113,7 +113,7 @@ class RX_pat_el():
         self.ydata = []
         self.zdata = []
 
-    def output(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -195,7 +195,7 @@ class RX_pat_all():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()

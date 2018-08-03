@@ -34,7 +34,7 @@ class chimage_RX():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
              cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -113,7 +113,7 @@ class chimage_TX():
         self.ydata = []
         self.zdata = []
 
-    def output(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()

@@ -31,7 +31,7 @@ class plPlot():
         self.typ = None
         self.thrshld = 0.0
 
-    def regr_comp(self, rxgrp: list, txgrp: list, typ: str ='LOS', threshold: float = -130, nff: bool = True):
+    def regr_comp(self, rxgrp: list = [-1], txgrp: list = [-1], typ: str ='LOS', threshold: float = -130, nff: bool = True):
         self.xdata = []
         self.ydata = []
         self.typ = typ
@@ -122,12 +122,11 @@ class plPlot():
 
 if __name__ == '__main__':
     DS = pairdata.data_stor(conf='dbconf.txt')
-    #DS.load_rxtx('class.sqlite')
-    DS.load_rxtx('Human_crawl_TEST_sqlite')
+    DS.load_rxtx('class_sqlite')
     DS.load_paths()
     DS.load_interactions()
     check_data_NF(DS)
     plp = plPlot(source=DS)
-    print(plp.regr_comp(typ='NLOS', threshold=-95, nff=True))
-    plp.plot_reg()
+    print(plp.regr_comp(typ='NLOS', threshold=-115, nff=True))
+    plp.export(csvsav=True, matsav=True)
     exit()
