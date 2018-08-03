@@ -15,9 +15,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import matplotlib.pyplot as mpl
+import scipy.io as sio
 import pairdata
 from auxclass import *
-from auxfun import *
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
@@ -34,8 +34,8 @@ class chimage_RX():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
+             cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -91,11 +91,13 @@ class chimage_RX():
                         mpl.xlabel('Azimuth, [degrees]')
                         mpl.ylabel('Elevation, [degrees]')
                         mpl.tight_layout()
-                        if mkpng:
-                            mpl.savefig('RXCImage_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                        if topng:
+                            mpl.savefig('RXCImage_tx{0:03d}->rx{1:03d}.png'.format(i, j))
                             mpl.close(f)
+                        if matsav:
+                            sio.savemat('RXCImage_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': X, 'Y': Y, 'Z': Z})
 
-        if mkpng is False:
+        if topng is False:
             mpl.show()
 
 
@@ -111,8 +113,8 @@ class chimage_TX():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True):
+    def output(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+             cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -170,6 +172,9 @@ class chimage_TX():
                         if mkpng:
                             mpl.savefig('TXCImage_tx{0:03d}->rx{1:03d}.png'.format(i,j))
                             mpl.close(f)
+
+                        if matsav:
+                            sio.savemat('RXCImage_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': X, 'Y': Y, 'Z': Z})
 
         if mkpng is False:
             mpl.show()

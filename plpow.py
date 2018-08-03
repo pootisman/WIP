@@ -15,8 +15,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import matplotlib.pyplot as mpl
+import scipy.io as sio
 import pairdata
-from auxfun import *
 from phys_path_procs import *
 
 class plPlot():
@@ -91,19 +91,33 @@ class plPlot():
         self.a, self.b = np.linalg.lstsq(np.vstack([self.xdata, np.ones(self.xdata.__len__())]).T, self.ydata, rcond=None)[0]
         return self.a, self.b
 
-    def plot_reg(self):
-        mpl.figure()
-        mpl.plot(np.power(10, self.xdata), self.ydata, 'r.', label='Experimental data')
-        mpl.plot(np.power(10, self.xdata), self.b + self.a * self.xdata, 'b.', label='Fitted model')
+    def export(self, plot: bool = True, csvsav: bool = False, matsav: bool = False):
         self.mean_res = np.mean(self.ydata - self.b - self.a * self.xdata)
         self.var_res = np.sqrt(np.var(self.ydata - self.b - self.a * self.xdata))
-        mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm, m={:3.2}dBm , s={:3.2}dBm'.format(self.typ, self.a, self.b,
+
+        if plot:
+            mpl.figure()
+            mpl.plot(np.power(10, self.xdata), self.ydata, 'r.', label='Experimental data')
+            mpl.plot(np.power(10, self.xdata), self.b + self.a * self.xdata, 'b.', label='Fitted model')
+            mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm, m={:3.2}dBm , s={:3.2}dBm'.format(self.typ, self.a, self.b,
                                                                                         self.mean_res, self.var_res))
-        mpl.xlabel('Distance, [meters]')
-        mpl.ylabel('Pathloss, [dB]')
-        mpl.grid(linestyle='--')
-        mpl.xlim([0, np.nanmax(np.power(10.0, self.xdata))])
-        mpl.show()
+            mpl.xlabel('Distance, [meters]')
+            mpl.ylabel('Pathloss, [dB]')
+            mpl.grid(linestyle='--')
+            mpl.xlim([0, np.nanmax(np.power(10.0, self.xdata))])
+            mpl.show()
+
+        if csvsav:
+            file = open('FSPL_regr.csv', mode='w')
+            file.write('Dist. [m],FSPL [dB]\n')
+            for k in range(self.ydata.__len__()):
+                file.write('{},{}\n'.format(self.xdata[k], self.ydata[k]))
+            file.write('A,B\n')
+            file.write('{},{}\n'.format(self.a, self.b))
+            file.close()
+
+        if matsav:
+            sio.savemat('FSPL_regr.mat', {'A': self.a, 'B': self.b, 'xdata': self.xdata, 'ydata': self.ydata})
 
 
 if __name__ == '__main__':

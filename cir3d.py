@@ -15,9 +15,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import numpy as np
+import scipy.io as sio
 import matplotlib.pyplot as mpl
 import pairdata
-from auxclass import *
 from phys_path_procs import *
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
@@ -30,8 +30,10 @@ class cirs():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, tofile: bool = False,
-             cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200, nff: bool = True):
+    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
+             cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200, nff: bool = True,
+             matsav: bool = False, plot: bool = True):
+
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -50,7 +52,7 @@ class cirs():
                 self.xdata = []
                 self.ydata = []
                 self.zdata = []
-                f = mpl.figure(i)
+
                 nn = 0
                 maxy = 0
                 for j in rxrange:
@@ -83,22 +85,29 @@ class cirs():
 
                 (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim)
                 [X, Y] = np.meshgrid(X, Y)
-                mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20, cmap=cmap)
-                mpl.clim([np.min(Z), np.max(Z) + np.abs(0.1 * np.max(Z))])
-                mpl.colorbar().set_label('RX power, [dBm]')
-                mpl.xlabel('RX Position')
-                mpl.ylabel('Delay, [ns]')
-                mpl.title('CIR@TX #{}'.format(i))
-                mpl.tight_layout()
-                if tofile:
+
+                if plot or topng:
+                    f = mpl.figure(i)
+                    mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20, cmap=cmap)
+                    mpl.clim([np.min(Z), np.max(Z) + np.abs(0.1 * np.max(Z))])
+                    mpl.colorbar().set_label('RX power, [dBm]')
+                    mpl.xlabel('RX Position')
+                    mpl.ylabel('Delay, [ns]')
+                    mpl.title('CIR@TX #{}'.format(i))
+                    mpl.tight_layout()
+
+                if topng:
                     mpl.savefig('CIR3D_tx{0:03d}.png'.format(i))
                     mpl.close(f)
 
-        if tofile is False:
+                if matsav:
+                    sio.savemat('CIR3D_tx{0:03d}.mat'.format(i), {'X': X, 'Y': Y, 'Z':Z})
+
+        if topng is False and plot:
             mpl.show()
 
     def draw_pdp(self, tx: list, rx: list, nff: bool = True, avg: bool = False, thresh: float = -110,
-                 csvsav: bool = False, plot: bool = True):
+                 matsav: bool = False, csvsav: bool = False, plot: bool = True):
 
         tx = [tx] if not isinstance(tx, list) else tx
         rx = [rx] if not isinstance(rx, list) else rx
@@ -147,12 +156,17 @@ class cirs():
                         mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                         mpl.grid(linestyle='--')
                         mpl.tight_layout()
+
+                    if matsav:
+                        sio.savemat('PDP@[TX{}<->RX{}].mat'.format(i, j), {'delay': delay, 'pow': pow})
+
                     if csvsav:
                         file = open('PDP@[TX{}<->RX{}].csv'.format(i, j), mode='w')
                         file.write('Delay [sec],Power [dBm]\n')
                         for k in range(pow.__len__()):
                             file.write('{},{}\n'.format(delay[k], pow[k]))
                         file.close()
+
         if avg:
             if plot:
                 f = mpl.figure(i * j)
@@ -164,6 +178,10 @@ class cirs():
                 mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                 mpl.grid(linestyle='--')
                 mpl.tight_layout()
+
+            if matsav:
+                sio.savemat('PDP@[TX{}<->RX{}].mat'.format(i, j), {'delay': delay, 'pow': pow})
+
             if csvsav:
                 file = open('PDP@[TX{}<->RX{}].csv'.format(i, j), mode='w')
                 file.write('Delay [sec],Power [dBm]\n')
@@ -180,5 +198,5 @@ if __name__ == "__main__":
     DS.load_interactions()
     check_data_NF(DS)
     cir = cirs(DS)
-    cir.draw_pdp(tx=0, rx=20, nff=True, avg=False, thresh=-120, csvsav=True, plot=True)
+    cir.draw_pdp(tx=0, rx=20, nff=True, avg=False, thresh=-120, matsav=True, plot=True)
     exit()

@@ -19,7 +19,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 
 
-def basint2(X: list, Y: list, xc: int, threaded: bool = False):
+def basint2(X: list, Y: list, xc: int):
     Xlim = [np.nanmin(X), np.nanmax(X)]
 
     Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)

@@ -16,6 +16,7 @@
 
 import matplotlib.pyplot as mpl
 import mayavi.mlab as mlab
+import scipy.io as sio
 import pairdata
 from auxfun import *
 from auxclass import *
@@ -30,12 +31,8 @@ class RX_pat_az():
         self.ylim = [-np.Inf, np.Inf]
         self.zlim = [-np.Inf, np.Inf]
 
-        self.xdata = []
-        self.ydata = []
-        self.zdata = []
-
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             nff: bool = True):
+    def output(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+             nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -57,7 +54,8 @@ class RX_pat_az():
                         tt = []
                         r = []
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
-                            if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].near_field_failed:
+                            if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].\
+                                    near_field_failed:
                                 th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].AoA,
                                            self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow))
                             elif not nff:
@@ -87,8 +85,18 @@ class RX_pat_az():
                         ax.grid(linestyle='--')
                         mpl.title('AoA@[TX #{} -> RX #{}]'.format(i, j))
                         if mkpng:
-                            mpl.savefig('Recpat_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.savefig('RXaz_tx{0:03d}->rx{1:03d}.png'.format(i,j))
                             mpl.close(f)
+
+                        if matsav:
+                            sio.savemat('RXaz_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'theta': tt, 'pow': r})
+
+                        if csvsav:
+                            file = open('RXaz_tx{0:03d}->rx{1:03d}.csv'.format(i, j), mode='w')
+                            file.write('Ang. [deg], Pow [dBm]\n')
+                            for k in range(tt.__len__()):
+                                file.write('{},{}\n'.format(tt[k], r[k]))
+                            file.close()
 
         if mkpng is False:
             mpl.show()
@@ -105,8 +113,8 @@ class RX_pat_el():
         self.ydata = []
         self.zdata = []
 
-    def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             nff: bool = True):
+    def output(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+             nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -128,7 +136,8 @@ class RX_pat_el():
                         tt = []
                         r = []
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
-                            if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].near_field_failed:
+                            if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].\
+                                    near_field_failed:
                                 th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].EoA,
                                            self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow))
                             elif not nff:
@@ -158,8 +167,18 @@ class RX_pat_el():
                         ax.grid(linestyle='--')
                         mpl.title('AoA@[TX #{} -> RX #{}]'.format(i, j))
                         if mkpng:
-                            mpl.savefig('Recpat_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.savefig('RXel_tx{0:03d}->rx{1:03d}.png'.format(i, j))
                             mpl.close(f)
+
+                        if matsav:
+                            sio.savemat('RXel_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'theta': tt, 'pow': r})
+
+                        if csvsav:
+                            file = open('RXel_tx{0:03d}->rx{1:03d}.csv'.format(i, j), mode='w')
+                            file.write('Ang. [deg], Pow [dBm]\n')
+                            for k in range(tt.__len__()):
+                                file.write('{},{}\n'.format(tt[k], r[k]))
+                            file.close()
 
         if mkpng is False:
             mpl.show()
@@ -177,7 +196,7 @@ class RX_pat_all():
         self.zdata = []
 
     def draw(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             nff: bool = True):
+             nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -225,11 +244,18 @@ class RX_pat_all():
 
                         plotZ = Z - np.min(np.min(Z))
 
-                        mlab.mesh(  (plotZ.T * np.cos(np.tile(np.deg2rad(X), [ylen, 1])) * np.sin(np.tile(np.deg2rad(Y), [xlen, 1])).T)  ,  (plotZ.T * np.sin(np.tile(np.deg2rad(X), [ylen, 1])) * np.sin(np.tile(np.deg2rad(Y), [xlen, 1])).T)  ,  (plotZ.T * np.cos(np.tile(np.deg2rad(X), [ylen, 1])))  )
+                        mlab.mesh((plotZ.T * np.cos(np.tile(np.deg2rad(X), [ylen, 1])) *
+                                    np.sin(np.tile(np.deg2rad(Y), [xlen, 1])).T),
+                                  (plotZ.T *np.sin(np.tile(np.deg2rad(X), [ylen, 1]))
+                                   * np.sin(np.tile(np.deg2rad(Y), [xlen, 1])).T),
+                                  (plotZ.T * np.cos(np.tile(np.deg2rad(X), [ylen, 1]))))
 
                         if mkpng:
-                            mlab.savefig('Recpat_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mlab.savefig('RXpat_tx{0:03d}->rx{1:03d}.png'.format(i, j))
                             mlab.close(f)
+
+                        if matsav:
+                            sio.savemat('RXPat_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': X, 'Y': Y, 'Z': Z})
 
         if mkpng is False:
             mlab.show()
