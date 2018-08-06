@@ -1,3 +1,21 @@
+# Copyright (C) Aleksei Ponomarenko-Timofeev
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
 import mysql.connector as msc
 from mysql.connector.constants import ClientFlag
 import sqlite3
@@ -92,7 +110,7 @@ def sqlins(dbn, data, host, user, pw):
     conn.close()
     waiting -= 1
 
-TPE = cof.ThreadPoolExecutor()
+TPE = cof.ThreadPoolExecutor(max_workers=max_waiting)
 
 for i in WI_TABLES.items():
     if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
@@ -124,6 +142,7 @@ for i in WI_TABLES.items():
 
             if (comm + 1) % stepping == 0:
                 myreq.append(';')
+                # Avoid excessive memory consumption
                 while waiting >= max_waiting:
                     sleep(0.1)
 
@@ -136,6 +155,8 @@ for i in WI_TABLES.items():
 
         if (comm + 1) % stepping != 0:
             myreq[-1] = ';'
+            while waiting >= max_waiting:
+                sleep(0.1)
             TPE.submit(sqlins, dbn, ''.join(myreq), host, user, pw)
             print('Writing to {} at row {}'.format(i[0], comm))
 

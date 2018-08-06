@@ -106,7 +106,7 @@ class cirs():
         if topng is False and plot:
             mpl.show()
 
-    def export(self, tx: list, rx: list, nff: bool = True, avg: bool = False, thresh: float = -110,
+    def export_pdp(self, tx: list = [-1], rx: list = [-1], nff: bool = True, avg: bool = False, thresh: float = -110,
                  matsav: bool = False, csvsav: bool = False, plot: bool = True):
 
         tx = [tx] if not isinstance(tx, list) else tx
@@ -131,7 +131,6 @@ class cirs():
                     delay = []
                     pow = []
 
-
                 if self.source.txs[i].chan_to(self.source.rxs[j]):
                     for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                         if l2db(k[1].pow) >= thresh:
@@ -144,7 +143,7 @@ class cirs():
                 else:
                     print('Error, no route between TX {} and RX {}!'.format(i, j))
                     return
-                    
+
                 if not avg:
                     if plot:
                         f = mpl.figure((i+1)*(j+1))
@@ -189,14 +188,16 @@ class cirs():
                     file.write('{},{}\n'.format(delay[k], pow[k]))
                 file.close()
 
-        mpl.show()
+        if plot:
+            mpl.show()
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')
-    DS.load_rxtx('Human_sitting_Sitting_3traj_sqlite')
+    DS.load_rxtx('HMS_lp2_Lowpoly_standing_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions()
     check_data_NF(DS)
     cir = cirs(DS)
-    cir.draw_pdp(tx=0, rx=20, nff=True, avg=False, thresh=-120, matsav=True, plot=True)
+    cir.export(rxgrp=2, nff=True, matsav=False, plot=True, topng=False)
+    cir.export_pdp(csvsav=True, plot=False)
     exit()

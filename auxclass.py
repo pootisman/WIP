@@ -116,7 +116,7 @@ class powhist():
         self.ceiling = rstop
         self.tothits = 0
         self.binc = binc
-        self.adds = 1
+        self.__adds = 1
 
         if addfun is None:
             self.addfun = self.linadd
@@ -144,8 +144,15 @@ class powhist():
 
         result = powhist(binc=self.binc, rstart=self.floor, rstop=self.ceiling, addfun=self.addfun)
 
+        # TODO: Verify correctness
         for i in self.bins.items():
-            pass
+            result[i[0]] = (self.__adds * i[1] + other.__adds * other.bins[i])/(self.__adds + other.__adds)
+
+        result.__adds = self.__adds + other.__adds
+        result.tothits = self.tothits + other.tothits
+
+
+        return result
 
 class powhist2():
     def __init__(self, azbinc: int = 36, elbinc: int = 18, azstart: float = -180, azstop: float = 180.0, elstart=0.0,

@@ -21,6 +21,9 @@ import os
 import numpy as np
 import concurrent.futures as cof
 from multiprocessing import cpu_count
+import scipy.io as sio
+from time import sleep
+from auxfun import l2db
 
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
@@ -30,12 +33,19 @@ RX_EXTR = 'SELECT rx_id, x, y, z, rx_set_id FROM rx;'
 TX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
            'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
            'FROM channel_utd WHERE channel_utd.channel_id IN ' \
-           '(SELECT channel_id FROM channel WHERE tx_id = {})) utd ' \
+           '(SELECT channel_id FROM channel WHERE tx_id BETWEEN {} AND {})) utd ' \
            'JOIN ' \
-           '(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan ' \
+           '(SELECT channel.channel_id ,channel.rx_id, channel.tx_id FROM channel WHERE tx_id BETWEEN {} AND {}) chan ' \
+           'ON utd.channel_id = chan.channel_id;'
+RX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
+           'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
+           'FROM channel_utd WHERE channel_utd.channel_id IN ' \
+           '(SELECT channel_id FROM channel WHERE rx_id BETWEEN {} AND {})) utd ' \
+           'JOIN ' \
+           '(SELECT channel.channel_id ,channel.tx_id, channel.rx_id FROM channel WHERE rx_id BETWEEN {} AND {}) chan ' \
            'ON utd.channel_id = chan.channel_id;'
 CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi,' \
-           ' arrival_theta, freespace_path_loss FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
+           ' arrival_theta, freespace_path_loss, cir_phs FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
            ' path WHERE channel_id = {});'
 INTERS = 'SELECT * FROM interaction_type;'
 INTERS_SPEC_CHAN = 'SELECT x, y, z, interaction_type_id, path_id FROM interaction WHERE path_id IN' \
@@ -89,6 +99,7 @@ class path():
     def __init__(self):
         self.pathid = 0
         self.pow = 0.0
+        self.phase = 0.0
         self.delay = 0.0
         self.len = 0.0
         self.interactions = list()
@@ -122,6 +133,84 @@ class interaction():
         print('{}@{}'.format(self.typ, self.coords))
 
 
+def _load_paths_txthread(self, txsids, host, user, pw, dbname):
+    dbconn = msqlc.connect(host=host, user=user, password=pw,
+                                client_flags=[ClientFlag.SSL], database=dbname)
+
+    dbcurs = dbconn.cursor()
+    dbcurs.execute(TX_PAIRS.format(min(txsids), max(txsids), min(txsids), max(txsids)))
+    txp = dbcurs.fetchall()
+    for i in txp:
+        dst = self.rxs[i[-2]]
+        self.txs[i[-1]].chans_to_pairs[dst] = chan(dst, self.txs[i[-1]])
+        self.rxs[i[-2]].chans_to_pairs[self.txs[i]] = self.txs[i[-1]].chans_to_pairs[dst]
+        self.txs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
+        self.txs[i[-1]].chans_to_pairs[dst].delay = i[2]
+        self.txs[i[-1]].chans_to_pairs[dst].ds = i[3]
+        self.txs[i[-1]].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[i[-2]].coords)
+        self.txs[i[-1]].chans_to_pairs[dst].chid = i[0]
+
+    print('[{},{}]...'.format(min(txsids), max(txsids)), end='', flush=True)
+
+    for i in txsids:
+        for j in self.txs[i].chans_to_pairs.keys():
+            dbcurs.execute(CHAN_PTH.format(self.txs[i].chans_to_pairs[j].chid))
+            d = dbcurs.fetchall()
+            d = sorted(d, key=lambda t: t[1], reverse=True)
+            for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
+                self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
+                self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
+                self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+    dbconn.close()
+
+
+def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
+    dbconn = msqlc.connect(host=host, user=user, password=pw,
+                                client_flags=[ClientFlag.SSL], database=dbname)
+
+    dbcurs = dbconn.cursor()
+    dbcurs.execute(RX_PAIRS.format(min(rxsids), max(rxsids), min(rxsids), max(rxsids)))
+    rxp = dbcurs.fetchall()
+    for i in rxp:
+        dst = self.txs[i[-2]]
+        self.rxs[i[-1]].chans_to_pairs[dst] = chan(dst, self.rxs[i[-1]])
+        self.txs[i[-2]].chans_to_pairs[self.rxs[i[-1]]] = self.rxs[i[-1]].chans_to_pairs[dst]
+        self.rxs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
+        self.rxs[i[-1]].chans_to_pairs[dst].delay = i[2]
+        self.rxs[i[-1]].chans_to_pairs[dst].ds = i[3]
+        self.rxs[i[-1]].chans_to_pairs[dst].dist = np.linalg.norm(self.rxs[i[-1]].coords - self.txs[i[-2]].coords)
+        self.rxs[i[-1]].chans_to_pairs[dst].chid = i[0]
+
+    print('[{},{}]...'.format(min(rxsids), max(rxsids)), end='', flush=True)
+
+    for i in rxsids:
+        for j in self.rxs[i].chans_to_pairs.keys():
+            dbcurs.execute(CHAN_PTH.format(self.rxs[i].chans_to_pairs[j].chid))
+            d = dbcurs.fetchall()
+            d = sorted(d, key=lambda t: t[1], reverse=True)
+            for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
+                self.rxs[i].chans_to_pairs[j].paths[k[0]] = path()
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].chan = self.rxs[i].chans_to_pairs[j]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+    dbconn.close()
+
+
 class data_stor():
     def __init__(self, conf: str = None):
         self.txs = dict()
@@ -139,9 +228,9 @@ class data_stor():
             self.pasw = conff.readline().strip('\n')
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
-            self.nthreads = cpu_count()
-            print('Preparing {} threads...'.format(self.nthreads))
-            self.pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
+            self.nthreads = 5 * cpu_count()
+            print('Will use up to {} threads...'.format(self.nthreads))
+            self.pool = None
 
     def __repr__(self):
         return 'SQL data storage'
@@ -190,7 +279,7 @@ class data_stor():
             self.dbconn.close()
             self.dbconn = None
 
-    def load_paths(self, npaths: int = 25):
+    def load_paths(self, npaths: int = 250):
         print('Loading paths...', end='', flush=True)
         self.npaths = npaths
         if self.dbconn is None:
@@ -200,36 +289,77 @@ class data_stor():
             else:
                 self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
                                             client_flags=[ClientFlag.SSL], database=self.dbname)
+                
                 self.dbcurs = self.dbconn.cursor()
 
-        for i in self.txs.keys():
-            self.dbcurs.execute(TX_PAIRS.format(i, i))
-            k = self.dbcurs.fetchall()
-            for j in k:
-                dst = self.rxs[j[-1]]
-                self.txs[i].chans_to_pairs[dst] = chan(dst, self.txs[i])
-                self.rxs[j[-1]].chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
-                self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
-                self.txs[i].chans_to_pairs[dst].delay = j[2]
-                self.txs[i].chans_to_pairs[dst].ds = j[3]
-                self.txs[i].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
-                self.txs[i].chans_to_pairs[dst].chid = j[0]
+        if hasattr(self, 'host'):
+            trxsc = 0
+            txs_per_thread = self.txs.__len__() / self.nthreads
+            rxs_per_thread = self.rxs.__len__() / self.nthreads
 
-            for j in self.txs[i].chans_to_pairs.keys():
-                self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chans_to_pairs[j].chid))
-                d = self.dbcurs.fetchall()
-                d = sorted(d, key=lambda t: t[1], reverse=True)
-                for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
-                    self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
-                    self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+            thread_pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
+
+            if txs_per_thread > rxs_per_thread:
+                print('TXward({})...'.format(txs_per_thread), end='', flush=True)
+                txs_per_thread = int(txs_per_thread)
+                for i in self.txs.keys():
+                    if trxsc % txs_per_thread == 0:
+                        if trxsc != 0:
+                            thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
+                        txs = []
+                    txs.append(i)
+                    trxsc+=1
+
+                if trxsc % txs_per_thread != 0 or txs_per_thread <= 1:
+                    thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
+                    txs = []
+            else:
+                print('RXward({})...'.format(rxs_per_thread), end='', flush=True)
+                rxs_per_thread = int(rxs_per_thread)
+                for i in self.rxs.keys():
+                    if trxsc % rxs_per_thread == 0:
+                        if trxsc != 0:
+                            thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
+                        rxs = []
+                    rxs.append(i)
+                    trxsc+=1
+
+                if trxsc % txs_per_thread != 0 or rxs_per_thread <= 1:
+                    thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
+                    rxs = []
+
+            thread_pool.shutdown()
+        else:
+            for i in self.txs.keys():
+                self.dbcurs.execute(TX_PAIRS.format(i, i))
+                k = self.dbcurs.fetchall()
+                for j in k:
+                    dst = self.rxs[j[-1]]
+                    self.txs[i].chans_to_pairs[dst] = chan(dst, self.txs[i])
+                    self.rxs[j[-1]].chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
+                    self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
+                    self.txs[i].chans_to_pairs[dst].delay = j[2]
+                    self.txs[i].chans_to_pairs[dst].ds = j[3]
+                    self.txs[i].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
+                    self.txs[i].chans_to_pairs[dst].chid = j[0]
+
+                for j in self.txs[i].chans_to_pairs.keys():
+                    self.dbcurs.execute(CHAN_PTH.format(self.txs[i].chans_to_pairs[j].chid))
+                    d = self.dbcurs.fetchall()
+                    d = sorted(d, key=lambda t: t[1], reverse=True)
+                    for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
+                        self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+
         print('Success!')
 
         if hasattr(self, 'host'):
@@ -269,15 +399,50 @@ class data_stor():
             self.dbconn.close()
             self.dbconn = None
 
-    #def save_procd_to(self, suffix: str = 'procd'):
+    def dump_paths(self,  txgrp: list = [-1], rxgrp: list = [-1], csvsav: bool = True, matsav: bool = True):
+        for i in self.txs.items():
+            if i[1].setid in txgrp or txgrp[0] == -1:
+                for j in self.rxs.items():
+                    AoA = list()
+                    EoA = list()
+                    AoD = list()
+                    EoD = list()
+                    phase = list()
+                    pow = list()
+                    delay = list()
+                    if j[1].setid in rxgrp or rxgrp[0] == -1:
+                        if i[1].chan_to(j[1]):
+                            for k in i[1].chans_to_pairs[j[1]].paths.items():
+                                AoA.append(k[1].AoA)
+                                EoA.append(k[1].EoA)
+                                AoD.append(k[1].AoD)
+                                EoD.append(k[1].EoD)
+                                phase.append(k[1].phase)
+                                pow.append(k[1].pow)
+                                delay.append(k[1].delay)
+                        else:
+                            pass
+
+                    if matsav:
+                        sio.savemat('Paths@[TX{}<->RX{}].mat'.format(i[0], j[0]), {'delay': delay, 'pow': l2db(pow), 'phase':
+                            phase, 'AoA': AoA, 'EoA': EoA, 'AoD': AoD, 'EoD': EoD})
+
+                    if csvsav:
+                        file = open('Paths@[TX{}<->RX{}].csv'.format(i[0], j[0]), mode='w')
+                        file.write('Delay [sec], Power [dBm], Phase, AoA [deg], EoA [deg], AoD [deg], EoD [deg]\n')
+                        for k in range(pow.__len__()):
+                            file.write('{},{},{},{},{},{},{}\n'.format(delay[k], l2db(pow[k]), phase[k], AoA[k], EoA[k],
+                                                                   AoD[k], EoD[k]))
+                        file.close()
 
 
 
 if __name__ == '__main__':
     DS = data_stor(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
+    DS.load_rxtx(dbname='class_sqlite')
     DS.load_paths()
     DS.load_interactions()
+    #DS.dump_paths()
     from phys_path_procs import *
     check_data_NF(DS)
     exit()
