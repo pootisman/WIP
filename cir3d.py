@@ -31,8 +31,8 @@ class cirs():
         self.zdata = []
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
-             cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200, nff: bool = True,
-             matsav: bool = False, plot: bool = True):
+             cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
+            nff: bool = True, matsav: bool = False, plot: bool = True):
 
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -54,27 +54,25 @@ class cirs():
                 self.zdata = []
 
                 nn = 0
-                maxy = 0
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         nn += 1
                         if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
                             for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
-                                if nff and not k[1].near_field_failed:
+                                if nff and not k[1].near_field_failed and zmax > l2db(k[1].pow) > zmin:
                                     self.xdata.append(j)
                                     self.ydata.append(k[1].delay * 1e9)
                                     self.zdata.append(l2db(k[1].pow))
-                                elif not nff:
+                                elif not nff and zmax > l2db(k[1].pow) > zmin:
                                     self.xdata.append(j)
                                     self.ydata.append(k[1].delay * 1e9)
                                     self.zdata.append(l2db(k[1].pow))
                         else:
-                            if self.ydata.__len__() > 0 and maxy == 0:
+                            if self.ydata.__len__() > 0:
                                 maxy = np.nanmax(self.ydata)
-
                                 self.xdata.append(j)
                                 self.ydata.append(maxy)
-                                self.zdata.append(np.NaN)
+                                self.zdata.append(zmin)
 
                 if np.max(self.ydata) == 0:
                     self.ydata[-1] = 1e-9
@@ -83,31 +81,46 @@ class cirs():
                     for z in range(self.zdata.__len__()):
                         self.zdata[z] = zmin
 
-                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim)
+                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim, zmin=zmin)
                 [X, Y] = np.meshgrid(X, Y)
 
                 if plot or topng:
                     f = mpl.figure(i)
-                    mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20, cmap=cmap)
-                    mpl.clim([np.min(Z), np.max(Z) + np.abs(0.1 * np.max(Z))])
-                    mpl.colorbar().set_label('RX power, [dBm]')
+
+                    if np.isnan(zmax):
+                        cmin = np.min(Z)
+                        cmax = np.max(Z) + np.abs(0.1 * np.max(Z))
+                    else:
+                        cmin = zmin
+                        cmax = zmax
+
+                    mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20, cmap=cmap, vmin=cmin, vmax=cmax)
+
+                    cb = mpl.colorbar()
+                    cb.set_label('RX power, [dBm]')
+                    cb.set_clim(vmin=cmin, vmax=cmax)
+                    cb.set_ticks(np.linspace(start=cmin, stop=cmax, num=10, endpoint=True).tolist())
+                    mpl.clim(vmin=cmin, vmax=cmax)
+#                    cb.ax.set_ylim([cmin, cmax])
+
                     mpl.xlabel('RX Position')
                     mpl.ylabel('Delay, [ns]')
                     mpl.title('CIR@TX #{}'.format(i))
                     mpl.tight_layout()
 
                 if topng:
-                    mpl.savefig('CIR3D_tx{0:03d}.png'.format(i))
+                    mpl.savefig('CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0]))
                     mpl.close(f)
 
                 if matsav:
-                    sio.savemat('CIR3D_tx{0:03d}.mat'.format(i), {'X': X, 'Y': Y, 'Z':Z})
+                    sio.savemat('CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0]), {'X': X, 'Y': Y, 'Z': Z})
 
         if topng is False and plot:
             mpl.show()
 
-    def export_pdp(self, tx: list = [-1], rx: list = [-1], nff: bool = True, avg: bool = False, thresh: float = -110,
-                 matsav: bool = False, csvsav: bool = False, plot: bool = True):
+    def export_pdp(self, tx: list = [-1], rx: list = [-1], nff: bool = True, avg: bool = False, floor: float = -110.0,
+                   matsav: bool = False, csvsav: bool = False, plot: bool = True, topng: bool = False,
+                   ceil: float = -40.0):
 
         tx = [tx] if not isinstance(tx, list) else tx
         rx = [rx] if not isinstance(rx, list) else rx
@@ -133,7 +146,7 @@ class cirs():
 
                 if self.source.txs[i].chan_to(self.source.rxs[j]):
                     for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
-                        if l2db(k[1].pow) >= thresh:
+                        if ceil > l2db(k[1].pow) > floor:
                             if nff and not k[1].near_field_failed:
                                 delay.append(k[1].delay)
                                 pow.append(l2db(k[1].pow))
@@ -167,7 +180,7 @@ class cirs():
                         file.close()
 
         if avg:
-            if plot:
+            if plot or topng:
                 f = mpl.figure(i * j)
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
@@ -188,16 +201,23 @@ class cirs():
                     file.write('{},{}\n'.format(delay[k], pow[k]))
                 file.close()
 
-        if plot:
+            if topng:
+                mpl.savefig('PDP@[TX{}<->RX{}].png'.format(i, j))
+                mpl.close(f)
+
+        if topng is False and plot:
             mpl.show()
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')
-    DS.load_rxtx('HMS_lp2_Lowpoly_standing_sqlite')
+    DS.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths(npaths=250)
-    DS.load_interactions()
+    DS.load_interactions(store=True)
     check_data_NF(DS)
     cir = cirs(DS)
-    cir.export(rxgrp=2, nff=True, matsav=False, plot=True, topng=False)
-    cir.export_pdp(csvsav=True, plot=False)
+    cir.export(txgrp=-1, rxgrp=6, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
+    #cir.export(txgrp=-1, rxgrp=5, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
+    #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
+    #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
+    #cir.export_pdp(csvsav=True, plot=False)
     exit()

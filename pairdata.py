@@ -29,27 +29,42 @@ from auxfun import l2db
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 TX_EXTR = 'SELECT tx_id, x, y, z, tx_set_id FROM tx;'
+
 RX_EXTR = 'SELECT rx_id, x, y, z, rx_set_id FROM rx;'
+
 TX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
+           'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
+           'FROM channel_utd WHERE channel_utd.channel_id IN ' \
+           '(SELECT channel_id FROM channel WHERE tx_id = {})) utd ' \
+           'JOIN ' \
+           '(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan ' \
+           'ON utd.channel_id = chan.channel_id;'
+
+TX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
            'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
            'FROM channel_utd WHERE channel_utd.channel_id IN ' \
            '(SELECT channel_id FROM channel WHERE tx_id BETWEEN {} AND {})) utd ' \
            'JOIN ' \
            '(SELECT channel.channel_id ,channel.rx_id, channel.tx_id FROM channel WHERE tx_id BETWEEN {} AND {}) chan ' \
            'ON utd.channel_id = chan.channel_id;'
-RX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
+
+RX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
            'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
            'FROM channel_utd WHERE channel_utd.channel_id IN ' \
            '(SELECT channel_id FROM channel WHERE rx_id BETWEEN {} AND {})) utd ' \
            'JOIN ' \
            '(SELECT channel.channel_id ,channel.tx_id, channel.rx_id FROM channel WHERE rx_id BETWEEN {} AND {}) chan ' \
            'ON utd.channel_id = chan.channel_id;'
+
 CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi,' \
            ' arrival_theta, freespace_path_loss, cir_phs FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
            ' path WHERE channel_id = {});'
+
 INTERS = 'SELECT * FROM interaction_type;'
+
 INTERS_SPEC_CHAN = 'SELECT x, y, z, interaction_type_id, path_id FROM interaction WHERE path_id IN' \
                    '(SELECT path_id FROM path WHERE channel_id = {});'
+
 INTERS_SPEC = 'SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {};'
 
 
@@ -138,19 +153,18 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
                                 client_flags=[ClientFlag.SSL], database=dbname)
 
     dbcurs = dbconn.cursor()
-    dbcurs.execute(TX_PAIRS.format(min(txsids), max(txsids), min(txsids), max(txsids)))
+    dbcurs.execute(TX_PAIRST.format(min(txsids), max(txsids), min(txsids), max(txsids)))
     txp = dbcurs.fetchall()
+
     for i in txp:
         dst = self.rxs[i[-2]]
-        self.txs[i[-1]].chans_to_pairs[dst] = chan(dst, self.txs[i[-1]])
+        self.txs[i[-1]].chans_to_pairs[dst] = chan(dest=dst, src=self.txs[i[-1]])
         self.rxs[i[-2]].chans_to_pairs[self.txs[i]] = self.txs[i[-1]].chans_to_pairs[dst]
         self.txs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
         self.txs[i[-1]].chans_to_pairs[dst].delay = i[2]
         self.txs[i[-1]].chans_to_pairs[dst].ds = i[3]
         self.txs[i[-1]].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[i[-2]].coords)
         self.txs[i[-1]].chans_to_pairs[dst].chid = i[0]
-
-    print('[{},{}]...'.format(min(txsids), max(txsids)), end='', flush=True)
 
     for i in txsids:
         for j in self.txs[i].chans_to_pairs.keys():
@@ -159,8 +173,8 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
             d = sorted(d, key=lambda t: t[1], reverse=True)
             for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
                 self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
-                self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
                 self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
@@ -177,19 +191,18 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
                                 client_flags=[ClientFlag.SSL], database=dbname)
 
     dbcurs = dbconn.cursor()
-    dbcurs.execute(RX_PAIRS.format(min(rxsids), max(rxsids), min(rxsids), max(rxsids)))
+    dbcurs.execute(RX_PAIRST.format(min(rxsids), max(rxsids), min(rxsids), max(rxsids)))
     rxp = dbcurs.fetchall()
-    for i in rxp:
-        dst = self.txs[i[-2]]
-        self.rxs[i[-1]].chans_to_pairs[dst] = chan(dst, self.rxs[i[-1]])
-        self.txs[i[-2]].chans_to_pairs[self.rxs[i[-1]]] = self.rxs[i[-1]].chans_to_pairs[dst]
-        self.rxs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
-        self.rxs[i[-1]].chans_to_pairs[dst].delay = i[2]
-        self.rxs[i[-1]].chans_to_pairs[dst].ds = i[3]
-        self.rxs[i[-1]].chans_to_pairs[dst].dist = np.linalg.norm(self.rxs[i[-1]].coords - self.txs[i[-2]].coords)
-        self.rxs[i[-1]].chans_to_pairs[dst].chid = i[0]
 
-    print('[{},{}]...'.format(min(rxsids), max(rxsids)), end='', flush=True)
+    for i in rxp:
+        dst = self.rxs[i[-1]]
+        dst.chans_to_pairs[self.txs[i[-2]]] = chan(src=self.txs[i[-2]], dest=dst)
+        self.txs[i[-2]].chans_to_pairs[dst] = dst.chans_to_pairs[self.txs[i[-2]]]
+        dst.chans_to_pairs[self.txs[i[-2]]].pow = i[1] * 1e3
+        dst.chans_to_pairs[self.txs[i[-2]]].delay = i[2]
+        dst.chans_to_pairs[self.txs[i[-2]]].ds = i[3]
+        dst.chans_to_pairs[self.txs[i[-2]]].dist = np.linalg.norm(dst.coords - self.txs[i[-2]].coords)
+        dst.chans_to_pairs[self.txs[i[-2]]].chid = i[0]
 
     for i in rxsids:
         for j in self.rxs[i].chans_to_pairs.keys():
@@ -198,8 +211,8 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
             d = sorted(d, key=lambda t: t[1], reverse=True)
             for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
                 self.rxs[i].chans_to_pairs[j].paths[k[0]] = path()
-                self.rxs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].chan = self.rxs[i].chans_to_pairs[j]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
@@ -208,6 +221,54 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+
+    dbconn.close()
+
+def _load_iters_txs(self, txsids, host, user, pw, dbname, store):
+    dbconn = msqlc.connect(host=host, user=user, password=pw,
+                                client_flags=[ClientFlag.SSL], database=dbname)
+    dbcurs = dbconn.cursor()
+
+    for i in txsids:
+        for j in self.txs[i].chans_to_pairs.items():
+            dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
+            inters = dbcurs.fetchall()
+            for k in j[1].paths.items():
+                for l in inters:
+                    if l[4] == k[1].pathid:
+                        if store:
+                            intr = interaction()
+                            intr.path = k[1]
+                            intr.coords = np.asarray([l[0], l[1], l[2]])
+                            intr.typ = l[3]
+                        else:
+                            intr = False
+                        k[1].interactions.append(intr)
+
+    dbconn.close()
+
+
+def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
+    dbconn = msqlc.connect(host=host, user=user, password=pw,
+                           client_flags=[ClientFlag.SSL], database=dbname)
+    dbcurs = dbconn.cursor()
+
+    for i in rxsids:
+        for j in self.rxs[i].chans_to_pairs.items():
+            dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
+            inters = dbcurs.fetchall()
+            for k in j[1].paths.items():
+                for l in inters:
+                    if l[4] == k[1].pathid:
+                        if store:
+                            intr = interaction()
+                            intr.path = k[1]
+                            intr.coords = np.asarray([l[0], l[1], l[2]])
+                            intr.typ = l[3]
+                        else:
+                            intr = False
+                        k[1].interactions.append(intr)
+
     dbconn.close()
 
 
@@ -228,7 +289,7 @@ class data_stor():
             self.pasw = conff.readline().strip('\n')
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
-            self.nthreads = 5 * cpu_count()
+            self.nthreads =  cpu_count()
             print('Will use up to {} threads...'.format(self.nthreads))
             self.pool = None
 
@@ -293,39 +354,40 @@ class data_stor():
                 self.dbcurs = self.dbconn.cursor()
 
         if hasattr(self, 'host'):
-            trxsc = 0
             txs_per_thread = self.txs.__len__() / self.nthreads
             rxs_per_thread = self.rxs.__len__() / self.nthreads
 
             thread_pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
 
             if txs_per_thread > rxs_per_thread:
-                print('TXward({})...'.format(txs_per_thread), end='', flush=True)
+                print('TXward...'.format(txs_per_thread), end='', flush=True)
                 txs_per_thread = int(txs_per_thread)
-                for i in self.txs.keys():
-                    if trxsc % txs_per_thread == 0:
-                        if trxsc != 0:
-                            thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
-                        txs = []
-                    txs.append(i)
-                    trxsc+=1
+                txs = []
 
-                if trxsc % txs_per_thread != 0 or txs_per_thread <= 1:
+                for i in self.txs.keys():
+                    txs.append(i)
+                    if txs.__len__() == txs_per_thread:
+                        thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
+                        txs = []
+
+
+                if (txs.__len__() != txs_per_thread and txs.__len__() > 0) or txs_per_thread <= 1:
                     thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
                     txs = []
             else:
-                print('RXward({})...'.format(rxs_per_thread), end='', flush=True)
+                print('RXward...'.format(rxs_per_thread), end='', flush=True)
                 rxs_per_thread = int(rxs_per_thread)
-                for i in self.rxs.keys():
-                    if trxsc % rxs_per_thread == 0:
-                        if trxsc != 0:
-                            thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
-                        rxs = []
-                    rxs.append(i)
-                    trxsc+=1
+                rxs = []
 
-                if trxsc % txs_per_thread != 0 or rxs_per_thread <= 1:
+                for i in self.rxs.keys():
+                    rxs.append(i)
+                    if rxs.__len__() == rxs_per_thread:
+                        thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
+                        rxs = []
+
+                if (rxs.__len__() != rxs_per_thread and rxs.__len__() > 0) or rxs_per_thread <= 1:
                     thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
+                    print(rxs.__len__())
                     rxs = []
 
             thread_pool.shutdown()
@@ -336,11 +398,11 @@ class data_stor():
                 for j in k:
                     dst = self.rxs[j[-1]]
                     self.txs[i].chans_to_pairs[dst] = chan(dst, self.txs[i])
-                    self.rxs[j[-1]].chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
+                    dst.chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
                     self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
                     self.txs[i].chans_to_pairs[dst].delay = j[2]
                     self.txs[i].chans_to_pairs[dst].ds = j[3]
-                    self.txs[i].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[j[-1]].coords)
+                    self.txs[i].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - dst.coords)
                     self.txs[i].chans_to_pairs[dst].chid = j[0]
 
                 for j in self.txs[i].chans_to_pairs.keys():
@@ -378,21 +440,62 @@ class data_stor():
                                             client_flags=[ClientFlag.SSL], database=self.dbname)
                 self.dbcurs = self.dbconn.cursor()
 
-        for i in self.txs.items():
-            for j in i[1].chans_to_pairs.items():
-                self.dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
-                inters = self.dbcurs.fetchall()
-                for k in j[1].paths.items():
-                    for l in inters:
-                        if l[4] == k[1].pathid:
-                            if store:
-                                intr = interaction()
-                                intr.path = k[1]
-                                intr.coords = np.asarray([l[0], l[1], l[2]])
-                                intr.typ = l[3]
-                            else:
-                                intr = False
-                            k[1].interactions.append(intr)
+        if hasattr(self, 'host'):
+            trxsc = 0
+            txs_per_thread = self.txs.__len__() / self.nthreads
+            rxs_per_thread = self.rxs.__len__() / self.nthreads
+
+            thread_pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
+
+            if txs_per_thread > rxs_per_thread:
+                print('TXward...'.format(txs_per_thread), end='', flush=True)
+                txs_per_thread = int(txs_per_thread)
+                for i in self.txs.keys():
+                    if trxsc % txs_per_thread == 0:
+                        if trxsc != 0:
+                            thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw,
+                                               self.dbname, store)
+                        txs = []
+                    txs.append(i)
+                    trxsc += 1
+
+                if trxsc % txs_per_thread != 0 or txs_per_thread <= 1:
+                    thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw, self.dbname, store)
+                    txs = []
+            else:
+                print('RXward...'.format(rxs_per_thread), end='', flush=True)
+                rxs_per_thread = int(rxs_per_thread)
+                for i in self.rxs.keys():
+                    if trxsc % rxs_per_thread == 0:
+                        if trxsc != 0:
+                            thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw,
+                                               self.dbname, store)
+                        rxs = []
+                    rxs.append(i)
+                    trxsc += 1
+
+                if trxsc % txs_per_thread != 0 or rxs_per_thread <= 1:
+                    thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw, self.dbname,
+                                       store)
+                    rxs = []
+
+            thread_pool.shutdown()
+        else:
+            for i in self.txs.items():
+                for j in i[1].chans_to_pairs.items():
+                    self.dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
+                    inters = self.dbcurs.fetchall()
+                    for k in j[1].paths.items():
+                        for l in inters:
+                            if l[4] == k[1].pathid:
+                                if store:
+                                    intr = interaction()
+                                    intr.path = k[1]
+                                    intr.coords = np.asarray([l[0], l[1], l[2]])
+                                    intr.typ = l[3]
+                                else:
+                                    intr = False
+                                k[1].interactions.append(intr)
         print('Success!', flush=True)
 
         if hasattr(self, 'host'):

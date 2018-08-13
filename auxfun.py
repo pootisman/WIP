@@ -38,14 +38,14 @@ def basint2(X: list, Y: list, xc: int):
 
     return Xo, Yo
 
-def basint3(X: list, Y: list, Z: list, xc: float, yc: float):
+def basint3(X: list, Y: list, Z: list, xc: float, yc: float, zmin: float = np.nan):
     Xlim = [np.nanmin(X), np.nanmax(X)]
     Ylim = [np.nanmin(Y), np.nanmax(Y)]
 
     Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)
     Yo, stepY = np.linspace(start=Ylim[0], stop=Ylim[1], num=yc, retstep=True)
 
-    Zo = np.tile(np.nanmin(Z), [Xo.__len__(), Yo.__len__()])
+    Zo = np.tile(np.nanmin(Z) if np.isnan(zmin) else zmin, [Xo.__len__(), Yo.__len__()])
 
     for i in range(Z.__len__()):
         if stepX != 0:
