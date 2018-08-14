@@ -34,7 +34,7 @@ class chimage_RX():
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -91,13 +91,17 @@ class chimage_RX():
                         mpl.xlabel('Azimuth, [degrees]')
                         mpl.ylabel('Elevation, [degrees]')
                         mpl.tight_layout()
-                        if topng:
-                            mpl.savefig('RXCImage_tx{0:03d}->rx{1:03d}.png'.format(i, j))
+                        if mkpng:
+                            mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.format(self.source.txs[i].setid,
+                                                                                            i, self.source.rxs[j].setid,
+                                                                                            j))
                             mpl.close(f)
                         if matsav:
-                            sio.savemat('RXCImage_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': X, 'Y': Y, 'Z': Z})
+                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.format(self.source.txs[i].setid, i,
+                                                                                           self.source.rxs[j].setid, j),
+                                        {'X': X, 'Y': Y, 'Z': Z})
 
-        if topng is False:
+        if mkpng is False:
             mpl.show()
 
 
@@ -114,7 +118,7 @@ class chimage_TX():
         self.zdata = []
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
+             cmap: str = 'viridis', nff: bool = True, matsav: bool = False, plot: bool = True):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -128,12 +132,15 @@ class chimage_TX():
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
 
+
         for i in txrange:
             if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 rr = 0
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        f = mpl.figure(rr)
+                        if mkpng or plot:
+                            f = mpl.figure(rr)
+
                         rr += 1
                         hist = powhist2()
 
@@ -160,29 +167,34 @@ class chimage_TX():
 
                         X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        mpl.contourf(X, Y, Z.T, 20, cmap=cmap)
-                        cbr = mpl.colorbar()
-                        cbr.set_label('RX Power, [dBm]')
-                        mpl.clim([np.nanmin(Z), np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))])
-                        mpl.grid(linestyle='--')
-                        mpl.title('Channel TX Image@[TX #{} -> RX #{}]'.format(i, j))
-                        mpl.xlabel('Azimuth, [degrees]')
-                        mpl.ylabel('Elevation, [degrees]')
-                        mpl.tight_layout()
+                        if mkpng or plot:
+                            mpl.contourf(X, Y, Z.T, 20, cmap=cmap)
+                            cbr = mpl.colorbar()
+                            cbr.set_label('RX Power, [dBm]')
+                            mpl.clim([np.nanmin(Z), np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))])
+                            mpl.grid(linestyle='--')
+                            mpl.title('Channel TX Image@[TX #{} -> RX #{}]'.format(i, j))
+                            mpl.xlabel('Azimuth, [degrees]')
+                            mpl.ylabel('Elevation, [degrees]')
+                            mpl.tight_layout()
+
                         if mkpng:
-                            mpl.savefig('TXCImage_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.format(self.source.txs[i].setid, i,
+                                                                                       self.source.rxs[j].setid, j))
                             mpl.close(f)
 
                         if matsav:
-                            sio.savemat('RXCImage_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': X, 'Y': Y, 'Z': Z})
+                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.format(self.source.txs[i].setid, i,
+                                                                                       self.source.rxs[j].setid, j),
+                            {'X': X, 'Y': Y, 'Z': Z})
 
-        if mkpng is False:
+        if mkpng is False and plot:
             mpl.show()
 
 
 if __name__ == "__main__":
     DS = pairdata.data_stor(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_sitting_Sitting_3traj_sqlite')
+    DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
 
@@ -190,7 +202,7 @@ if __name__ == "__main__":
     check_data_NF(DS)
 
     DE = chimage_RX(DS)
-    DE.draw(rxgrp=[7,8,9], mkpng=True, nff=True)
+    DE.export(rxgrp=[2,6,5], mkpng=True, nff=True)
     DT = chimage_TX(DS)
-    DT.draw(rxgrp=[7,8,9], mkpng=True, nff=True)
+    DT.export(rxgrp=[2,6,5], mkpng=True, nff=True)
     exit()

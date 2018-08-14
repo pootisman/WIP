@@ -387,7 +387,6 @@ class data_stor():
 
                 if (rxs.__len__() != rxs_per_thread and rxs.__len__() > 0) or rxs_per_thread <= 1:
                     thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
-                    print(rxs.__len__())
                     rxs = []
 
             thread_pool.shutdown()
@@ -542,10 +541,9 @@ class data_stor():
 
 if __name__ == '__main__':
     DS = data_stor(conf='dbconf.txt')
-    DS.load_rxtx(dbname='class_sqlite')
+    DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths()
     DS.load_interactions()
-    #DS.dump_paths()
     from phys_path_procs import *
     check_data_NF(DS)
     exit()
