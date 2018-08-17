@@ -39,7 +39,7 @@ class distanced_hist_extractor():
         if dest in src.chans_to_pairs:
             # Go over all paths
             for i in src.chans_to_pairs[dest].paths.items():
-                if not (i[1].near_field_failed and self.nffilt):
+                if not (i[1].near_field_failed and self.nffilt) or not self.nffilt:
                     if typ == 'LOS' and i[1].interactions.__len__() == 0 and l2db(i[1].pow) >= self.thresh:
                         return True
                     elif typ == 'NLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
@@ -58,9 +58,12 @@ class distanced_hist_extractor():
                         return True
                     elif typ == 'nolink' and l2db(i[1].pow) >= self.thresh:
                         return False
+                    elif typ == 'any':
+                        return True
                 else:
                     print('NF test failed, ignoring path {} in chan {}->{}'.format(i[1].pathid, src.node_id,
                                                                                    dest.node_id))
+                    #pass
         else:
             return False
 
@@ -95,14 +98,13 @@ class distanced_hist_extractor():
     '''Builds delta histogram for one point, called multiple times for eac individual TX'''
     def build_delta(self, ctx: pairdata.Node, crx: pairdata.Node, trans_typ: str = 'LOS'):
         if ctx not in self.rx_proc.keys():
-            self.rx_proc[ctx] = list()
+            self.rx_proc[ctx] = []
 
         self.rx_proc[ctx].append(crx)
 
         for i in ctx.chans_to_pairs.keys():
             if i not in self.rx_proc[ctx]:
                 shift = np.linalg.norm(crx.coords - i.coords)
-
                 if isinstance(trans_typ, str):
                     if self.has_path(ctx, i, trans_typ):
                         self.hist.append_succ(shift)
@@ -148,7 +150,7 @@ class distanced_hist_extractor():
         bars2 = []
 
         for i in self.hist.bins.items():
-            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][1]/self.hist.tothits))
+            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] -  i[0][0], i[1][1]/self.hist.tothits))
             ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][1]), rotation='vertical',
                     horizontalalignment='center', verticalalignment='center')
 
@@ -162,19 +164,20 @@ class distanced_hist_extractor():
 
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_crawl_TEST_sqlite')
+    DS = pairdata.data_stor(conf='dbconf.txt', threaded=True)
+    DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
+    #DS.dump_paths(csvsav=True)
 
     from phys_path_procs import *
-    check_data_NF(DS)
+    #check_data_NF(DS)
 
-    DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
-    DA = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01)
+    DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
+    DA = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False )
 
-    DA.build(txgrp=-1,rxgrp=-1, typ='NLOS')
-    DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->NLOS')
+    DA.build(txgrp=-1,rxgrp=-1, typ='any')
+    DE.build_trans(txgrp=-1, rxgrp=-1, typ='any->any')
     #gen_data_clusters(DS, threshold=0.00001, nff=True)
     DE.plot_hist(log=False)
     DA.plot_hist(log=False)
