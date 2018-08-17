@@ -19,6 +19,7 @@ import scipy.io as sio
 import matplotlib.pyplot as mpl
 import pairdata
 from phys_path_procs import *
+from auxclass import powhist
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
@@ -120,26 +121,32 @@ class cirs():
 
     def export_pdp(self, tx: list = [-1], rx: list = [-1], nff: bool = True, avg: bool = False, floor: float = -110.0,
                    matsav: bool = False, csvsav: bool = False, plot: bool = True, topng: bool = False,
-                   ceil: float = -40.0):
+                   ceil: float = -40.0, rxgrp: list = [-1], txgrp: list = [-1]):
 
         tx = [tx] if not isinstance(tx, list) else tx
         rx = [rx] if not isinstance(rx, list) else rx
 
+        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
+        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+
         if tx[0] == -1:
-            tx = []
+            txs = []
             for i in self.source.txs.keys():
-                tx.append(i)
+                if txgrp[0] != -1 or self.source.txs[i].setid in txgrp:
+                    tx.append(i)
+
 
         if rx[0] == -1:
-            rx = []
+            rxs = []
             for i in self.source.rxs.keys():
-                rx.append(i)
+                if rxgrp[0] != -1 or self.source.rxs[i].setid in rxgrp:
+                    rx.append(i)
 
         delay = []
         pow = []
 
-        for i in tx:
-            for j in rx:
+        for i in txs:
+            for j in rxs:
                 if not avg:
                     delay = []
                     pow = []
@@ -153,9 +160,11 @@ class cirs():
                             elif not nff:
                                 delay.append(k[1].delay)
                                 pow.append(l2db(k[1].pow))
+
+
                 else:
                     print('Error, no route between TX {} and RX {}!'.format(i, j))
-                    return
+                    pass
 
                 if not avg:
                     if plot:
@@ -170,10 +179,11 @@ class cirs():
                         mpl.tight_layout()
 
                     if matsav:
-                        sio.savemat('PDP@[TX{}<->RX{}].mat'.format(i, j), {'delay': delay, 'pow': pow})
+                        sio.savemat('PDP@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].mat'.format(i, j),
+                                    {'delay': delay, 'pow': pow})
 
                     if csvsav:
-                        file = open('PDP@[TX{}<->RX{}].csv'.format(i, j), mode='w')
+                        file = open('PDP@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].csv'.format(i, j), mode='w')
                         file.write('Delay [sec],Power [dBm]\n')
                         for k in range(pow.__len__()):
                             file.write('{},{}\n'.format(delay[k], pow[k]))
@@ -181,28 +191,28 @@ class cirs():
 
         if avg:
             if plot or topng:
-                f = mpl.figure(i * j)
+                f = mpl.figure(0)
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
                 mpl.ylabel('Power, [dBm]')
-                mpl.title('PDP@[TX{}<->RX{}]'.format(i, j))
+                mpl.title('Average PDP@[TX<->RX]'.format(i, j))
                 offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                 mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                 mpl.grid(linestyle='--')
                 mpl.tight_layout()
 
             if matsav:
-                sio.savemat('PDP@[TX{}<->RX{}].mat'.format(i, j), {'delay': delay, 'pow': pow})
+                sio.savemat('PDP@[TX<->RX]_avg.mat', {'delay': delay, 'pow': pow})
 
             if csvsav:
-                file = open('PDP@[TX{}<->RX{}].csv'.format(i, j), mode='w')
+                file = open('PDP@[TX<->RX]_avg.csv', mode='w')
                 file.write('Delay [sec],Power [dBm]\n')
                 for k in range(pow.__len__()):
                     file.write('{},{}\n'.format(delay[k], pow[k]))
                 file.close()
 
             if topng:
-                mpl.savefig('PDP@[TX{}<->RX{}].png'.format(i, j))
+                mpl.savefig('PDP@[TX<->RX]_avg.png')
                 mpl.close(f)
 
         if topng is False and plot:
@@ -210,14 +220,14 @@ class cirs():
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')
-    DS.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
+    DS.load_rxtx('Human_sitting_legsback_Standing_still_ELP_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
     check_data_NF(DS)
     cir = cirs(DS)
-    cir.export(txgrp=-1, rxgrp=6, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
-    #cir.export(txgrp=-1, rxgrp=5, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
-    #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
-    #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=True, plot=True, topng=True, zmin=-120.0, zmax=-40.0)
-    #cir.export_pdp(csvsav=True, plot=False)
+    cir.export(txgrp=-1, rxgrp=6, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=5, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
+    #cir.export_pdp(csvsav=True, plot=True, avg=True, tx=0, rx=[10, 20, 30, 40])
     exit()
