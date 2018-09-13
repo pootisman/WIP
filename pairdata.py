@@ -18,62 +18,25 @@ import sqlite3
 import mysql.connector as msqlc
 from mysql.connector.constants import ClientFlag
 import os
-import numpy as np
+from numpy.linalg import norm
+from numpy import asarray
+from numpy import zeros
 import concurrent.futures as cof
 from multiprocessing import cpu_count
 import scipy.io as sio
-from time import sleep
+from siso_sql import *
 from auxfun import l2db
 
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
-
-TX_EXTR = 'SELECT tx_id, x, y, z, tx_set_id FROM tx;'
-
-RX_EXTR = 'SELECT rx_id, x, y, z, rx_set_id FROM rx;'
-
-TX_PAIRS = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
-           'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
-           'FROM channel_utd WHERE channel_utd.channel_id IN ' \
-           '(SELECT channel_id FROM channel WHERE tx_id = {})) utd ' \
-           'JOIN ' \
-           '(SELECT channel.channel_id ,channel.rx_id FROM channel WHERE tx_id = {}) chan ' \
-           'ON utd.channel_id = chan.channel_id;'
-
-TX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
-           'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
-           'FROM channel_utd WHERE channel_utd.channel_id IN ' \
-           '(SELECT channel_id FROM channel WHERE tx_id BETWEEN {} AND {})) utd ' \
-           'JOIN ' \
-           '(SELECT channel.channel_id ,channel.rx_id, channel.tx_id FROM channel WHERE tx_id BETWEEN {} AND {}) chan ' \
-           'ON utd.channel_id = chan.channel_id;'
-
-RX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
-           'channel_utd.mean_time_of_arrival, channel_utd.delay_spread ' \
-           'FROM channel_utd WHERE channel_utd.channel_id IN ' \
-           '(SELECT channel_id FROM channel WHERE rx_id BETWEEN {} AND {})) utd ' \
-           'JOIN ' \
-           '(SELECT channel.channel_id ,channel.tx_id, channel.rx_id FROM channel WHERE rx_id BETWEEN {} AND {}) chan ' \
-           'ON utd.channel_id = chan.channel_id;'
-
-CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi,' \
-           ' arrival_theta, freespace_path_loss, cir_phs FROM path_utd WHERE path_id IN (SELECT path_id FROM' \
-           ' path WHERE channel_id = {});'
-
-INTERS = 'SELECT * FROM interaction_type;'
-
-INTERS_SPEC_CHAN = 'SELECT x, y, z, interaction_type_id, path_id FROM interaction WHERE path_id IN' \
-                   '(SELECT path_id FROM path WHERE channel_id = {});'
-
-INTERS_SPEC = 'SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {};'
 
 
 class Node():
     def __init__(self, typ: str):
         self.chans_to_pairs = dict()
         self.node_id = 0
-        self.coords = [0, 0, 0]
-        self.rot = [0, 0, 0]
+        self.coords = zeros([3])
+        self.rot = zeros([3])
         self.setid = 0
         self.type = typ
 
@@ -83,9 +46,14 @@ class Node():
             self.rxpow = 0.0
 
     def chan_to(self, dest):
-        for i in self.chans_to_pairs.keys():
-            if self.chans_to_pairs[i].dest == dest:
-                return self.chans_to_pairs[i]
+        if self.typ == 'TX':
+            for i in self.chans_to_pairs.keys():
+                if self.chans_to_pairs[i].dest == dest:
+                    return self.chans_to_pairs[i]
+        else:
+            for i in self.chans_to_pairs.keys():
+                if self.chans_to_pairs[i].src == dest:
+                    return self.chans_to_pairs[i]
         return None
 
 
@@ -123,6 +91,7 @@ class path():
         self.AoD = 0.0
         self.EoD = 0.0
         self.FSPL = 0.0
+        self.length = 0.0
         self.chan = None
         self.cluster = None
         self.near_field_failed = False
@@ -138,7 +107,7 @@ class path():
 class interaction():
     def __init__(self):
         self.typ = 'TX'
-        self.coords = [0, 0, 0]
+        self.coords = zeros([3])
         self.path = None
 
     def __repr__(self):
@@ -163,7 +132,7 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
         self.txs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
         self.txs[i[-1]].chans_to_pairs[dst].delay = i[2]
         self.txs[i[-1]].chans_to_pairs[dst].ds = i[3]
-        self.txs[i[-1]].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - self.rxs[i[-2]].coords)
+        self.txs[i[-1]].chans_to_pairs[dst].dist = norm(self.txs[i].coords - self.rxs[i[-2]].coords)
         self.txs[i[-1]].chans_to_pairs[dst].chid = i[0]
 
     for i in txsids:
@@ -201,7 +170,7 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
         dst.chans_to_pairs[self.txs[i[-2]]].pow = i[1] * 1e3
         dst.chans_to_pairs[self.txs[i[-2]]].delay = i[2]
         dst.chans_to_pairs[self.txs[i[-2]]].ds = i[3]
-        dst.chans_to_pairs[self.txs[i[-2]]].dist = np.linalg.norm(dst.coords - self.txs[i[-2]].coords)
+        dst.chans_to_pairs[self.txs[i[-2]]].dist = norm(dst.coords - self.txs[i[-2]].coords)
         dst.chans_to_pairs[self.txs[i[-2]]].chid = i[0]
 
     for i in rxsids:
@@ -233,17 +202,24 @@ def _load_iters_txs(self, txsids, host, user, pw, dbname, store):
         for j in self.txs[i].chans_to_pairs.items():
             dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
             inters = dbcurs.fetchall()
+
             for k in j[1].paths.items():
+                dists = []
+                precoords = j[1].src.coords
                 for l in inters:
                     if l[4] == k[1].pathid:
                         if store:
                             intr = interaction()
                             intr.path = k[1]
-                            intr.coords = np.asarray([l[0], l[1], l[2]])
+                            intr.coords = asarray([l[0], l[1], l[2]])
                             intr.typ = l[3]
+                            dists.append(norm(precoords - intr.coords))
+                            precoords = intr.coords
                         else:
                             intr = False
                         k[1].interactions.append(intr)
+                dists.append(norm(precoords - j[1].dest.coords))
+                k[1].length = sum(dists)
 
     dbconn.close()
 
@@ -254,26 +230,35 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
     dbcurs = dbconn.cursor()
 
     for i in rxsids:
+        #print(i)
         for j in self.rxs[i].chans_to_pairs.items():
             dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
             inters = dbcurs.fetchall()
+            #print(j[1].chid, j[1].paths.__len__())
             for k in j[1].paths.items():
+                dists = []
+                #print(k[1].pathid, inters.__len__())
+                precoords = j[1].src.coords
                 for l in inters:
                     if l[4] == k[1].pathid:
                         if store:
                             intr = interaction()
                             intr.path = k[1]
-                            intr.coords = np.asarray([l[0], l[1], l[2]])
+                            intr.coords = asarray([l[0], l[1], l[2]])
                             intr.typ = l[3]
+                            dists.append(norm(precoords - intr.coords))
+                            precoords = intr.coords
                         else:
                             intr = False
                         k[1].interactions.append(intr)
+                dists.append(norm(precoords - j[1].dest.coords))
+                k[1].length = sum(dists)
 
     dbconn.close()
 
 
 class data_stor():
-    def __init__(self, conf: str = None):
+    def __init__(self, conf: str = None, threaded: bool = True):
         self.txs = dict()
         self.rxs = dict()
         self.dbname = None
@@ -282,6 +267,8 @@ class data_stor():
         self.possible_inters = dict()
         self.threshold_chan = -115
         self.threshold_path = -125
+        self.threaded = threaded
+
         if conf is not None:
             conff = open(conf)
             self.host = conff.readline().strip('\n')
@@ -304,6 +291,7 @@ class data_stor():
 
     def load_rxtx(self, dbname: str = None):
         print('Loading TX/RX nodes...', end='', flush=True)
+
         if self.dbconn is None:
             if not hasattr(self, 'host'):
                 self.dbconn = sqlite3.connect(dbname)
@@ -319,9 +307,10 @@ class data_stor():
         # Read TX data
         self.dbcurs.execute(TX_EXTR)
         j = self.dbcurs.fetchall()
+
         for i in j:
             n = Node('TX')
-            n.coords = np.asarray([i[1], i[2], i[3]])
+            n.coords = asarray([i[1], i[2], i[3]])
             n.node_id = i[0]
             n.setid = i[4]
             self.txs[i[0]] = n
@@ -329,13 +318,16 @@ class data_stor():
         # Read RX data
         self.dbcurs.execute(RX_EXTR)
         j = self.dbcurs.fetchall()
+
         for i in j:
             n = Node('RX')
-            n.coords = np.asarray([i[1], i[2], i[3]])
+            n.coords = asarray([i[1], i[2], i[3]])
             n.node_id = i[0]
             n.setid = i[4]
             self.rxs[i[0]] = n
+
         print('Success!', flush=True)
+
         if hasattr(self, 'host'):
             self.dbconn.close()
             self.dbconn = None
@@ -353,14 +345,14 @@ class data_stor():
                 
                 self.dbcurs = self.dbconn.cursor()
 
-        if hasattr(self, 'host'):
+        if hasattr(self, 'host') and self.threaded:
             txs_per_thread = self.txs.__len__() / self.nthreads
             rxs_per_thread = self.rxs.__len__() / self.nthreads
 
             thread_pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
 
             if txs_per_thread > rxs_per_thread:
-                print('TXward...'.format(txs_per_thread), end='', flush=True)
+                print('TXward...', end='', flush=True)
                 txs_per_thread = int(txs_per_thread)
                 txs = []
 
@@ -370,12 +362,10 @@ class data_stor():
                         thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
                         txs = []
 
-
-                if (txs.__len__() != txs_per_thread and txs.__len__() > 0) or txs_per_thread <= 1:
+                if txs.__len__() > 0 or txs_per_thread <= 1:
                     thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
-                    txs = []
             else:
-                print('RXward...'.format(rxs_per_thread), end='', flush=True)
+                print('RXward...', end='', flush=True)
                 rxs_per_thread = int(rxs_per_thread)
                 rxs = []
 
@@ -385,9 +375,8 @@ class data_stor():
                         thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
                         rxs = []
 
-                if (rxs.__len__() != rxs_per_thread and rxs.__len__() > 0) or rxs_per_thread <= 1:
+                if rxs.__len__() > 0 or rxs_per_thread <= 1:
                     thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
-                    rxs = []
 
             thread_pool.shutdown()
         else:
@@ -401,7 +390,7 @@ class data_stor():
                     self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
                     self.txs[i].chans_to_pairs[dst].delay = j[2]
                     self.txs[i].chans_to_pairs[dst].ds = j[3]
-                    self.txs[i].chans_to_pairs[dst].dist = np.linalg.norm(self.txs[i].coords - dst.coords)
+                    self.txs[i].chans_to_pairs[dst].dist = norm(self.txs[i].coords - dst.coords)
                     self.txs[i].chans_to_pairs[dst].chid = j[0]
 
                 for j in self.txs[i].chans_to_pairs.keys():
@@ -439,44 +428,43 @@ class data_stor():
                                             client_flags=[ClientFlag.SSL], database=self.dbname)
                 self.dbcurs = self.dbconn.cursor()
 
-        if hasattr(self, 'host'):
-            trxsc = 0
+        if hasattr(self, 'host') and self.threaded:
             txs_per_thread = self.txs.__len__() / self.nthreads
             rxs_per_thread = self.rxs.__len__() / self.nthreads
 
             thread_pool = cof.ThreadPoolExecutor(max_workers=self.nthreads)
 
             if txs_per_thread > rxs_per_thread:
-                print('TXward...'.format(txs_per_thread), end='', flush=True)
+                print('TXward...', end='', flush=True)
+                txs = []
                 txs_per_thread = int(txs_per_thread)
                 for i in self.txs.keys():
-                    if trxsc % txs_per_thread == 0:
-                        if trxsc != 0:
-                            thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw,
+                    if txs.__len__() % txs_per_thread == 0 and txs.__len__() != 0:
+                        #print(txs)
+                        thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw,
                                                self.dbname, store)
                         txs = []
                     txs.append(i)
-                    trxsc += 1
 
-                if trxsc % txs_per_thread != 0 or txs_per_thread <= 1:
+                if txs.__len__() != 0 or txs_per_thread <= 1:
+                    #print(txs)
                     thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw, self.dbname, store)
-                    txs = []
             else:
-                print('RXward...'.format(rxs_per_thread), end='', flush=True)
+                print('RXward...', end='', flush=True)
+                rxs = []
                 rxs_per_thread = int(rxs_per_thread)
                 for i in self.rxs.keys():
-                    if trxsc % rxs_per_thread == 0:
-                        if trxsc != 0:
-                            thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw,
+                    if rxs.__len__() % rxs_per_thread == 0 and rxs.__len__() != 0:
+                        #print(rxs)
+                        thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw,
                                                self.dbname, store)
                         rxs = []
                     rxs.append(i)
-                    trxsc += 1
 
-                if trxsc % txs_per_thread != 0 or rxs_per_thread <= 1:
+                if rxs.__len__() != 0 or rxs_per_thread <= 1:
+                    #print(rxs)
                     thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw, self.dbname,
                                        store)
-                    rxs = []
 
             thread_pool.shutdown()
         else:
@@ -485,16 +473,22 @@ class data_stor():
                     self.dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
                     inters = self.dbcurs.fetchall()
                     for k in j[1].paths.items():
+                        dists = []
+                        precoords = i[1].coords
                         for l in inters:
                             if l[4] == k[1].pathid:
                                 if store:
                                     intr = interaction()
                                     intr.path = k[1]
-                                    intr.coords = np.asarray([l[0], l[1], l[2]])
+                                    intr.coords = asarray([l[0], l[1], l[2]])
                                     intr.typ = l[3]
+                                    dists.append(norm(precoords - intr.coords))
+                                    precoords = intr.coords
                                 else:
                                     intr = False
                                 k[1].interactions.append(intr)
+                        dists.append(norm(precoords - j[1].dest.coords))
+                        k[1].length = sum(dists)
         print('Success!', flush=True)
 
         if hasattr(self, 'host'):
@@ -505,13 +499,14 @@ class data_stor():
         for i in self.txs.items():
             if i[1].setid in txgrp or txgrp[0] == -1:
                 for j in self.rxs.items():
-                    AoA = list()
-                    EoA = list()
-                    AoD = list()
-                    EoD = list()
-                    phase = list()
-                    pow = list()
-                    delay = list()
+                    AoA = []
+                    EoA = []
+                    AoD = []
+                    EoD = []
+                    phase = []
+                    pow = []
+                    delay = []
+                    pathlen = []
                     if j[1].setid in rxgrp or rxgrp[0] == -1:
                         if i[1].chan_to(j[1]):
                             for k in i[1].chans_to_pairs[j[1]].paths.items():
@@ -522,19 +517,20 @@ class data_stor():
                                 phase.append(k[1].phase)
                                 pow.append(k[1].pow)
                                 delay.append(k[1].delay)
+                                pathlen.append(k[1].length)
                         else:
                             pass
 
                     if matsav:
                         sio.savemat('Paths@[TX{}<->RX{}].mat'.format(i[0], j[0]), {'delay': delay, 'pow': l2db(pow), 'phase':
-                            phase, 'AoA': AoA, 'EoA': EoA, 'AoD': AoD, 'EoD': EoD})
+                            phase, 'AoA': AoA, 'EoA': EoA, 'AoD': AoD, 'EoD': EoD, 'length': pathlen})
 
                     if csvsav:
                         file = open('Paths@[TX{}<->RX{}].csv'.format(i[0], j[0]), mode='w')
-                        file.write('Delay [sec], Power [dBm], Phase, AoA [deg], EoA [deg], AoD [deg], EoD [deg]\n')
+                        file.write('Delay [sec], Power [dBm], Phase, AoA [deg], EoA [deg], AoD [deg], EoD [deg], Length [meters]\n')
                         for k in range(pow.__len__()):
-                            file.write('{},{},{},{},{},{},{}\n'.format(delay[k], l2db(pow[k]), phase[k], AoA[k], EoA[k],
-                                                                   AoD[k], EoD[k]))
+                            file.write('{},{},{},{},{},{},{},{}\n'.format(delay[k], l2db(pow[k]), phase[k], AoA[k], EoA[k],
+                                                                   AoD[k], EoD[k], pathlen[k]))
                         file.close()
 
 
