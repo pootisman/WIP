@@ -45,12 +45,12 @@ WI_TABLES = {'path': [('path_id', 'INT PRIMARY KEY'), ('channel_id', 'INT'), ('f
                              ('has_location', 'INT')],
              'interaction_type': [('interaction_type_id', 'INT PRIMARY KEY'), ('description', 'CHAR(64)')],
              'rx_set': [('rx_set_id', 'INT PRIMARY KEY'), ('txrx_set_type_id', 'INT'), ('spacing1', 'REAL'), ('spacing2', 'REAL'), ('spacing3', 'REAL')],
-             'rx_metadata': ['rx_metadata_id', 'rx_id', 'utd_instance_id', 'max_gain'],
-             'tx_metadata': ['tx_metadata_id', 'tx_id', 'utd_instance_id', 'max_gain', 'power'],
-             'txrx_set_type': ['txrx_set_type_id', 'description'],
-             'utd_instance': [],
-             'utd_instance_param': [],
-             'utd_instance_param_index': []}
+             'rx_metadata': [('rx_metadata_id', 'INT PRIMARY KEY'), ('rx_id', 'INT'), ('utd_instance_id', 'INT'), ('max_gain', 'REAL')],
+             'tx_metadata': [('tx_metadata_id', 'INT'), ('tx_id', 'INT'), ('utd_instance_id', 'INT'), ('max_gain', 'REAL'), ('power', 'REAL')],
+             'txrx_set_type': [('txrx_set_type_id', 'INT PRIMARY KEY'), ('description', 'TEXT')],
+             'utd_instance': [('utd_instance_id', 'INT PRIMARY KEY')],
+             'utd_instance_param': [('utd_instance_id', 'INT NOT NULL'), ('utd_instance_param_id', 'INT NOT NULL'), ('element_id', 'INT NOT NULL'), ('parameter', 'REAL')],
+             'scene_origin': [('latitude', 'REAL'), ('longitude', 'REAL'), ('altitude', 'REAL')]}
 
 conf = open('dbconf.txt')
 
@@ -82,7 +82,8 @@ sqlcurs.execute('USE {};'.format(dbn))
 # Create table on MySQL server
 for i in WI_TABLES.items():
     # Compile request
-    if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
+    if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set',
+                'rx_metadata', 'tx_metadata', 'txrx_set_type', 'utd_instance', 'utd_instance_param', 'scene_origin']:
         rstr = 'CREATE TABLE {}('.format(i[0])
         for j in i[1]:
             rstr = rstr + j[0] + ' ' + j[1] + (',\n' if i[1][-1] != j else '\n')
@@ -113,7 +114,8 @@ def sqlins(dbn, data, host, user, pw):
 TPE = cof.ThreadPoolExecutor(max_workers=max_waiting)
 
 for i in WI_TABLES.items():
-    if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set']:
+    if i[0] in ['path', 'path_utd', 'channel', 'channel_utd', 'rx', 'tx', 'diffraction_edge', 'interaction', 'rx_set',
+                'rx_metadata', 'tx_metadata', 'txrx_set_type', 'utd_instance', 'utd_instance_param', 'scene_origin']:
         # Construct request
         req = "SELECT "
         for j in i[1]:

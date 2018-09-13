@@ -31,9 +31,9 @@ class cirs():
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, topng: bool = False,
-             cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
-            nff: bool = True, matsav: bool = False, plot: bool = True):
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+               cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
+               nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0):
 
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -85,8 +85,8 @@ class cirs():
                 (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim, zmin=zmin)
                 [X, Y] = np.meshgrid(X, Y)
 
-                if plot or topng:
-                    f = mpl.figure(i)
+                if plot or mkpng:
+                    f = mpl.figure(fidbase + i)
 
                     if np.isnan(zmax):
                         cmin = np.min(Z)
@@ -109,18 +109,18 @@ class cirs():
                     mpl.title('CIR@TX #{}'.format(i))
                     mpl.tight_layout()
 
-                if topng:
+                if mkpng:
                     mpl.savefig('CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0]))
                     mpl.close(f)
 
                 if matsav:
                     sio.savemat('CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0]), {'X': X, 'Y': Y, 'Z': Z})
 
-        if topng is False and plot:
+        if mkpng is False and plot and show:
             mpl.show()
 
     def export_pdp(self, tx: list = [-1], rx: list = [-1], nff: bool = True, avg: bool = False, floor: float = -110.0,
-                   matsav: bool = False, csvsav: bool = False, plot: bool = True, topng: bool = False,
+                   matsav: bool = False, csvsav: bool = False, plot: bool = True, mkpng: bool = False,
                    ceil: float = -40.0, rxgrp: list = [-1], txgrp: list = [-1]):
 
         tx = [tx] if not isinstance(tx, list) else tx
@@ -190,7 +190,7 @@ class cirs():
                         file.close()
 
         if avg:
-            if plot or topng:
+            if plot or mkpng:
                 f = mpl.figure(0)
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
@@ -211,23 +211,23 @@ class cirs():
                     file.write('{},{}\n'.format(delay[k], pow[k]))
                 file.close()
 
-            if topng:
+            if mkpng:
                 mpl.savefig('PDP@[TX<->RX]_avg.png')
                 mpl.close(f)
 
-        if topng is False and plot:
+        if mkpng is False and plot:
             mpl.show()
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')
-    DS.load_rxtx('Human_sitting_legsback_Standing_still_ELP_sqlite')
+    DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
-    check_data_NF(DS)
+    #check_data_NF(DS)
     cir = cirs(DS)
-    cir.export(txgrp=-1, rxgrp=6, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
-    cir.export(txgrp=-1, rxgrp=5, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
-    cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
-    cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=True, plot=True, topng=True, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=6, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=5, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
+    cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     #cir.export_pdp(csvsav=True, plot=True, avg=True, tx=0, rx=[10, 20, 30, 40])
     exit()

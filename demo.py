@@ -16,20 +16,43 @@
 
 import pairdata
 import cir3d
-import dirpaz
 import asap_probs_extract
+import matplotlib.pyplot as mpl
 
-print('Loading data...')
-data_storage = pairdata.data_stor()
-data_storage.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TESTe/Class@60GHz.TESTe.sqlite')
-data_storage.load_path()
+print('Loading data fleece...')
+DS = pairdata.data_stor('dbconf.txt')
+DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
+DS.load_paths(npaths=250)
+DS.load_interactions(store=True)
+#print('Loading data cotton...')
+#DC = pairdata.data_stor('dbconf.txt')
+#DC.load_rxtx('Human_sitting_legsback_Sitting_clothes_sqlite')
+#DC.load_paths(npaths=250)
+#DC.load_interactions(store=True)
+print('Loading data Leather...')
+DL = pairdata.data_stor('dbconf.txt')
+DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
+DL.load_paths(npaths=250)
+DL.load_interactions(store=True)
+print('Loading data naked...')
+DN = pairdata.data_stor('dbconf.txt')
+DN.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
+DN.load_paths(npaths=250)
+DN.load_interactions(store=True)
+
 print('Plotting 3D CIRs')
-c3d = cir3d.cirs(data_storage)
-c3d.draw(print=True)
-print('Plotting reception patterns')
-daz = dirpaz.rec_pat(data_storage)
-daz.draw(print=True)
-print('Printing distanced histogram')
-asap = asap_probs_extract.distanced_hist_extractor(data_storage)
-asap.build(typ='LOS')
-asap.plot_hist()
+c3d = cir3d.cirs(DS)
+c3d.export(rxgrp=6, mkpng=False, show=False, zmin=-130, zmax=-40, fidbase=1)
+#c3d = cir3d.cirs(DC)
+#c3d.export(mkpng=True)
+c3d = cir3d.cirs(DL)
+c3d.export(rxgrp=6, mkpng=False, show=False, zmin=-130, zmax=-40, fidbase=2)
+c3d = cir3d.cirs(DN)
+c3d.export(rxgrp=6, mkpng=False, show=False, zmin=-130, zmax=-40, fidbase=3)
+
+mpl.show()
+
+#print('Printing distanced histogram')
+#asap = asap_probs_extract.distanced_hist_extractor(DS)
+#asap.build(typ='LOS')
+#asap.plot_hist()
