@@ -100,6 +100,7 @@ sqlicurs = sqlicon.cursor()
 
 waiting = 0
 
+
 def sqlins(dbn, data, host, user, pw):
     global waiting
     waiting += 1
@@ -110,6 +111,7 @@ def sqlins(dbn, data, host, user, pw):
     conn.commit()
     conn.close()
     waiting -= 1
+
 
 TPE = cof.ThreadPoolExecutor(max_workers=max_waiting)
 
@@ -140,7 +142,7 @@ for i in WI_TABLES.items():
             for k in j.keys():
                 myreq.append(str(j[k]))
                 myreq.append((',' if te < j.keys().__len__() else ')'))
-                te+=1
+                te += 1
 
             if (comm + 1) % stepping == 0:
                 myreq.append(';')
@@ -153,7 +155,7 @@ for i in WI_TABLES.items():
             else:
                 myreq.append(',')
 
-            comm+=1
+            comm += 1
 
         if (comm + 1) % stepping != 0:
             myreq[-1] = ';'

@@ -31,6 +31,23 @@ class cirs():
         self.ydata = []
         self.zdata = []
 
+        self.xmin = 0.0
+        self.xmax = 0.0
+
+        self.ymin = 0.0
+        self.ymax = 0.0
+
+        self.zmin = 0.0
+        self.zmax = 0.0
+
+        self.ydim = 0
+        self.xdim = 0
+
+        self.title = ''
+
+        self.rxgrp = -1
+        self.tx = 0
+
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
                cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
                nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
@@ -46,6 +63,8 @@ class cirs():
         else:
             rxrange = range(rxrange)
 
+        self.title = title
+
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
 
@@ -55,10 +74,11 @@ class cirs():
                 self.ydata = []
                 self.zdata = []
 
-                nn = 0
+                self.ydim = ydim
+                self.xdim = 0
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        nn += 1
+                        self.xdim += 1
                         if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
                             for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
                                 if nff and not k[1].near_field_failed and zmax > l2db(k[1].pow) > zmin:
@@ -71,9 +91,9 @@ class cirs():
                                     self.zdata.append(l2db(k[1].pow))
                         else:
                             if self.ydata.__len__() > 0:
-                                maxy = np.nanmax(self.ydata)
+                                self.ymax = np.nanmax(self.ydata)
                                 self.xdata.append(j)
-                                self.ydata.append(maxy)
+                                self.ydata.append(self.ymax)
                                 self.zdata.append(zmin)
 
                 if np.max(self.ydata) == 0:
@@ -83,27 +103,34 @@ class cirs():
                     for z in range(self.zdata.__len__()):
                         self.zdata[z] = zmin
 
-                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, nn, ydim, zmin=zmin)
+                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, self.xdim, self.ydim, zmin=zmin)
                 [X, Y] = np.meshgrid(X, Y)
+
+                self.xmax = np.nanmax(self.xdata)
+                self.xmin = np.nanmin(self.xdata)
+
+                self.ymax = np.nanmax(self.ydata)
+                self.ymin = np.nanmin(self.ydata)
+
+                self.tx = i
+                self.rxgrp = rxgrp[0]
+
+                if np.isnan(zmax):
+                    self.zmin = np.nanmin(Z)
+                    self.zmax = np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))
+                else:
+                    self.zmin = zmin
+                    self.zmax = zmax
 
                 if plot or mkpng:
                     f = mpl.figure(fidbase + i)
 
-                    if np.isnan(zmax):
-                        cmin = np.min(Z)
-                        cmax = np.max(Z) + np.abs(0.1 * np.max(Z))
-                    else:
-                        cmin = zmin
-                        cmax = zmax
+                    mpl.pcolor(np.transpose(X), np.transpose(Y), Z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
 
-                    mpl.contourf(np.transpose(X), np.transpose(Y), Z, 20, cmap=cmap, vmin=cmin, vmax=cmax)
-
-                    cb = mpl.colorbar()
+                    cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=11, endpoint=True).tolist())
                     cb.set_label('RX power, [dBm]')
-                    cb.set_clim(vmin=cmin, vmax=cmax)
-                    cb.set_ticks(np.linspace(start=cmin, stop=cmax, num=10, endpoint=True).tolist())
-                    mpl.clim(vmin=cmin, vmax=cmax)
-#                    cb.ax.set_ylim([cmin, cmax])
+                    cb.set_clim(vmin=self.zmin, vmax=self.zmax)
+                    mpl.clim(vmin=self.zmin, vmax=self.zmax)
 
                     mpl.xlabel('RX Position')
                     mpl.ylabel('Delay, [ns]')

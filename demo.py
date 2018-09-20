@@ -15,7 +15,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import pairdata
-import cir3d
+import cir
+import circollator
 import asap_probs_extract
 import matplotlib.pyplot as mpl
 
@@ -24,11 +25,11 @@ DS = pairdata.data_stor('dbconf.txt')
 DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
 DS.load_paths(npaths=250)
 DS.load_interactions(store=True)
-print('Loading data cotton...')
-DC = pairdata.data_stor('dbconf.txt')
-DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
-DC.load_paths(npaths=250)
-DC.load_interactions(store=True)
+#print('Loading data cotton...')
+#DC = pairdata.data_stor('dbconf.txt')
+#DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
+#DC.load_paths(npaths=250)
+#DC.load_interactions(store=True)
 print('Loading data Leather...')
 DL = pairdata.data_stor('dbconf.txt')
 DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
@@ -41,16 +42,20 @@ DN.load_paths(npaths=250)
 DN.load_interactions(store=True)
 
 print('Plotting 3D CIRs')
-c3d = cir3d.cirs(DS)
-c3d.export(rxgrp=6, mkpng=True, show=False, zmin=-130, zmax=-40, fidbase=1, title='Fleece ')
-c3d = cir3d.cirs(DC)
-c3d.export(rxgrp=6, mkpng=True, show=False, zmin=-130, zmax=-40, fidbase=2, title='Cotton ')
-c3d = cir3d.cirs(DL)
-c3d.export(rxgrp=6, mkpng=True, show=False, zmin=-130, zmax=-40, fidbase=2, title='Leather ')
-c3d = cir3d.cirs(DN)
-c3d.export(rxgrp=6, mkpng=True, show=False, zmin=-130, zmax=-40, fidbase=3, title='Naked ')
+c3ds = cir.cirs(DS)
+c3ds.export(rxgrp=6, mkpng=True, show=False, zmin=-140, zmax=-40, fidbase=1, title='Fleece ')
+#c3dc = cir.cirs(DC)
+#c3dc.export(rxgrp=6, mkpng=True, show=False, zmin=-140, zmax=-40, fidbase=2, title='Cotton ')
+c3dl = cir.cirs(DL)
+c3dl.export(rxgrp=6, mkpng=True, show=False, zmin=-140, zmax=-40, fidbase=2, title='Leather ')
+c3dn = cir.cirs(DN)
+c3dn.export(rxgrp=6, mkpng=True, show=False, zmin=-140, zmax=-40, fidbase=3, title='Naked ')
 
-mpl.show()
+ccl = circollator.circollator()
+
+ccl + [c3dn, c3ds]
+
+ccl.export_collated(show=True)
 
 #print('Printing distanced histogram')
 #asap = asap_probs_extract.distanced_hist_extractor(DS)

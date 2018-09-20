@@ -38,9 +38,17 @@ def basint2(X: list, Y: list, xc: int):
 
     return Xo, Yo
 
-def basint3(X: list, Y: list, Z: list, xc: float, yc: float, zmin: float = np.nan):
-    Xlim = [np.nanmin(X), np.nanmax(X)]
-    Ylim = [np.nanmin(Y), np.nanmax(Y)]
+def basint3(X: list, Y: list, Z: list, xc: float, yc: float, xmin: float = np.nan, xmax: float = np.nan,
+            ymin: float = np.nan, ymax: float = np.nan, zmin: float = np.nan, zmax: float = np.nan):
+    if np.isnan(xmin) or np.isnan(xmax):
+        Xlim = [np.nanmin(X), np.nanmax(X)]
+    else:
+        Xlim = [xmin, xmax]
+
+    if np.isnan(ymin) or np.isnan(ymax):
+        Ylim = [np.nanmin(Y), np.nanmax(Y)]
+    else:
+        Ylim = [ymin, ymax]
 
     Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)
     Yo, stepY = np.linspace(start=Ylim[0], stop=Ylim[1], num=yc, retstep=True)
