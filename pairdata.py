@@ -46,7 +46,7 @@ class Node():
             self.rxpow = 0.0
 
     def chan_to(self, dest):
-        if self.typ == 'TX':
+        if self.type == 'TX':
             for i in self.chans_to_pairs.keys():
                 if self.chans_to_pairs[i].dest == dest:
                     return self.chans_to_pairs[i]

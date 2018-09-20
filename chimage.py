@@ -35,7 +35,7 @@ class chimage_RX():
         self.zdata = []
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True, matsav: bool = False):
+             cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan, zmax: float = np.nan):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -48,7 +48,6 @@ class chimage_RX():
 
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
-
 
         for i in txrange:
             if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
@@ -75,30 +74,34 @@ class chimage_RX():
                             Z.append(k[1] if k[1] > 0 else np.nan)
                             Z.append(Z[-1])
 
-                        minz = np.nanmin(Z) if not np.isnan(np.nanmin(Z)) else np.finfo(float).eps
+                        if np.isnan(zmin):
+                            zmin = np.nanmin(Z) if not np.isnan(np.nanmin(Z)) else np.finfo(float).eps
+
+                        if np.isnan(zmax):
+                            zmax = l2db(np.nanmax(Z))
 
                         for k in range(Z.__len__()):
-                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else l2db(minz)
+                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else zmin
 
                         X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        mpl.contourf(X, Y, Z.T, 20, cmap=cmap)
-                        cbr = mpl.colorbar()
-                        cbr.set_label('RX Power, [dBm]')
-                        mpl.clim([np.nanmin(Z), np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))])
+                        mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
+                        #mpl.pcolor(X, Y, Z.T, cmap=cmap, vmin=zmin, vmax=zmax)
                         mpl.grid(linestyle='--')
                         mpl.title('Channel RX Image@[TX #{} -> RX #{}]'.format(i, j))
                         mpl.xlabel('Azimuth, [degrees]')
                         mpl.ylabel('Elevation, [degrees]')
+                        cbr = mpl.colorbar()
+                        cbr.set_label('RX Power, [dBm]')
+                        cbr.ax.set_xlim(zmin, zmax)
                         mpl.tight_layout()
                         if mkpng:
-                            mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.format(self.source.txs[i].setid,
-                                                                                            i, self.source.rxs[j].setid,
-                                                                                            j))
+                            mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.
+                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j))
                             mpl.close(f)
                         if matsav:
-                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.format(self.source.txs[i].setid, i,
-                                                                                           self.source.rxs[j].setid, j),
+                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.
+                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
                                         {'X': X, 'Y': Y, 'Z': Z})
 
         if mkpng is False:
@@ -118,7 +121,8 @@ class chimage_TX():
         self.zdata = []
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True, matsav: bool = False, plot: bool = True):
+             cmap: str = 'viridis', nff: bool = True, matsav: bool = False, plot: bool = True, zmin: float = np.nan,
+             zmax: float = np.nan):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -160,22 +164,28 @@ class chimage_TX():
                             Z.append(k[1] if k[1] > 0 else np.nan)
                             Z.append(Z[-1])
 
-                        minz = np.nanmin(Z)
+                        if np.isnan(zmin):
+                            zmin = np.nanmin(Z) if not np.isnan(np.nanmin(Z)) else np.finfo(float).eps
+
+                        if np.isnan(zmax):
+                            zmax = l2db(np.nanmax(Z))
 
                         for k in range(Z.__len__()):
-                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else l2db(minz)
+                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else zmin
 
                         X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
 
                         if mkpng or plot:
-                            mpl.contourf(X, Y, Z.T, 20, cmap=cmap)
-                            cbr = mpl.colorbar()
-                            cbr.set_label('RX Power, [dBm]')
-                            mpl.clim([np.nanmin(Z), np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))])
+                            mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
+                            #mpl.pcolor(X, Y, Z.T,  cmap=cmap, vmin=zmin, vmax=zmax)
                             mpl.grid(linestyle='--')
                             mpl.title('Channel TX Image@[TX #{} -> RX #{}]'.format(i, j))
                             mpl.xlabel('Azimuth, [degrees]')
                             mpl.ylabel('Elevation, [degrees]')
+                            cbr = mpl.colorbar()
+                            cbr.set_label('RX Power, [dBm]')
+                            #cbr.ax.set_ylim(zmin, zmax)
+                            cbr.ax.set_xlim(zmin, zmax)
                             mpl.tight_layout()
 
                         if mkpng:
@@ -202,7 +212,7 @@ if __name__ == "__main__":
     check_data_NF(DS)
 
     DE = chimage_RX(DS)
-    DE.export(rxgrp=[2,6,5], mkpng=True, nff=True)
+    DE.export(rxgrp=[2,6,5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
     DT = chimage_TX(DS)
-    DT.export(rxgrp=[2,6,5], mkpng=True, nff=True)
+    DT.export(rxgrp=[2,6,5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
     exit()
