@@ -19,6 +19,12 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 
 
+def enable_latex():
+    from matplotlib import pyplot as plt
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+
 def basint2(X: list, Y: list, xc: int):
     Xlim = [np.nanmin(X), np.nanmax(X)]
 

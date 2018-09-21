@@ -35,7 +35,8 @@ class chimage_RX():
         self.zdata = []
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan, zmax: float = np.nan):
+               cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan,
+               zmax: float = np.nan):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -56,7 +57,7 @@ class chimage_RX():
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         f = mpl.figure(rr)
                         rr += 1
-                        hist = powhist2()
+                        hist = powhist2(azbinc=180, elbinc=90)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
@@ -85,15 +86,15 @@ class chimage_RX():
 
                         X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
-                        #mpl.pcolor(X, Y, Z.T, cmap=cmap, vmin=zmin, vmax=zmax)
+                        #mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
+                        mpl.pcolor(X, Y, Z.T, cmap=cmap, vmin=zmin, vmax=zmax)
                         mpl.grid(linestyle='--')
-                        mpl.title('Channel RX Image@[TX #{} -> RX #{}]'.format(i, j))
+                        mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                         mpl.xlabel('Azimuth, [degrees]')
                         mpl.ylabel('Elevation, [degrees]')
                         cbr = mpl.colorbar()
                         cbr.set_label('RX Power, [dBm]')
-                        cbr.ax.set_xlim(zmin, zmax)
+                        #cbr.ax.set_xlim(zmin, zmax)
                         mpl.tight_layout()
                         if mkpng:
                             mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.
@@ -121,8 +122,8 @@ class chimage_TX():
         self.zdata = []
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             cmap: str = 'viridis', nff: bool = True, matsav: bool = False, plot: bool = True, zmin: float = np.nan,
-             zmax: float = np.nan):
+               cmap: str = 'viridis', nff: bool = True, matsav: bool = False, show: bool = True, zmin: float = np.nan,
+               zmax: float = np.nan):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -142,11 +143,11 @@ class chimage_TX():
                 rr = 0
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        if mkpng or plot:
+                        if mkpng or show:
                             f = mpl.figure(rr)
 
                         rr += 1
-                        hist = powhist2()
+                        hist = powhist2(azbinc=180, elbinc=90)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
@@ -175,20 +176,18 @@ class chimage_TX():
 
                         X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        if mkpng or plot:
-                            mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
-                            #mpl.pcolor(X, Y, Z.T,  cmap=cmap, vmin=zmin, vmax=zmax)
+                        if mkpng or show:
+                            #mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
+                            mpl.pcolor(X, Y, Z.T,  cmap=cmap, vmin=zmin, vmax=zmax)
                             mpl.grid(linestyle='--')
-                            mpl.title('Channel TX Image@[TX #{} -> RX #{}]'.format(i, j))
+                            mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                             mpl.xlabel('Azimuth, [degrees]')
                             mpl.ylabel('Elevation, [degrees]')
                             cbr = mpl.colorbar()
                             cbr.set_label('RX Power, [dBm]')
-                            #cbr.ax.set_ylim(zmin, zmax)
-                            cbr.ax.set_xlim(zmin, zmax)
                             mpl.tight_layout()
 
-                        if mkpng:
+                        if mkpng or not show:
                             mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.format(self.source.txs[i].setid, i,
                                                                                        self.source.rxs[j].setid, j))
                             mpl.close(f)
@@ -198,7 +197,7 @@ class chimage_TX():
                                                                                        self.source.rxs[j].setid, j),
                             {'X': X, 'Y': Y, 'Z': Z})
 
-        if mkpng is False and plot:
+        if mkpng is False and show:
             mpl.show()
 
 
@@ -210,6 +209,8 @@ if __name__ == "__main__":
 
     from phys_path_procs import *
     check_data_NF(DS)
+
+    enable_latex()
 
     DE = chimage_RX(DS)
     DE.export(rxgrp=[2,6,5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)

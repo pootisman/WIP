@@ -134,7 +134,7 @@ class cirs():
 
                     mpl.xlabel('RX Position')
                     mpl.ylabel('Delay, [ns]')
-                    mpl.title('{}CIR@TX #{}'.format(title, i))
+                    mpl.title('{}CIR\@TX \#{}'.format(title, i))
                     mpl.tight_layout()
 
                 if mkpng:
@@ -143,6 +143,9 @@ class cirs():
 
                 if matsav:
                     sio.savemat('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'X': X, 'Y': Y, 'Z': Z})
+
+                if not mkpng and (not plot or not show):
+                    mpl.close(f)
 
         if mkpng is False and plot and show:
             mpl.show()
@@ -223,24 +226,24 @@ class cirs():
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
                 mpl.ylabel('Power, [dBm]')
-                mpl.title('Average {}PDP@[TX<->RX]'.format(title))
+                mpl.title('Average {}PDP\@[TX<->RX]'.format(title))
                 offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                 mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                 mpl.grid(linestyle='--')
                 mpl.tight_layout()
 
             if matsav:
-                sio.savemat('{}PDP@[TX<->RX]_avg.mat'.format(title), {'delay': delay, 'pow': pow})
+                sio.savemat('{}PDP\@[TX<->RX]_avg.mat'.format(title), {'delay': delay, 'pow': pow})
 
             if csvsav:
-                file = open('{}PDP@[TX<->RX]_avg.csv'.format(title), mode='w')
+                file = open('{}PDP\@[TX<->RX]_avg.csv'.format(title), mode='w')
                 file.write('Delay [sec],Power [dBm]\n')
                 for k in range(pow.__len__()):
                     file.write('{},{}\n'.format(delay[k], pow[k]))
                 file.close()
 
             if mkpng:
-                mpl.savefig('{}PDP@[TX<->RX]_avg.png'.format(title))
+                mpl.savefig('{}PDP\@[TX<->RX]_avg.png'.format(title))
                 mpl.close(f)
 
         if mkpng is False and plot:
