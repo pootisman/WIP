@@ -48,7 +48,7 @@ class cirs:
         self.tx = 0
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-               cmap: str = 'viridis', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
+               cmap: str = 'Blues', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
                nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
                title: str = ''):
 
@@ -189,8 +189,6 @@ class cirs:
                             elif not nff:
                                 delay.append(k[1].delay)
                                 pow.append(l2db(k[1].pow))
-
-
                 else:
                     print('Error, no route between TX {} and RX {}!'.format(i, j))
                     pass
@@ -247,6 +245,96 @@ class cirs:
         if mkpng is False and plot:
             mpl.show()
 
+    def delay_spread_export(self, txgrp: list = [-1], rxgrp: list = [-1], mkpng: bool = False,
+               cmap: str = 'Blues', floor: float = -200.0, ceil: float = np.nan,
+               nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
+               title: str = ''):
+
+        txs = list()
+        rxs = list()
+
+        for i in self.source.txs.keys():
+            if txgrp[0] != -1 or self.source.txs[i].setid in txgrp:
+                txs.append(i)
+
+        for i in self.source.rxs.keys():
+            if rxgrp[0] != -1 or self.source.rxs[i].setid in rxgrp:
+                rxs.append(i)
+
+        for i in txs:
+            ds_avg = list()
+            ds_avg_rms = list()
+
+            for j in rxs:
+                delay = list()
+                power = list()
+
+                if self.source.txs[i].chan_to(self.source.rxs[j]):
+                    for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                        if ceil > l2db(k[1].pow) > floor:
+                            if nff and not k[1].near_field_failed:
+                                delay.append(k[1].delay)
+                                power.append(l2db(k[1].pow))
+                            elif not nff:
+                                delay.append(k[1].delay)
+                                power.append(l2db(k[1].pow))
+                else:
+                    print('Error, no route between TX {} and RX {}!'.format(i, j))
+                    pass
+
+        #         ds_
+        #
+        #         if not avg:
+        #             if plot:
+        #                 f = mpl.figure((i+1)*(j+1))
+        #                 mpl.stem(delay, power, bottom=-120)
+        #                 mpl.xlabel('Delay, [s]')
+        #                 mpl.ylabel('Power, [dBm]')
+        #                 mpl.title('{}PDP@[TX{}<->RX{}]'.format(title, i, j))
+        #                 offset = 0.1 * (np.nanmax(power) - np.nanmin(power))
+        #                 mpl.ylim([np.nanmin(power) - offset, np.nanmax(power) + offset])
+        #                 mpl.grid(linestyle='--')
+        #                 mpl.tight_layout()
+        #
+        #             if matsav:
+        #                 sio.savemat('{4}PDP@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].mat'.format(i, j, title),
+        #                             {'delay': delay, 'pow': power})
+        #
+        #             if csvsav:
+        #                 file = open('{4}PDP@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].csv'.format(i, j, title), mode='w')
+        #                 file.write('Delay [sec],Power [dBm]\n')
+        #                 for k in range(power.__len__()):
+        #                     file.write('{},{}\n'.format(delay[k], power[k]))
+        #                 file.close()
+        #
+        # if avg:
+        #     if plot or mkpng:
+        #         f = mpl.figure(0)
+        #         mpl.stem(delay, power, bottom=-120)
+        #         mpl.xlabel('Delay, [s]')
+        #         mpl.ylabel('Power, [dBm]')
+        #         mpl.title('Average {}PDP\@[TX<->RX]'.format(title))
+        #         offset = 0.1 * (np.nanmax(power) - np.nanmin(power))
+        #         mpl.ylim([np.nanmin(power) - offset, np.nanmax(power) + offset])
+        #         mpl.grid(linestyle='--')
+        #         mpl.tight_layout()
+        #
+        #     if matsav:
+        #         sio.savemat('{}PDP\@[TX<->RX]_avg.mat'.format(title), {'delay': delay, 'pow': power})
+        #
+        #     if csvsav:
+        #         file = open('{}PDP\@[TX<->RX]_avg.csv'.format(title), mode='w')
+        #         file.write('Delay [sec],Power [dBm]\n')
+        #         for k in range(power.__len__()):
+        #             file.write('{},{}\n'.format(delay[k], power[k]))
+        #         file.close()
+        #
+        #     if mkpng:
+        #         mpl.savefig('{}PDP\@[TX<->RX]_avg.png'.format(title))
+        #         mpl.close(f)
+        #
+        # if mkpng is False and plot:
+        #     mpl.show()
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')

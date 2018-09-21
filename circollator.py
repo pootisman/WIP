@@ -97,7 +97,7 @@ class circollator():
             if plot or mkpng:
                 cmap_def = mpl.get_cmap(self.cmap_ids[iind])
                 cmap_cus = cmap_def(np.arange(cmap_def.N))
-                cmap_cus[:, -1] = np.linspace(0, 1 - 0.5 * (iind > 0), cmap_def.N)
+                cmap_cus[:, -1] = np.linspace(0, 1 - 0.3 * (iind > 0), cmap_def.N)
                 cmap_cus = ListedColormap(cmap_cus)
 
                 mpl.pcolor(np.transpose(X), np.transpose(Y), Z, clip_on=True,
@@ -122,7 +122,7 @@ class circollator():
 
             cmap = mpl.get_cmap(self.cmap_ids[1])
             cmap2 = cmap(np.arange(cmap.N))
-            cmap2[:, -1] = np.linspace(start=0, stop=0.5, num=cmap.N, endpoint=True)
+            cmap2[:, -1] = np.linspace(start=0, stop=0.7, num=cmap.N, endpoint=True)
 
             csq_valsx = np.tile(cmap1, [cmap.N, 1, 1])
             csq_valsy = np.tile(cmap2, [cmap.N, 1, 1])
