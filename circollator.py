@@ -22,7 +22,7 @@ from cir import cirs
 from auxfun import basint3
 
 
-class circollator():
+class CIRCollator():
     def __init__(self):
         self.xmin = np.PINF
         self.xmax = np.NINF
@@ -36,7 +36,7 @@ class circollator():
 
         self.datas = list()
         self.cmap_ids = ['Blues', 'Reds', 'Purples']
-        self.titles = []
+        self.titles = list()
 
     def __add__(self, other):
         if isinstance(other, cirs):
@@ -49,8 +49,9 @@ class circollator():
             raise TypeError('List or CIRs needed, got {}'.format(other))
 
     def export_collated(self, mkpng: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
-                        title: str = '', cmaplist: list = None, idxs: list = None, csq: bool = False, csqloc: int = 1):
-        self.titles = []
+                        title: str = '', cmaplist: list = None, idxs: list = None, csq: bool = False, csqloc: int = 1,
+                        xlabel: bool = True, ylabel: bool = True, title_draw: bool = True, figsize: tuple = (8, 6)):
+        self.titles = list()
 
         if idxs is None:
             idxs = [j for j in range(self.datas.__len__())]
@@ -78,7 +79,7 @@ class circollator():
             if self.ydim < i.ydim:
                 self.ydim = i.ydim
 
-        f = mpl.figure(fidbase)
+        f = mpl.figure(fidbase, figsize=figsize)
 
         if cmaplist is not None:
             self.cmap_ids = cmaplist
@@ -89,10 +90,10 @@ class circollator():
             i = self.datas[j]
             self.titles.append(i.title)
 
-            (X, Y, Z) = basint3(x=i.xdata, y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
+            (x, y, z) = basint3(x=i.xdata, y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
                                 xmax=self.xmax, ymin=self.ymin, ymax=self.ymax,
                                 z=[j * (j > i.zmin) + 2.0 * self.zmin * (j <= i.zmin) for j in i.zdata])
-            [X, Y] = np.meshgrid(X, Y)
+            [x, y] = np.meshgrid(x, y)
 
             if plot or mkpng:
                 cmap_def = mpl.get_cmap(self.cmap_ids[iind])
@@ -100,21 +101,26 @@ class circollator():
                 cmap_cus[:, -1] = np.linspace(0, 1 - 0.3 * (iind > 0), cmap_def.N)
                 cmap_cus = ListedColormap(cmap_cus)
 
-                mpl.pcolor(np.transpose(X), np.transpose(Y), Z, clip_on=True,
+                mpl.pcolor(np.transpose(x), np.transpose(y), z, clip_on=True,
                            cmap=cmap_cus, vmin=self.zmin, vmax=self.zmax)
 
             iind+=1
 
-        mpl.title('{}CIR\\@TX \\#{}'.format(title, 'vs '.join(self.titles)))
         mpl.clim(vmin=self.zmin, vmax=self.zmax)
 
-        mpl.xlabel('RX Position')
-        mpl.ylabel('Delay, [ns]')
+        if xlabel:
+            mpl.xlabel('RX Position')
+
+        if ylabel:
+            mpl.ylabel('Delay, [ns]')
+
+        if title_draw:
+            mpl.title('{}CIR\\@TX \\#{}'.format(title, 'vs '.join(self.titles)))
 
         mpl.tight_layout()
 
         if csq:
-            axins = inset_axes(mpl.gca(), width='30%', height='30%', loc=csqloc)
+            axins = f.add_axes([0.3, 0.65, 0.3, 0.3])
 
             cmap = mpl.get_cmap(self.cmap_ids[0])
             cmap1 = cmap(np.arange(cmap.N))
@@ -186,10 +192,10 @@ class circollator():
             i = self.datas[k]
             f = mpl.figure(fidbase + i)
 
-            (X, Y, Z) = basint3(x=i.xdata, y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
+            (x, y, z) = basint3(x=i.xdata, y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
                                 xmax=self.xmax, ymin=self.ymin, ymax=self.ymax,
                                 z=[j * (j > i.zmin) + 2.0 * self.zmin * (j <= i.zmin) for j in i.zdata])
-            [X, Y] = np.meshgrid(X, Y)
+            [x, y] = np.meshgrid(x, y)
 
             if plot or mkpng:
                 cmap_def = mpl.get_cmap(self.cmap_ids[iind])
@@ -197,7 +203,7 @@ class circollator():
                 cmap_cus[:, -1] = np.linspace(1, 0, cmap_def.N)
                 cmap_cus = ListedColormap(cmap_cus)
 
-                mpl.pcolor(np.transpose(X), np.transpose(Y), Z, clip_on=True, alpha=(1.0 if iind == 0 else 0.5),
+                mpl.pcolor(np.transpose(x), np.transpose(y), z, clip_on=True, alpha=(1.0 if iind == 0 else 0.5),
                            cmap=cmap_cus, vmin=self.zmin, vmax=self.zmax)
 
                 mpl.colorbar()

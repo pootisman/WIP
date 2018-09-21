@@ -13,14 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import numpy as np
 import matplotlib.pyplot as mpl
 import scipy.io as sio
 import pairdata
-from phys_path_procs import *
+from phys_path_procs import check_data_NF
+from auxfun import l2db
 
 
 class PLPlot:
-    def __init__(self, source: pairdata.data_stor = None):
+    def __init__(self, source: pairdata.DataStorage = None):
         assert source is not None
         self.xdata = None
         self.ydata = None
@@ -33,9 +35,10 @@ class PLPlot:
         self.mean_res = 0.0
         self.var_res = np.PINF
 
-    def regr_comp(self, rxgrp: list = [-1], txgrp: list = [-1], typ: str ='LOS', threshold: float = -130, nff: bool = True):
-        self.xdata = []
-        self.ydata = []
+    def regr_comp(self, rxgrp: list = [-1], txgrp: list = [-1], typ: str ='LOS', threshold: float = -130,
+                  nff: bool = True):
+        self.xdata = list()
+        self.ydata = list()
         self.typ = typ
         self.thrshld = threshold
 
@@ -57,15 +60,18 @@ class PLPlot:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
-                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and l2db(k[1].pow) >= self.thrshld:
+                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
+                                        l2db(k[1].pow) >= self.thrshld:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
-                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and l2db(k[1].pow) >= self.thrshld:
+                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
+                                        l2db(k[1].pow) >= self.thrshld:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
-                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and l2db(k[1].pow) >= self.thrshld:
+                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
+                                        l2db(k[1].pow) >= self.thrshld:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
@@ -74,15 +80,18 @@ class PLPlot:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
-                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and l2db(k[1].pow) >= self.thrshld:
+                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
+                                        l2db(k[1].pow) >= self.thrshld:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
-                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and l2db(k[1].pow) >= self.thrshld:
+                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
+                                        l2db(k[1].pow) >= self.thrshld:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
-                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and l2db(k[1].pow) >= self.thrshld:
+                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
+                                        l2db(k[1].pow) >= self.thrshld:
                                     self.xdata.append(np.log10(j[1].dist))
                                     self.ydata.append(k[1].FSPL)
                                     self.nsamps += 1
@@ -90,7 +99,8 @@ class PLPlot:
         self.xdata = np.asarray(self.xdata)
         self.ydata = np.asarray(self.ydata)
         # Data ready, calculate ax + b regression
-        self.a, self.b = np.linalg.lstsq(np.vstack([self.xdata, np.ones(self.xdata.__len__())]).T, self.ydata, rcond=None)[0]
+        self.a, self.b = np.linalg.lstsq(np.vstack([self.xdata, np.ones(self.xdata.__len__())]).T,
+                                         self.ydata, rcond=None)[0]
         return self.a, self.b
 
     def export(self, plot: bool = True, csvsav: bool = False, matsav: bool = False):
@@ -101,8 +111,8 @@ class PLPlot:
             mpl.figure()
             mpl.plot(np.power(10, self.xdata), self.ydata, 'r.', label='Experimental data')
             mpl.plot(np.power(10, self.xdata), self.b + self.a * self.xdata, 'b.', label='Fitted model')
-            mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm, m={:3.2}dBm , s={:3.2}dBm'.format(self.typ, self.a, self.b,
-                                                                                        self.mean_res, self.var_res))
+            mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm, m={:3.2}dBm , s={:3.2}dBm'.
+                      format(self.typ, self.a, self.b, self.mean_res, self.var_res))
             mpl.xlabel('Distance, [meters]')
             mpl.ylabel('Pathloss, [dB]')
             mpl.grid(linestyle='--')
@@ -123,7 +133,7 @@ class PLPlot:
 
 
 if __name__ == '__main__':
-    DS = pairdata.data_stor(conf='dbconf.txt')
+    DS = pairdata.DataStorage(conf='dbconf.txt')
     DS.load_rxtx('class_sqlite')
     DS.load_paths()
     DS.load_interactions()

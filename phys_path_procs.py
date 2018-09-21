@@ -22,7 +22,7 @@ from auxfun import *
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
-def check_chan_NF(chan: pd.chan = None, freq: float = 60e9):
+def check_chan_NF(chan: pd.Channel = None, freq: float = 60e9):
     src_coords = chan.src.coords
     dst_coords = chan.dest.coords
 
@@ -54,14 +54,14 @@ def check_chan_NF(chan: pd.chan = None, freq: float = 60e9):
     chan.valid_pow = fixed_pow
 
 
-def check_data_NF(data: pd.data_stor = None, freq: float = 60e9):
+def check_data_NF(data: pd.DataStorage = None, freq: float = 60e9):
     for i in data.txs.items():
         for j in i[1].chans_to_pairs.items():
             check_chan_NF(j[1], freq=freq)
 
 
 class cluster(list):
-    def __init__(self, threshold: float = 1e-5, inipath: pd.path = None):
+    def __init__(self, threshold: float = 1e-5, inipath: pd.Path = None):
         assert inipath is not None, 'Cluster needs an initial path to build around!'
         list.__init__(self)
         self.inipath = inipath
@@ -79,7 +79,7 @@ class cluster(list):
             self.inivect.append(j)
         list.append(self, inipath)
 
-    def append(self, path: pd.path):
+    def append(self, path: pd.Path):
         assert path is not None, 'Can\'t append None to cluster! Check Your code!'
         self.pow += path.pow
         path.cluster = self
@@ -87,7 +87,7 @@ class cluster(list):
         self.inipath.cluster = self
         # Recalculate
 
-    def cappend(self, path: pd.path):
+    def cappend(self, path: pd.Path):
         assert path is not None, 'Can\'t append None to cluster! Check Your code!'
         if path.cluster is None:
             pathcoords = path.chan.src.coords.tolist()
@@ -102,17 +102,17 @@ class cluster(list):
 
             if (1.0 - r2_score(self.inivect, pathcoords)) > self.threshold:
                 return False
-            else:
-                path.cluster = self
-                self.pow += path.pow
-                self.inipath.cluster = self
-                list.append(self, path)
-                return True
-        else:
-            return False
+
+            path.cluster = self
+            self.pow += path.pow
+            self.inipath.cluster = self
+            list.append(self, path)
+            return True
+
+        return False
 
 
-def gen_chan_clusters(chan: pd.chan = None, threshold: float = 1e-5, nff: bool = False):
+def gen_chan_clusters(chan: pd.Channel = None, threshold: float = 1e-5, nff: bool = False):
     assert chan is not None, 'None given instead of channel in gen_clusters!'
     for i in chan.paths.items():
         if not nff:
@@ -132,7 +132,7 @@ def gen_chan_clusters(chan: pd.chan = None, threshold: float = 1e-5, nff: bool =
                     c.cappend(j[1])
 
 
-def gen_data_clusters(data: pd.data_stor, threshold: float = 1e-5, nff: bool = False):
+def gen_data_clusters(data: pd.DataStorage, threshold: float = 1e-5, nff: bool = False):
     for i in data.txs.items():
         for j in i[1].chans_to_pairs.items():
             gen_chan_clusters(j[1], threshold=threshold, nff=nff)

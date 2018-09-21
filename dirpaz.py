@@ -17,12 +17,14 @@ import matplotlib.pyplot as mpl
 import mayavi.mlab as mlab
 import scipy.io as sio
 import pairdata
-from auxfun import *
-from auxclass import *
+import numpy as np
+from auxfun import l2db, basint3
+from auxclass import PowHist, PowHist2D
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
-class RX_pat_az():
+
+class RXPatAz():
     def __init__(self, source):
         self.source = source
 
@@ -49,9 +51,9 @@ class RX_pat_az():
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
                         f = mpl.figure(rr)
                         rr += 1
-                        th = []
-                        tt = []
-                        r = []
+                        th = list()
+                        tt = list()
+                        r = list()
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
                             if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].\
                                     near_field_failed:
@@ -100,7 +102,8 @@ class RX_pat_az():
         if mkpng is False:
             mpl.show()
 
-class RX_pat_el():
+
+class RXPatEl:
     def __init__(self, source):
         self.source = source
 
@@ -108,9 +111,9 @@ class RX_pat_el():
         self.ylim = [-np.Inf, np.Inf]
         self.zlim = [-np.Inf, np.Inf]
 
-        self.xdata = []
-        self.ydata = []
-        self.zdata = []
+        self.xdata = list()
+        self.ydata = list()
+        self.zdata = list()
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              nff: bool = True, csvsav: bool = False, matsav: bool = False):
@@ -131,9 +134,9 @@ class RX_pat_el():
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
                         f = mpl.figure(rr)
                         rr += 1
-                        th = []
-                        tt = []
-                        r = []
+                        th = list()
+                        tt = list()
+                        r = list()
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
                             if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].\
                                     near_field_failed:
@@ -182,7 +185,8 @@ class RX_pat_el():
         if mkpng is False:
             mpl.show()
 
-class RX_pat_all():
+
+class RXPatAll:
     def __init__(self, source):
         self.source = source
 
@@ -190,9 +194,9 @@ class RX_pat_all():
         self.ylim = [-np.Inf, np.Inf]
         self.zlim = [-np.Inf, np.Inf]
 
-        self.xdata = []
-        self.ydata = []
-        self.zdata = []
+        self.xdata = list()
+        self.ydata = list()
+        self.zdata = list()
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
              nff: bool = True, matsav: bool = False):
@@ -219,50 +223,52 @@ class RX_pat_all():
                             if nff and not k[1].near_field_failed:
                                 hist.append(k[1].AoD, k[1].EoD, k[1].pow)
 
-                        X = []
-                        Y = []
-                        Z = []
+                        x = list()
+                        y = list()
+                        z = list()
 
                         for k in hist.bins.items():
-                            X.append(k[0][0])
-                            X.append(k[0][1])
-                            Y.append(k[0][2])
-                            Y.append(k[0][3])
-                            Z.append(k[1] if k[1] > 0 else np.nan)
-                            Z.append(Z[-1])
+                            x.append(k[0][0])
+                            x.append(k[0][1])
+                            y.append(k[0][2])
+                            y.append(k[0][3])
+                            z.append(k[1] if k[1] > 0 else np.nan)
+                            z.append(z[-1])
 
-                        minz = np.nanmin(Z)
+                        minz = np.nanmin(z)
 
-                        for k in range(Z.__len__()):
-                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else l2db(minz)
+                        for k in range(z.__len__()):
+                            z[k] = l2db(z[k]) if not np.isnan(z[k]) else l2db(minz)
 
-                        X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
+                        x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        xlen = X.size
-                        ylen = Y.size
+                        xlen = x.size
+                        ylen = y.size
 
-                        plotZ = Z - np.min(np.min(Z))
+                        plot_z = z - np.min(np.min(z))
 
-                        mlab.mesh((plotZ.T * np.cos(np.tile(np.deg2rad(X), [ylen, 1])) *
-                                    np.sin(np.tile(np.deg2rad(Y), [xlen, 1])).T),
-                                  (plotZ.T *np.sin(np.tile(np.deg2rad(X), [ylen, 1]))
-                                   * np.sin(np.tile(np.deg2rad(Y), [xlen, 1])).T),
-                                  (plotZ.T * np.cos(np.tile(np.deg2rad(X), [ylen, 1]))))
+                        mlab.mesh((plot_z.T * np.cos(np.tile(np.deg2rad(x), [ylen, 1])) *
+                                    np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
+                                  (plot_z.T *np.sin(np.tile(np.deg2rad(x), [ylen, 1]))
+                                   * np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
+                                  (plot_z.T * np.cos(np.tile(np.deg2rad(x), [ylen, 1]))))
 
                         if mkpng:
                             mlab.savefig('RXpat_tx{0:03d}->rx{1:03d}.png'.format(i, j))
                             mlab.close(f)
 
                         if matsav:
-                            sio.savemat('RXPat_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': X, 'Y': Y, 'Z': Z})
+                            sio.savemat('RXPat_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'X': x, 'Y': y, 'Z': z})
 
         if mkpng is False:
             mlab.show()
 
+
 if __name__ == "__main__":
-    DS = pairdata.data_stor()
-    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/Class@60GHz.TEST_60_MKE_15.sqlite')
+    DS = pairdata.DataStorage()
+    DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/'
+                 'Class@60GHz.TEST_60_MKE_15.sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions()
-    cir = RX_pat_az(DS)
-    cir.draw(rxgrp=4, mkpng=False)
+    cir = RXPatAz(DS)
+    cir.export(rxgrp=4, mkpng=False)

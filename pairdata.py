@@ -30,7 +30,7 @@ from auxfun import l2db
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
-class Node():
+class Node:
     def __init__(self, typ: str):
         self.chans_to_pairs = dict()
         self.node_id = 0
@@ -56,7 +56,7 @@ class Node():
         return None
 
 
-class chan():
+class Channel:
     def __init__(self, dest: Node = None, src: Node = None):
         self.paths = dict()
         self.dest = dest
@@ -77,7 +77,7 @@ class chan():
                                                                             self.dest.node_id)
 
 
-class path():
+class Path:
     def __init__(self):
         self.pathid = 0
         self.pow = 0.0
@@ -103,7 +103,7 @@ class path():
                                                                     self.chan.src.node_id, self.AoD, self.EoD, self.AoA, self.EoA, self.chan.dest.node_id)
 
 
-class interaction():
+class Interaction:
     def __init__(self):
         self.typ = 'TX'
         self.coords = zeros([3])
@@ -126,7 +126,7 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
 
     for i in txp:
         dst = self.rxs[i[-2]]
-        self.txs[i[-1]].chans_to_pairs[dst] = chan(dest=dst, src=self.txs[i[-1]])
+        self.txs[i[-1]].chans_to_pairs[dst] = Channel(dest=dst, src=self.txs[i[-1]])
         self.rxs[i[-2]].chans_to_pairs[self.txs[i]] = self.txs[i[-1]].chans_to_pairs[dst]
         self.txs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
         self.txs[i[-1]].chans_to_pairs[dst].delay = i[2]
@@ -140,7 +140,7 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
             d = dbcurs.fetchall()
             d = sorted(d, key=lambda t: t[1], reverse=True)
             for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
-                self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
+                self.txs[i].chans_to_pairs[j].paths[k[0]] = Path()
                 self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
@@ -164,7 +164,7 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
 
     for i in rxp:
         dst = self.rxs[i[-1]]
-        dst.chans_to_pairs[self.txs[i[-2]]] = chan(src=self.txs[i[-2]], dest=dst)
+        dst.chans_to_pairs[self.txs[i[-2]]] = Channel(src=self.txs[i[-2]], dest=dst)
         self.txs[i[-2]].chans_to_pairs[dst] = dst.chans_to_pairs[self.txs[i[-2]]]
         dst.chans_to_pairs[self.txs[i[-2]]].pow = i[1] * 1e3
         dst.chans_to_pairs[self.txs[i[-2]]].delay = i[2]
@@ -178,7 +178,7 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
             d = dbcurs.fetchall()
             d = sorted(d, key=lambda t: t[1], reverse=True)
             for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
-                self.rxs[i].chans_to_pairs[j].paths[k[0]] = path()
+                self.rxs[i].chans_to_pairs[j].paths[k[0]] = Path()
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].chan = self.rxs[i].chans_to_pairs[j]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
@@ -192,9 +192,10 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
 
     dbconn.close()
 
+
 def _load_iters_txs(self, txsids, host, user, pw, dbname, store):
     dbconn = msqlc.connect(host=host, user=user, password=pw,
-                                client_flags=[ClientFlag.SSL], database=dbname)
+                           client_flags=[ClientFlag.SSL], database=dbname)
     dbcurs = dbconn.cursor()
 
     for i in txsids:
@@ -203,12 +204,12 @@ def _load_iters_txs(self, txsids, host, user, pw, dbname, store):
             inters = dbcurs.fetchall()
 
             for k in j[1].paths.items():
-                dists = []
+                dists = list()
                 precoords = j[1].src.coords
                 for l in inters:
                     if l[4] == k[1].pathid:
                         if store:
-                            intr = interaction()
+                            intr = Interaction()
                             intr.path = k[1]
                             intr.coords = asarray([l[0], l[1], l[2]])
                             intr.typ = l[3]
@@ -235,13 +236,13 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
             inters = dbcurs.fetchall()
             #print(j[1].chid, j[1].paths.__len__())
             for k in j[1].paths.items():
-                dists = []
+                dists = list()
                 #print(k[1].pathid, inters.__len__())
                 precoords = j[1].src.coords
                 for l in inters:
                     if l[4] == k[1].pathid:
                         if store:
-                            intr = interaction()
+                            intr = Interaction()
                             intr.path = k[1]
                             intr.coords = asarray([l[0], l[1], l[2]])
                             intr.typ = l[3]
@@ -256,7 +257,7 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
     dbconn.close()
 
 
-class data_stor():
+class DataStorage:
     def __init__(self, conf: str = None, threaded: bool = True):
         self.txs = dict()
         self.rxs = dict()
@@ -384,7 +385,7 @@ class data_stor():
                 k = self.dbcurs.fetchall()
                 for j in k:
                     dst = self.rxs[j[-1]]
-                    self.txs[i].chans_to_pairs[dst] = chan(dst, self.txs[i])
+                    self.txs[i].chans_to_pairs[dst] = Channel(dst, self.txs[i])
                     dst.chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
                     self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
                     self.txs[i].chans_to_pairs[dst].delay = j[2]
@@ -397,7 +398,7 @@ class data_stor():
                     d = self.dbcurs.fetchall()
                     d = sorted(d, key=lambda t: t[1], reverse=True)
                     for k in d[0:(self.npaths if d.__len__() >= self.npaths else d.__len__())]:
-                        self.txs[i].chans_to_pairs[j].paths[k[0]] = path()
+                        self.txs[i].chans_to_pairs[j].paths[k[0]] = Path()
                         self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                         self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
                         self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
@@ -477,7 +478,7 @@ class data_stor():
                         for l in inters:
                             if l[4] == k[1].pathid:
                                 if store:
-                                    intr = interaction()
+                                    intr = Interaction()
                                     intr.path = k[1]
                                     intr.coords = asarray([l[0], l[1], l[2]])
                                     intr.typ = l[3]
@@ -535,7 +536,7 @@ class data_stor():
 
 
 if __name__ == '__main__':
-    DS = data_stor(conf='dbconf.txt')
+    DS = DataStorage(conf='dbconf.txt')
     DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths()
     DS.load_interactions()

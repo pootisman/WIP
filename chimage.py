@@ -201,7 +201,7 @@ class chimage_TX():
 
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor(conf='dbconf.txt')
+    DS = pairdata.DataStorage(conf='dbconf.txt')
     DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)

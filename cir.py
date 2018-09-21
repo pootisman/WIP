@@ -337,7 +337,7 @@ class cirs:
         #     mpl.show()
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor('dbconf.txt')
+    DS = pairdata.DataStorage('dbconf.txt')
     DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)

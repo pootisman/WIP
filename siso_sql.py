@@ -33,7 +33,7 @@ TX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_
            'FROM channel_utd WHERE channel_utd.channel_id IN ' \
            '(SELECT channel_id FROM channel WHERE tx_id BETWEEN {} AND {})) utd ' \
            'JOIN ' \
-           '(SELECT channel.channel_id ,channel.rx_id, channel.tx_id FROM channel WHERE tx_id BETWEEN {} AND {}) chan ' \
+           '(SELECT channel.channel_id ,channel.rx_id, channel.tx_id FROM channel WHERE tx_id BETWEEN {} AND {}) chan '\
            'ON utd.channel_id = chan.channel_id;'
 
 RX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power, ' \
@@ -41,7 +41,7 @@ RX_PAIRST = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_
            'FROM channel_utd WHERE channel_utd.channel_id IN ' \
            '(SELECT channel_id FROM channel WHERE rx_id BETWEEN {} AND {})) utd ' \
            'JOIN ' \
-           '(SELECT channel.channel_id ,channel.tx_id, channel.rx_id FROM channel WHERE rx_id BETWEEN {} AND {}) chan ' \
+           '(SELECT channel.channel_id ,channel.tx_id, channel.rx_id FROM channel WHERE rx_id BETWEEN {} AND {}) chan '\
            'ON utd.channel_id = chan.channel_id;'
 
 CHAN_PTH = 'SELECT path_utd_id, received_power, time_of_arrival, departure_phi, departure_theta, arrival_phi,' \

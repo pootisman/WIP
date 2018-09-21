@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pairdata
-from auxclass import *
+from pairdata import DataStorage
+from auxclass import ProbHist
+import numpy as np
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
 import matplotlib.collections as mpc
