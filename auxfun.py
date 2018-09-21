@@ -24,68 +24,71 @@ def enable_latex():
     plt.rc('font', family='serif')
 
 
-def basint2(X: list, Y: list, xc: int):
-    Xlim = [np.nanmin(X), np.nanmax(X)]
+def basint2(x: list, y: list, xc: int):
+    xlim = [np.nanmin(x), np.nanmax(x)]
 
-    Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)
-    Yo = np.tile(np.nanmin(Y), [Xo.__len__()])
+    xo, step_x = np.linspace(start=xlim[0], stop=xlim[1], num=xc, retstep=True)
+    yo = np.tile(np.nanmin(y), [xo.__len__()])
 
-    for i in range(Y.__len__()):
-        j = int(np.round((X[i] - Xlim[0]) / stepX))
+    for i in range(y.__len__()):
+        j = int(np.round((x[i] - xlim[0]) / step_x))
         if j == xc:
             j = j - 1
 
-        if Yo[j] < Y[i]:
-            if not np.isnan(Y[i]):
-                Yo[j] = Y[i]
+        if yo[j] < y[i]:
+            if not np.isnan(y[i]):
+                yo[j] = y[i]
             else:
-                Yo[j] = np.nanmin(Y)
+                yo[j] = np.nanmin(y)
 
-    return Xo, Yo
+    return xo, yo
 
-def basint3(X: list, Y: list, Z: list, xc: float, yc: float, xmin: float = np.nan, xmax: float = np.nan,
+
+def basint3(x: list, y: list, z: list, xc: float, yc: float, xmin: float = np.nan, xmax: float = np.nan,
             ymin: float = np.nan, ymax: float = np.nan, zmin: float = np.nan, zmax: float = np.nan):
     if np.isnan(xmin) or np.isnan(xmax):
-        Xlim = [np.nanmin(X), np.nanmax(X)]
+        xlim = [np.nanmin(x), np.nanmax(x)]
     else:
-        Xlim = [xmin, xmax]
+        xlim = [xmin, xmax]
 
     if np.isnan(ymin) or np.isnan(ymax):
-        Ylim = [np.nanmin(Y), np.nanmax(Y)]
+        ylim = [np.nanmin(y), np.nanmax(y)]
     else:
-        Ylim = [ymin, ymax]
+        ylim = [ymin, ymax]
 
-    Xo, stepX = np.linspace(start=Xlim[0], stop=Xlim[1], num=xc, retstep=True)
-    Yo, stepY = np.linspace(start=Ylim[0], stop=Ylim[1], num=yc, retstep=True)
+    xo, step_x = np.linspace(start=xlim[0], stop=xlim[1], num=xc, retstep=True)
+    yo, step_y = np.linspace(start=ylim[0], stop=ylim[1], num=yc, retstep=True)
 
-    Zo = np.tile(np.nanmin(Z) if np.isnan(zmin) else zmin, [Xo.__len__(), Yo.__len__()])
+    zo = np.tile(np.nanmin(z) if np.isnan(zmin) else zmin, [xo.__len__(), yo.__len__()])
 
-    for i in range(Z.__len__()):
-        if stepX != 0:
-            j = int(np.round((X[i] - Xlim[0]) / stepX))
+    for i in range(z.__len__()):
+        if step_x != 0:
+            j = int(np.round((x[i] - xlim[0]) / step_x))
         else:
-            j = Xlim[0]
+            j = xlim[0]
 
-        if stepY != 0:
-            k = int(np.round((Y[i] - Ylim[0]) / stepY))
+        if step_y != 0:
+            k = int(np.round((y[i] - ylim[0]) / step_y))
         else:
-            k = Ylim[0]
+            k = ylim[0]
 
-        if j == Xo.__len__():
+        if j == xo.__len__():
             j = j - 1
-        if k == Yo.__len__():
+        if k == yo.__len__():
             k = k - 1
 
-        if Zo[j, k] < Z[i]:
-            if not np.isnan(Z[i]):
-                Zo[j, k] = Z[i]
+        if zo[j, k] < z[i]:
+            if not np.isnan(z[i]):
+                zo[j, k] = z[i]
             else:
-                Zo[j, k] = np.nanmin(Z)
+                zo[j, k] = np.nanmin(z)
 
-    return Xo, Yo, Zo
+    return xo, yo, zo
+
 
 def l2db(val: float):
     return 10.0 * np.log10(val)
+
 
 def db2l(val: float):
     return np.power(10.0, val / 10.0)

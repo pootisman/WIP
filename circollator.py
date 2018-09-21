@@ -17,6 +17,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 import matplotlib.pyplot as mpl
 from matplotlib.colors import ListedColormap
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from cir import cirs
 from auxfun import basint3
 
@@ -34,9 +35,8 @@ class circollator():
         self.ydim = 0
 
         self.datas = list()
-        self.cmap_ids = ['viridis', 'Reds', 'Purples']
+        self.cmap_ids = ['Blues', 'Reds', 'Purples']
         self.titles = []
-        #mpl.colormaps()
 
     def __add__(self, other):
         if isinstance(other, cirs):
@@ -49,7 +49,7 @@ class circollator():
             raise TypeError('List or CIRs needed, got {}'.format(other))
 
     def export_collated(self, mkpng: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
-                        title: str = '', cmaplist: list = None, idxs: list = None):
+                        title: str = '', cmaplist: list = None, idxs: list = None, csq: bool = False, csqloc: int = 1):
         self.titles = []
 
         if idxs is None:
@@ -89,15 +89,15 @@ class circollator():
             i = self.datas[j]
             self.titles.append(i.title)
 
-            (X, Y, Z) = basint3(X=i.xdata, Y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
+            (X, Y, Z) = basint3(x=i.xdata, y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
                                 xmax=self.xmax, ymin=self.ymin, ymax=self.ymax,
-                                Z=[j * (j > i.zmin) + 2.0 * self.zmin * (j <= i.zmin) for j in i.zdata])
+                                z=[j * (j > i.zmin) + 2.0 * self.zmin * (j <= i.zmin) for j in i.zdata])
             [X, Y] = np.meshgrid(X, Y)
 
             if plot or mkpng:
                 cmap_def = mpl.get_cmap(self.cmap_ids[iind])
                 cmap_cus = cmap_def(np.arange(cmap_def.N))
-                cmap_cus[:, -1] = np.linspace(0, 1, cmap_def.N)
+                cmap_cus[:, -1] = np.linspace(0, 1 - 0.5 * (iind > 0), cmap_def.N)
                 cmap_cus = ListedColormap(cmap_cus)
 
                 mpl.pcolor(np.transpose(X), np.transpose(Y), Z, clip_on=True,
@@ -105,13 +105,43 @@ class circollator():
 
             iind+=1
 
-        mpl.title('{}CIR\@TX \#{}'.format(title, 'vs '.join(self.titles)))
+        mpl.title('{}CIR\\@TX \\#{}'.format(title, 'vs '.join(self.titles)))
         mpl.clim(vmin=self.zmin, vmax=self.zmax)
 
         mpl.xlabel('RX Position')
         mpl.ylabel('Delay, [ns]')
 
         mpl.tight_layout()
+
+        if csq:
+            axins = inset_axes(mpl.gca(), width='30%', height='30%', loc=csqloc)
+
+            cmap = mpl.get_cmap(self.cmap_ids[0])
+            cmap1 = cmap(np.arange(cmap.N))
+            cmap1[:, -1] = np.linspace(start=0, stop=1, num=cmap.N, endpoint=True)
+
+            cmap = mpl.get_cmap(self.cmap_ids[1])
+            cmap2 = cmap(np.arange(cmap.N))
+            cmap2[:, -1] = np.linspace(start=0, stop=0.5, num=cmap.N, endpoint=True)
+
+            csq_valsx = np.tile(cmap1, [cmap.N, 1, 1])
+            csq_valsy = np.tile(cmap2, [cmap.N, 1, 1])
+
+            axins.imshow(csq_valsx)
+            axins.imshow(np.rot90(csq_valsy, 1))
+
+            axins.tick_params(direction='in')
+
+            axins.set_xlabel('{} pow. [dBm]'.format(self.titles[0]))
+            axins.set_ylabel('{} pow. [dBm]'.format(self.titles[1]))
+
+            axins.set_xticks(np.linspace(start=0.0, num=5, stop=cmap.N, endpoint=True))
+            axins.set_yticks(np.linspace(start=0.0, num=5, stop=cmap.N, endpoint=True))
+
+            powerticks = np.linspace(start=self.zmin, num=5, stop=self.zmax, endpoint=True).tolist()
+            powerticks = [str(i) for i in powerticks]
+            axins.set_xticklabels(powerticks, rotation=-45, ha='left')
+            axins.set_yticklabels(reversed(powerticks))
 
         if mkpng:
             mpl.savefig('Collated CIR3D.png')
@@ -156,9 +186,9 @@ class circollator():
             i = self.datas[k]
             f = mpl.figure(fidbase + i)
 
-            (X, Y, Z) = basint3(X=i.xdata, Y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
+            (X, Y, Z) = basint3(x=i.xdata, y=i.ydata, xc=self.xdim, yc=self.ydim, zmin=self.zmin, xmin=self.xmin,
                                 xmax=self.xmax, ymin=self.ymin, ymax=self.ymax,
-                                Z=[j * (j > i.zmin) + 2.0 * self.zmin * (j <= i.zmin) for j in i.zdata])
+                                z=[j * (j > i.zmin) + 2.0 * self.zmin * (j <= i.zmin) for j in i.zdata])
             [X, Y] = np.meshgrid(X, Y)
 
             if plot or mkpng:

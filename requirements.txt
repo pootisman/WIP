@@ -3,3 +3,4 @@ scikit-learn
 matplotlib
 mayavi
 mysql-connector-python
+scipy

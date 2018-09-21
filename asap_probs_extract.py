@@ -22,10 +22,10 @@ import matplotlib.collections as mpc
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
-class distanced_hist_extractor():
+class DistancedHistExtractor:
     def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7,
                  thrs: float = -115, minbins: float = 0.2, nffilt: bool = True):
-        self.hist = probhist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
+        self.hist = ProbHist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
         self.type = None
         self.trans_type = None
@@ -116,8 +116,8 @@ class distanced_hist_extractor():
         fig = mpl.figure()
         ax = fig.add_subplot(211)
         ax.grid(linestyle='--')
-        ax.set_xlim([self.hist.floor, self.hist.ceiling])
-        ax.set_ylim([0, 1])
+        ax.set_xlim(self.hist.floor, self.hist.ceiling)
+        ax.set_ylim(0, 1)
         ax.set_xlabel('Distance, [m]')
         ax.set_ylabel('{} probability'.format(self.type))
         ax.set_title('Total hits {} @ {} dBm threshold'.format(self.hist.tothits, self.thresh))
@@ -139,8 +139,8 @@ class distanced_hist_extractor():
 
         ax = fig.add_subplot(212)
         ax.grid(linestyle='--')
-        ax.set_xlim([self.hist.floor, self.hist.ceiling])
-        ax.set_ylim([0, 1])
+        ax.set_xlim(self.hist.floor, self.hist.ceiling)
+        ax.set_ylim(0, 1)
         if log:
             mpl.semilogy()
         ax.set_xlabel('Distance, [m]')
@@ -172,8 +172,8 @@ if __name__ == "__main__":
     from phys_path_procs import *
     #check_data_NF(DS)
 
-    DE = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
-    DA = distanced_hist_extractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False )
+    DE = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
+    DA = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
 
     DA.build(txgrp=-1,rxgrp=-1, typ='any')
     DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->LOS')

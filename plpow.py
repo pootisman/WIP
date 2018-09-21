@@ -18,7 +18,8 @@ import scipy.io as sio
 import pairdata
 from phys_path_procs import *
 
-class plPlot():
+
+class PLPlot:
     def __init__(self, source: pairdata.data_stor = None):
         assert source is not None
         self.xdata = None
@@ -29,6 +30,8 @@ class plPlot():
         self.b = 0.0
         self.typ = None
         self.thrshld = 0.0
+        self.mean_res = 0.0
+        self.var_res = np.PINF
 
     def regr_comp(self, rxgrp: list = [-1], txgrp: list = [-1], typ: str ='LOS', threshold: float = -130, nff: bool = True):
         self.xdata = []
@@ -125,7 +128,7 @@ if __name__ == '__main__':
     DS.load_paths()
     DS.load_interactions()
     check_data_NF(DS)
-    plp = plPlot(source=DS)
+    plp = PLPlot(source=DS)
     print(plp.regr_comp(typ='NLOS', threshold=-115, nff=True))
     plp.export(csvsav=True, matsav=True)
     exit()

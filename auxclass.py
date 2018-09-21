@@ -16,7 +16,7 @@
 import numpy as np
 
 
-class varhist():
+class VarHist:
     def __init__(self, binc: int = 40, rstart: float = 0.0, rstop: float = 1.0, frac: float = 0.6, minbins: float = 1.0,
                  addfun: callable = None):
         self.bins = dict()
@@ -58,9 +58,9 @@ class varhist():
         return False
 
 
-class probhist(varhist):
+class ProbHist(VarHist):
     def __init__(self, binc, rstart, rstop, frac: float = 0.6, minbins: float = 1.0):
-        varhist.__init__(self, binc, rstart, rstop, frac, minbins)
+        VarHist.__init__(self, binc, rstart, rstop, frac, minbins)
         # First element in a tuple is number of staisfactory items
         # Second is total number of hits
         for i in self.bins.keys():
@@ -84,7 +84,7 @@ class probhist(varhist):
                     self.linadd(i, (0, 1))
 
 
-class probhist4d():
+class ProbHist4D:
     def __init__(self, binc: int = 40, dxstart: float = -10.0, dxstop: float = 10.0, dystart: float = -10.0,
                  dystop: float = 10.0, dzstart: float = -10.0, dzstop: float = 10.0, frac: float = 0.6,
                  minbins: float = 1.0, addfun: callable = None):
@@ -108,7 +108,7 @@ class probhist4d():
                     self.linadd(i, (0, 1))
 
 
-class powhist():
+class PowHist:
     def __init__(self, binc: int = 36, rstart: float = 0.0, rstop: float = 360.0, addfun: callable = None):
         self.bins = dict()
         self.floor = rstart
@@ -141,7 +141,7 @@ class powhist():
         assert (self.binc != other.binc or self.floor != other.floor or self.ceiling != other.ceiling),\
             'Histograms must be same, bailing out!'
 
-        result = powhist(binc=self.binc, rstart=self.floor, rstop=self.ceiling, addfun=self.addfun)
+        result = PowHist(binc=self.binc, rstart=self.floor, rstop=self.ceiling, addfun=self.addfun)
 
         # TODO: Verify correctness
         for i in self.bins.items():
@@ -150,10 +150,10 @@ class powhist():
         result.__adds = self.__adds + other.__adds
         result.tothits = self.tothits + other.tothits
 
-
         return result
 
-class powhist2():
+
+class PowHist2D:
     def __init__(self, azbinc: int = 36, elbinc: int = 18, azstart: float = -180, azstop: float = 180.0, elstart=0.0,
                  elstop=180.0, addfun: callable = None):
         self.bins = dict()

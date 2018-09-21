@@ -20,9 +20,9 @@ import scipy.io as sio
 import matplotlib.pyplot as mpl
 import pairdata
 from phys_path_procs import *
-from auxclass import powhist
+from auxclass import PowHist
 
-class cirs():
+class cirs:
     def __init__(self, source):
         self.source = source
 
@@ -102,8 +102,8 @@ class cirs():
                     for z in range(self.zdata.__len__()):
                         self.zdata[z] = zmin
 
-                (X, Y, Z) = basint3(self.xdata, self.ydata, self.zdata, self.xdim, self.ydim, zmin=zmin)
-                [X, Y] = np.meshgrid(X, Y)
+                (x, y, z) = basint3(self.xdata, self.ydata, self.zdata, self.xdim, self.ydim, zmin=zmin)
+                [x, y] = np.meshgrid(x, y)
 
                 self.xmax = np.nanmax(self.xdata)
                 self.xmin = np.nanmin(self.xdata)
@@ -115,8 +115,8 @@ class cirs():
                 self.rxgrp = rxgrp[0]
 
                 if np.isnan(zmax):
-                    self.zmin = np.nanmin(Z)
-                    self.zmax = np.nanmax(Z) + np.abs(0.1 * np.nanmax(Z))
+                    self.zmin = np.nanmin(z)
+                    self.zmax = np.nanmax(z) + np.abs(0.1 * np.nanmax(z))
                 else:
                     self.zmin = zmin
                     self.zmax = zmax
@@ -124,7 +124,7 @@ class cirs():
                 if plot or mkpng:
                     f = mpl.figure(fidbase + i)
 
-                    mpl.pcolor(np.transpose(X), np.transpose(Y), Z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
+                    mpl.pcolor(np.transpose(x), np.transpose(y), z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
 
                     cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=11, endpoint=True).tolist())
                     cb.set_label('RX power, [dBm]')
@@ -141,7 +141,7 @@ class cirs():
                     mpl.close(f)
 
                 if matsav:
-                    sio.savemat('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'X': X, 'Y': Y, 'Z': Z})
+                    sio.savemat('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'X': x, 'Y': y, 'Z': z})
 
                 if not mkpng and (not plot or not show):
                     mpl.close(f)
@@ -164,7 +164,6 @@ class cirs():
             for i in self.source.txs.keys():
                 if txgrp[0] != -1 or self.source.txs[i].setid in txgrp:
                     tx.append(i)
-
 
         if rx[0] == -1:
             rxs = []
@@ -247,6 +246,7 @@ class cirs():
 
         if mkpng is False and plot:
             mpl.show()
+
 
 if __name__ == "__main__":
     DS = pairdata.data_stor('dbconf.txt')

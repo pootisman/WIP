@@ -63,7 +63,7 @@ class RX_pat_az():
 
                         th = sorted(th, key=lambda x: x[0])
 
-                        hist = powhist(rstart=-180.0, rstop=180.0, binc=36)
+                        hist = PowHist(rstart=-180.0, rstop=180.0, binc=36)
                         for t in th:
                             hist.append(t[0], t[1])
 
@@ -145,7 +145,7 @@ class RX_pat_el():
 
                         th = sorted(th, key=lambda x: x[0])
 
-                        hist = powhist(rstart=-180.0, rstop=180.0, binc=36)
+                        hist = PowHist(rstart=-180.0, rstop=180.0, binc=36)
                         for t in th:
                             hist.append(t[0], t[1])
 
@@ -213,7 +213,7 @@ class RX_pat_all():
                     if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
                         f = mlab.figure(j)
                         rr += 1
-                        hist = powhist2()
+                        hist = PowHist2D()
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:

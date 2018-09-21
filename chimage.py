@@ -56,7 +56,7 @@ class chimage_RX():
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         f = mpl.figure(rr)
                         rr += 1
-                        hist = powhist2(azbinc=180, elbinc=90)
+                        hist = PowHist2D(azbinc=180, elbinc=90)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
@@ -146,7 +146,7 @@ class chimage_TX():
                             f = mpl.figure(rr)
 
                         rr += 1
-                        hist = powhist2(azbinc=180, elbinc=90)
+                        hist = PowHist2D(azbinc=180, elbinc=90)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
