@@ -46,13 +46,13 @@ rxgrp = 5
 
 enable_latex()
 print('Plotting 3D CIRs')
-c3ds = cir.cirs(DS)
+c3ds = cir.CIR(DS)
 c3ds.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
 #c3dc = cir.cirs(DC)
 #c3dc.export(rxgrp=2, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
-c3dl = cir.cirs(DL)
+c3dl = cir.CIR(DL)
 c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Leather ')
-c3dn = cir.cirs(DN)
+c3dn = cir.CIR(DN)
 c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3,
             title='Naked ')
 

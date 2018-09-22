@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import pairdata as pd
+from pairdata import DataStorage, Channel, Path
 from scipy.constants import speed_of_light
 from sklearn.metrics import r2_score
 from auxfun import *
@@ -22,14 +22,14 @@ from auxfun import *
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
-def check_chan_NF(chan: pd.Channel = None, freq: float = 60e9):
+def check_chan_NF(chan: Channel = None, freq: float = 60e9):
     src_coords = chan.src.coords
     dst_coords = chan.dest.coords
 
     for i in chan.paths.items():
         if i[1].interactions.__len__() > 0:
             if (np.linalg.norm(i[1].interactions[0].coords - src_coords) < (10.0 * speed_of_light / freq)) or \
-            (np.linalg.norm(i[1].interactions[-1].coords - dst_coords) < (10.0 * speed_of_light / freq)):
+               (np.linalg.norm(i[1].interactions[-1].coords - dst_coords) < (10.0 * speed_of_light / freq)):
                 i[1].near_field_failed = True
             else:
                 k = False
@@ -38,8 +38,8 @@ def check_chan_NF(chan: pd.Channel = None, freq: float = 60e9):
                         prev_node = j
                         k = True
                         pass
-                    elif np.linalg.norm(np.asarray(prev_node.coords) - np.asarray(j.coords)) < (10.0 *
-                                                                                                speed_of_light / freq):
+                    elif np.linalg.norm(np.asarray(prev_node.coords) -
+                                        np.asarray(j.coords)) < (10.0 * speed_of_light / freq):
                         i[1].near_field_failed = True
                         break
 
@@ -54,14 +54,14 @@ def check_chan_NF(chan: pd.Channel = None, freq: float = 60e9):
     chan.valid_pow = fixed_pow
 
 
-def check_data_NF(data: pd.DataStorage = None, freq: float = 60e9):
+def check_data_nf(data: DataStorage = None, freq: float = 60e9):
     for i in data.txs.items():
         for j in i[1].chans_to_pairs.items():
             check_chan_NF(j[1], freq=freq)
 
 
-class cluster(list):
-    def __init__(self, threshold: float = 1e-5, inipath: pd.Path = None):
+class Cluster(list):
+    def __init__(self, threshold: float = 1e-5, inipath: Path = None):
         assert inipath is not None, 'Cluster needs an initial path to build around!'
         list.__init__(self)
         self.inipath = inipath
@@ -79,7 +79,7 @@ class cluster(list):
             self.inivect.append(j)
         list.append(self, inipath)
 
-    def append(self, path: pd.Path):
+    def append(self, path: Path):
         assert path is not None, 'Can\'t append None to cluster! Check Your code!'
         self.pow += path.pow
         path.cluster = self
@@ -87,7 +87,7 @@ class cluster(list):
         self.inipath.cluster = self
         # Recalculate
 
-    def cappend(self, path: pd.Path):
+    def cappend(self, path: Path):
         assert path is not None, 'Can\'t append None to cluster! Check Your code!'
         if path.cluster is None:
             pathcoords = path.chan.src.coords.tolist()
@@ -112,19 +112,19 @@ class cluster(list):
         return False
 
 
-def gen_chan_clusters(chan: pd.Channel = None, threshold: float = 1e-5, nff: bool = False):
+def gen_chan_clusters(chan: Channel = None, threshold: float = 1e-5, nff: bool = False):
     assert chan is not None, 'None given instead of channel in gen_clusters!'
     for i in chan.paths.items():
         if not nff:
             if i[1].cluster is None:
-                c = cluster(threshold=threshold, inipath=i[1])
+                c = Cluster(threshold=threshold, inipath=i[1])
                 for j in chan.paths.items():
                     if nff and not j[1].near_field_failed:
                         c.cappend(j[1])
                     elif not nff:
                         c.cappend(j[1])
         elif not i[1].near_field_failed and (i[1].cluster is None):
-            c = cluster(threshold=threshold, inipath=i[1])
+            c = Cluster(threshold=threshold, inipath=i[1])
             for j in chan.paths.items():
                 if nff and not j[1].near_field_failed:
                     c.cappend(j[1])
@@ -132,7 +132,7 @@ def gen_chan_clusters(chan: pd.Channel = None, threshold: float = 1e-5, nff: boo
                     c.cappend(j[1])
 
 
-def gen_data_clusters(data: pd.DataStorage, threshold: float = 1e-5, nff: bool = False):
+def gen_data_clusters(data: DataStorage, threshold: float = 1e-5, nff: bool = False):
     for i in data.txs.items():
         for j in i[1].chans_to_pairs.items():
             gen_chan_clusters(j[1], threshold=threshold, nff=nff)

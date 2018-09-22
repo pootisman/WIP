@@ -207,7 +207,7 @@ if __name__ == "__main__":
     DS.load_interactions(store=True)
 
     from phys_path_procs import *
-    check_data_NF(DS)
+    check_data_nf(DS)
 
     enable_latex()
 

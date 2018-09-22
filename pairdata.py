@@ -72,9 +72,8 @@ class Channel:
         return 'Radio channel'
 
     def __str__(self):
-        return 'Sumpow = {}, delay = {}, ds = {}, Ncl = {}, {} -> {}'.format(self.pow, self.delay, self.ds,
-                                                                            self.clusters.__len__(), self.src.node_id,
-                                                                            self.dest.node_id)
+        return 'Sumpow = {}, delay = {}, ds = {}, Ncl = {}, {} -> {}'.\
+            format(self.pow, self.delay, self.ds, self.clusters.__len__(), self.src.node_id, self.dest.node_id)
 
 
 class Path:
@@ -85,11 +84,11 @@ class Path:
         self.delay = 0.0
         self.len = 0.0
         self.interactions = list()
-        self.AoA = 0.0
-        self.EoA = 0.0
-        self.AoD = 0.0
-        self.EoD = 0.0
-        self.FSPL = 0.0
+        self.aoa = 0.0
+        self.eoa = 0.0
+        self.aod = 0.0
+        self.eod = 0.0
+        self.fspl = 0.0
         self.length = 0.0
         self.chan = None
         self.cluster = None
@@ -99,8 +98,9 @@ class Path:
         return 'Propagation path'
 
     def __str__(self):
-        return 'Inters = {}, pow = {} mW, len = {} m, {} [Az:{},El:{}]-->[Az:{},El:{}] {}'.format(self.interactions.__len__(), self.pow, self.len,
-                                                                    self.chan.src.node_id, self.AoD, self.EoD, self.AoA, self.EoA, self.chan.dest.node_id)
+        return 'Inters = {}, pow = {} mW, len = {} m, {} [Az:{},El:{}]-->[Az:{},El:{}] {}'.\
+            format(self.interactions.__len__(), self.pow, self.len, self.chan.src.node_id, self.aod, self.eod,
+                   self.aoa, self.eoa, self.chan.dest.node_id)
 
 
 class Interaction:
@@ -117,8 +117,7 @@ class Interaction:
 
 
 def _load_paths_txthread(self, txsids, host, user, pw, dbname):
-    dbconn = msqlc.connect(host=host, user=user, password=pw,
-                                client_flags=[ClientFlag.SSL], database=dbname)
+    dbconn = msqlc.connect(host=host, user=user, password=pw, client_flags=[ClientFlag.SSL], database=dbname)
 
     dbcurs = dbconn.cursor()
     dbcurs.execute(TX_PAIRST.format(min(txsids), max(txsids), min(txsids), max(txsids)))
@@ -144,19 +143,18 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
                 self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
-                self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].fspl = k[7]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
                 self.txs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
-                self.txs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
-                self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
-                self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
-                self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].aod = k[3]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].eod = k[4]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].aoa = k[5]
+                self.txs[i].chans_to_pairs[j].paths[k[0]].eoa = k[6]
     dbconn.close()
 
 
 def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
-    dbconn = msqlc.connect(host=host, user=user, password=pw,
-                                client_flags=[ClientFlag.SSL], database=dbname)
+    dbconn = msqlc.connect(host=host, user=user, password=pw, client_flags=[ClientFlag.SSL], database=dbname)
 
     dbcurs = dbconn.cursor()
     dbcurs.execute(RX_PAIRST.format(min(rxsids), max(rxsids), min(rxsids), max(rxsids)))
@@ -182,13 +180,13 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].chan = self.rxs[i].chans_to_pairs[j]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
-                self.rxs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].fspl = k[7]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
                 self.rxs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
-                self.rxs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
-                self.rxs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
-                self.rxs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
-                self.rxs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].aod = k[3]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].eod = k[4]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].aoa = k[5]
+                self.rxs[i].chans_to_pairs[j].paths[k[0]].eoa = k[6]
 
     dbconn.close()
 
@@ -230,14 +228,11 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
     dbcurs = dbconn.cursor()
 
     for i in rxsids:
-        #print(i)
         for j in self.rxs[i].chans_to_pairs.items():
             dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
             inters = dbcurs.fetchall()
-            #print(j[1].chid, j[1].paths.__len__())
             for k in j[1].paths.items():
                 dists = list()
-                #print(k[1].pathid, inters.__len__())
                 precoords = j[1].src.coords
                 for l in inters:
                     if l[4] == k[1].pathid:
@@ -268,6 +263,7 @@ class DataStorage:
         self.threshold_chan = -115
         self.threshold_path = -125
         self.threaded = threaded
+        self.npaths = 250
 
         if conf is not None:
             conff = open(conf)
@@ -276,7 +272,7 @@ class DataStorage:
             self.pasw = conff.readline().strip('\n')
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
-            self.nthreads =  cpu_count()
+            self.nthreads = cpu_count()
             print('Will use up to {} threads...'.format(self.nthreads))
             self.pool = None
 
@@ -354,26 +350,28 @@ class DataStorage:
             if txs_per_thread > rxs_per_thread:
                 print('TXward...', end='', flush=True)
                 txs_per_thread = int(txs_per_thread)
-                txs = []
+                txs = list()
 
                 for i in self.txs.keys():
                     txs.append(i)
                     if txs.__len__() == txs_per_thread:
-                        thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
-                        txs = []
+                        thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw,
+                                           self.dbname)
+                        txs = list()
 
                 if txs.__len__() > 0 or txs_per_thread <= 1:
                     thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
             else:
                 print('RXward...', end='', flush=True)
                 rxs_per_thread = int(rxs_per_thread)
-                rxs = []
+                rxs = list()
 
                 for i in self.rxs.keys():
                     rxs.append(i)
                     if rxs.__len__() == rxs_per_thread:
-                        thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
-                        rxs = []
+                        thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw,
+                                           self.dbname)
+                        rxs = list()
 
                 if rxs.__len__() > 0 or rxs_per_thread <= 1:
                     thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
@@ -402,13 +400,13 @@ class DataStorage:
                         self.txs[i].chans_to_pairs[j].paths[k[0]].pathid = k[0]
                         self.txs[i].chans_to_pairs[j].paths[k[0]].chan = self.txs[i].chans_to_pairs[j]
                         self.txs[i].chans_to_pairs[j].paths[k[0]].pow = k[1] * 1e3
-                        self.txs[i].chans_to_pairs[j].paths[k[0]].FSPL = k[7]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].fspl = k[7]
                         self.txs[i].chans_to_pairs[j].paths[k[0]].phase = k[8]
                         self.txs[i].chans_to_pairs[j].paths[k[0]].delay = k[2]
-                        self.txs[i].chans_to_pairs[j].paths[k[0]].AoD = k[3]
-                        self.txs[i].chans_to_pairs[j].paths[k[0]].EoD = k[4]
-                        self.txs[i].chans_to_pairs[j].paths[k[0]].AoA = k[5]
-                        self.txs[i].chans_to_pairs[j].paths[k[0]].EoA = k[6]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].aod = k[3]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].eod = k[4]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].aoa = k[5]
+                        self.txs[i].chans_to_pairs[j].paths[k[0]].eoa = k[6]
 
         print('Success!')
 
@@ -440,14 +438,12 @@ class DataStorage:
                 txs_per_thread = int(txs_per_thread)
                 for i in self.txs.keys():
                     if txs.__len__() % txs_per_thread == 0 and txs.__len__() != 0:
-                        #print(txs)
                         thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw,
                                                self.dbname, store)
-                        txs = []
+                        txs = list()
                     txs.append(i)
 
                 if txs.__len__() != 0 or txs_per_thread <= 1:
-                    #print(txs)
                     thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw, self.dbname, store)
             else:
                 print('RXward...', end='', flush=True)
@@ -455,16 +451,13 @@ class DataStorage:
                 rxs_per_thread = int(rxs_per_thread)
                 for i in self.rxs.keys():
                     if rxs.__len__() % rxs_per_thread == 0 and rxs.__len__() != 0:
-                        #print(rxs)
                         thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw,
-                                               self.dbname, store)
-                        rxs = []
+                                           self.dbname, store)
+                        rxs = list()
                     rxs.append(i)
 
                 if rxs.__len__() != 0 or rxs_per_thread <= 1:
-                    #print(rxs)
-                    thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw, self.dbname,
-                                       store)
+                    thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw, self.dbname, store)
 
             thread_pool.shutdown()
         else:
@@ -473,7 +466,7 @@ class DataStorage:
                     self.dbcurs.execute(INTERS_SPEC_CHAN.format(j[1].chid))
                     inters = self.dbcurs.fetchall()
                     for k in j[1].paths.items():
-                        dists = []
+                        dists = list()
                         precoords = i[1].coords
                         for l in inters:
                             if l[4] == k[1].pathid:
@@ -499,40 +492,40 @@ class DataStorage:
         for i in self.txs.items():
             if i[1].setid in txgrp or txgrp[0] == -1:
                 for j in self.rxs.items():
-                    AoA = []
-                    EoA = []
-                    AoD = []
-                    EoD = []
-                    phase = []
-                    pow = []
-                    delay = []
-                    pathlen = []
+                    aoa = list()
+                    eoa = list()
+                    aod = list()
+                    eod = list()
+                    phase = list()
+                    power = list()
+                    delay = list()
+                    pathlen = list()
                     if j[1].setid in rxgrp or rxgrp[0] == -1:
                         if i[1].chan_to(j[1]):
                             for k in i[1].chans_to_pairs[j[1]].paths.items():
-                                AoA.append(k[1].AoA)
-                                EoA.append(k[1].EoA)
-                                AoD.append(k[1].AoD)
-                                EoD.append(k[1].EoD)
+                                aoa.append(k[1].aoa)
+                                eoa.append(k[1].eoa)
+                                aod.append(k[1].aod)
+                                eod.append(k[1].eod)
                                 phase.append(k[1].phase)
-                                pow.append(k[1].pow)
+                                power.append(k[1].pow)
                                 delay.append(k[1].delay)
                                 pathlen.append(k[1].length)
                         else:
                             pass
 
                     if matsav:
-                        sio.savemat('Paths@[TX{}<->RX{}].mat'.format(i[0], j[0]), {'delay': delay, 'pow': l2db(pow), 'phase':
-                            phase, 'AoA': AoA, 'EoA': EoA, 'AoD': AoD, 'EoD': EoD, 'length': pathlen})
+                        sio.savemat('Paths@[TX{}<->RX{}].mat'.format(i[0], j[0]), {'delay': delay, 'pow': l2db(power),
+                                    'phase': phase, 'aoa': aoa, 'eoa': eoa, 'aod': aod, 'eod': eod, 'length': pathlen})
 
                     if csvsav:
                         file = open('Paths@[TX{}<->RX{}].csv'.format(i[0], j[0]), mode='w')
-                        file.write('Delay [sec], Power [dBm], Phase, AoA [deg], EoA [deg], AoD [deg], EoD [deg], Length [meters]\n')
-                        for k in range(pow.__len__()):
-                            file.write('{},{},{},{},{},{},{},{}\n'.format(delay[k], l2db(pow[k]), phase[k], AoA[k], EoA[k],
-                                                                   AoD[k], EoD[k], pathlen[k]))
+                        file.write('Delay [sec], Power [dBm], Phase, aoa [deg], eoa [deg], aod [deg], eod [deg], Length'
+                                   ' [meters]\n')
+                        for k in range(power.__len__()):
+                            file.write('{},{},{},{},{},{},{},{}\n'.format(delay[k], l2db(power[k]), phase[k], aoa[k],
+                                                                          eoa[k], aod[k], eod[k], pathlen[k]))
                         file.close()
-
 
 
 if __name__ == '__main__':
@@ -541,5 +534,5 @@ if __name__ == '__main__':
     DS.load_paths()
     DS.load_interactions()
     from phys_path_procs import *
-    check_data_NF(DS)
+    check_data_nf(DS)
     exit()

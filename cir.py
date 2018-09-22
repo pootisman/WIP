@@ -18,12 +18,12 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as mpl
-import pairdata
+from pairdata import DataStorage
 from phys_path_procs import *
-from auxclass import PowHist
 
-class cirs:
-    def __init__(self, source):
+
+class CIR:
+    def __init__(self, source: DataStorage):
         self.source = source
 
         self.xdata = []
@@ -337,12 +337,12 @@ class cirs:
         #     mpl.show()
 
 if __name__ == "__main__":
-    DS = pairdata.DataStorage('dbconf.txt')
+    DS = DataStorage('dbconf.txt')
     DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
     #check_data_NF(DS)
-    cir = cirs(DS)
+    cir = CIR(DS)
     cir.export(txgrp=-1, rxgrp=6, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     cir.export(txgrp=-1, rxgrp=5, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)

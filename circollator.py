@@ -17,12 +17,11 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 import matplotlib.pyplot as mpl
 from matplotlib.colors import ListedColormap
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from cir import cirs
+from cir import CIR
 from auxfun import basint3
 
 
-class CIRCollator():
+class CIRCollator:
     def __init__(self):
         self.xmin = np.PINF
         self.xmax = np.NINF
@@ -39,11 +38,11 @@ class CIRCollator():
         self.titles = list()
 
     def __add__(self, other):
-        if isinstance(other, cirs):
+        if isinstance(other, CIR):
             self.datas.append(other)
         elif isinstance(other, list):
             for i in other:
-                if isinstance(i,cirs):
+                if isinstance(i, CIR):
                     self.datas.append(i)
         else:
             raise TypeError('List or CIRs needed, got {}'.format(other))

@@ -16,8 +16,8 @@
 import matplotlib.pyplot as mpl
 import mayavi.mlab as mlab
 import scipy.io as sio
-import pairdata
 import numpy as np
+from pairdata import DataStorage
 from auxfun import l2db, basint3
 from auxclass import PowHist, PowHist2D
 
@@ -25,7 +25,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 class RXPatAz():
-    def __init__(self, source):
+    def __init__(self, source: DataStorage):
         self.source = source
 
         self.xlim = [-np.Inf, np.Inf]
@@ -45,10 +45,10 @@ class RXPatAz():
             rxrange = range(rxrange)
 
         for i in txrange:
-            if self.source.txs[i].setid == txgrp or txgrp == -1:
+            if txgrp in (self.source.txs[i].setid, -1):
                 rr = 0
                 for j in rxrange:
-                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                    if rxgrp in (self.source.rxs[j].setid, -1):
                         f = mpl.figure(rr)
                         rr += 1
                         th = list()
@@ -56,7 +56,7 @@ class RXPatAz():
                         r = list()
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.keys():
                             if nff and not self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].\
-                                    near_field_failed:
+                                           near_field_failed:
                                 th.append((self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].AoA,
                                            self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths[k].pow))
                             elif not nff:
@@ -84,9 +84,9 @@ class RXPatAz():
                         ax.set_rmax(-60)
                         ax.set_rmin(-180)
                         ax.grid(linestyle='--')
-                        mpl.title('AoA@[TX #{} -> RX #{}]'.format(i, j))
+                        mpl.title('aoa@[TX #{} -> RX #{}]'.format(i, j))
                         if mkpng:
-                            mpl.savefig('RXaz_tx{0:03d}->rx{1:03d}.png'.format(i,j))
+                            mpl.savefig('RXaz_tx{0:03d}->rx{1:03d}.png'.format(i, j))
                             mpl.close(f)
 
                         if matsav:
@@ -104,7 +104,7 @@ class RXPatAz():
 
 
 class RXPatEl:
-    def __init__(self, source):
+    def __init__(self, source: DataStorage):
         self.source = source
 
         self.xlim = [-np.Inf, np.Inf]
@@ -128,10 +128,10 @@ class RXPatEl:
             rxrange = range(rxrange)
 
         for i in txrange:
-            if self.source.txs[i].setid == txgrp or txgrp == -1:
+            if txgrp in (self.source.txs[i].setid, -1):
                 rr = 0
                 for j in rxrange:
-                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                    if rxgrp in (self.source.rxs[j].setid, -1):
                         f = mpl.figure(rr)
                         rr += 1
                         th = list()
@@ -162,12 +162,11 @@ class RXPatEl:
                         r.append(r[0])
 
                         ax = mpl.subplot(111, projection='polar')
-                        #ax.plot(np.deg2rad(tt), r, 'b-')
                         ax.fill(np.deg2rad(tt), r)
                         ax.set_rmax(-60)
                         ax.set_rmin(-180)
                         ax.grid(linestyle='--')
-                        mpl.title('AoA@[TX #{} -> RX #{}]'.format(i, j))
+                        mpl.title('aoa@[TX #{} -> RX #{}]'.format(i, j))
                         if mkpng:
                             mpl.savefig('RXel_tx{0:03d}->rx{1:03d}.png'.format(i, j))
                             mpl.close(f)
@@ -187,7 +186,7 @@ class RXPatEl:
 
 
 class RXPatAll:
-    def __init__(self, source):
+    def __init__(self, source: DataStorage):
         self.source = source
 
         self.xlim = [-np.Inf, np.Inf]
@@ -211,10 +210,10 @@ class RXPatAll:
             rxrange = range(rxrange)
 
         for i in txrange:
-            if self.source.txs[i].setid == txgrp or txgrp == -1:
+            if txgrp in (self.source.txs[i].setid, -1):
                 rr = 0
                 for j in rxrange:
-                    if self.source.rxs[j].setid == rxgrp or rxgrp == -1:
+                    if rxgrp in (self.source.rxs[j].setid, -1):
                         f = mlab.figure(j)
                         rr += 1
                         hist = PowHist2D()
@@ -265,7 +264,7 @@ class RXPatAll:
 
 
 if __name__ == "__main__":
-    DS = pairdata.DataStorage()
+    DS = DataStorage()
     DS.load_rxtx('/home/aleksei/Nextcloud/Documents/TTY/WORK/mmWave/Simulations/WI/Class@60GHz/TEST_60_MKE_15/'
                  'Class@60GHz.TEST_60_MKE_15.sqlite')
     DS.load_paths(npaths=250)

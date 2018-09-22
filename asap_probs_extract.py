@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pairdata import DataStorage
+from pairdata import DataStorage, Node
 from auxclass import ProbHist
 import numpy as np
 import matplotlib.pyplot as mpl
@@ -24,7 +24,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 class DistancedHistExtractor:
-    def __init__(self, src: pairdata.data_stor, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7,
+    def __init__(self, src: DataStorage, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7,
                  thrs: float = -115, minbins: float = 0.2, nffilt: bool = True):
         self.hist = ProbHist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
@@ -32,10 +32,10 @@ class DistancedHistExtractor:
         self.trans_type = None
         self.mut = False
         self.thresh = thrs
-        self.rx_proc = {pairdata.Node: list}
+        self.rx_proc = {Node: list}
         self.nffilt = nffilt
 
-    def has_path(self, src: pairdata.Node, dest: pairdata.Node, typ: str):
+    def has_path(self, src: Node, dest: Node, typ: str):
         if dest in src.chans_to_pairs:
             # Go over all paths
             for i in src.chans_to_pairs[dest].paths.items():
@@ -96,7 +96,7 @@ class DistancedHistExtractor:
                             self.build_delta(ctx=i[1], crx=j, trans_typ=False)
 
     '''Builds delta histogram for one point, called multiple times for eac individual TX'''
-    def build_delta(self, ctx: pairdata.Node, crx: pairdata.Node, trans_typ: str = 'LOS'):
+    def build_delta(self, ctx: Node, crx: Node, trans_typ: str = 'LOS'):
         if ctx not in self.rx_proc.keys():
             self.rx_proc[ctx] = []
 
@@ -164,7 +164,7 @@ class DistancedHistExtractor:
 
 
 if __name__ == "__main__":
-    DS = pairdata.data_stor(conf='dbconf.txt', threaded=True)
+    DS = DataStorage(conf='dbconf.txt', threaded=True)
     DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)

@@ -16,13 +16,13 @@
 import numpy as np
 import matplotlib.pyplot as mpl
 import scipy.io as sio
-import pairdata
-from phys_path_procs import check_data_NF
+from pairdata import DataStorage
+from phys_path_procs import check_data_nf
 from auxfun import l2db
 
 
 class PLPlot:
-    def __init__(self, source: pairdata.DataStorage = None):
+    def __init__(self, source: DataStorage = None):
         assert source is not None
         self.xdata = None
         self.ydata = None
@@ -121,7 +121,7 @@ class PLPlot:
 
         if csvsav:
             file = open('FSPL_regr.csv', mode='w')
-            file.write('Dist. [m],FSPL [dB]\n')
+            file.write('Dist. [m],fspl [dB]\n')
             for k in range(self.ydata.__len__()):
                 file.write('{},{}\n'.format(self.xdata[k], self.ydata[k]))
             file.write('A,B\n')
@@ -133,11 +133,11 @@ class PLPlot:
 
 
 if __name__ == '__main__':
-    DS = pairdata.DataStorage(conf='dbconf.txt')
+    DS = DataStorage(conf='dbconf.txt')
     DS.load_rxtx('class_sqlite')
     DS.load_paths()
     DS.load_interactions()
-    check_data_NF(DS)
+    check_data_nf(DS)
     plp = PLPlot(source=DS)
     print(plp.regr_comp(typ='NLOS', threshold=-115, nff=True))
     plp.export(csvsav=True, matsav=True)
