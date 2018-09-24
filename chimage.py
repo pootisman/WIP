@@ -21,7 +21,7 @@ from auxclass import *
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
-class chimage_RX():
+class CHImageRX:
     def __init__(self, source):
         self.source = source
 
@@ -62,38 +62,36 @@ class chimage_RX():
                             if nff and not k[1].near_field_failed:
                                 hist.append(k[1].AoA, k[1].EoA, k[1].pow)
 
-                        X = []
-                        Y = []
-                        Z = []
+                        x = []
+                        y = []
+                        z = []
 
                         for k in hist.bins.items():
-                            X.append(k[0][0])
-                            X.append(k[0][1])
-                            Y.append(k[0][2])
-                            Y.append(k[0][3])
-                            Z.append(k[1] if k[1] > 0 else np.nan)
-                            Z.append(Z[-1])
+                            x.append(k[0][0])
+                            x.append(k[0][1])
+                            y.append(k[0][2])
+                            y.append(k[0][3])
+                            z.append(k[1] if k[1] > 0 else np.nan)
+                            z.append(z[-1])
 
                         if np.isnan(zmin):
-                            zmin = np.nanmin(Z) if not np.isnan(np.nanmin(Z)) else np.finfo(float).eps
+                            zmin = np.nanmin(z) if not np.isnan(np.nanmin(z)) else np.finfo(float).eps
 
                         if np.isnan(zmax):
-                            zmax = l2db(np.nanmax(Z))
+                            zmax = l2db(np.nanmax(z))
 
-                        for k in range(Z.__len__()):
-                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else zmin
+                        for k in range(z.__len__()):
+                            z[k] = l2db(z[k]) if not np.isnan(z[k]) else zmin
 
-                        X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
+                        x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        #mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
-                        mpl.pcolor(X, Y, Z.T, cmap=cmap, vmin=zmin, vmax=zmax)
+                        mpl.pcolor(x, y, z.T, cmap=cmap, vmin=zmin, vmax=zmax)
                         mpl.grid(linestyle='--')
                         mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                         mpl.xlabel('Azimuth, [degrees]')
                         mpl.ylabel('Elevation, [degrees]')
                         cbr = mpl.colorbar()
                         cbr.set_label('RX Power, [dBm]')
-                        #cbr.ax.set_xlim(zmin, zmax)
                         mpl.tight_layout()
                         if mkpng:
                             mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.
@@ -102,13 +100,13 @@ class chimage_RX():
                         if matsav:
                             sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
-                                        {'X': X, 'Y': Y, 'Z': Z})
+                                        {'X': x, 'Y': y, 'Z': z})
 
         if mkpng is False:
             mpl.show()
 
 
-class chimage_TX():
+class CHImageTx:
     def __init__(self, source):
         self.source = source
 
@@ -136,7 +134,6 @@ class chimage_TX():
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
 
-
         for i in txrange:
             if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 rr = 0
@@ -152,32 +149,31 @@ class chimage_TX():
                             if nff and not k[1].near_field_failed:
                                 hist.append(k[1].AoD, k[1].EoD, k[1].pow)
 
-                        X = []
-                        Y = []
-                        Z = []
+                        x = []
+                        y = []
+                        z = []
 
                         for k in hist.bins.items():
-                            X.append(k[0][0])
-                            X.append(k[0][1])
-                            Y.append(k[0][2])
-                            Y.append(k[0][3])
-                            Z.append(k[1] if k[1] > 0 else np.nan)
-                            Z.append(Z[-1])
+                            x.append(k[0][0])
+                            x.append(k[0][1])
+                            y.append(k[0][2])
+                            y.append(k[0][3])
+                            z.append(k[1] if k[1] > 0 else np.nan)
+                            z.append(z[-1])
 
                         if np.isnan(zmin):
-                            zmin = np.nanmin(Z) if not np.isnan(np.nanmin(Z)) else np.finfo(float).eps
+                            zmin = np.nanmin(z) if not np.isnan(np.nanmin(z)) else np.finfo(float).eps
 
                         if np.isnan(zmax):
-                            zmax = l2db(np.nanmax(Z))
+                            zmax = l2db(float(np.nanmax(z)))
 
-                        for k in range(Z.__len__()):
-                            Z[k] = l2db(Z[k]) if not np.isnan(Z[k]) else zmin
+                        for k in range(z.__len__()):
+                            z[k] = l2db(z[k]) if not np.isnan(z[k]) else zmin
 
-                        X, Y, Z = basint3(X, Y, Z, xc=hist.azbinc, yc=hist.elbinc)
+                        x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
                         if mkpng or show:
-                            #mpl.contourf(X, Y, Z.T, 20, cmap=cmap, vmin=zmin, vmax=zmax)
-                            mpl.pcolor(X, Y, Z.T,  cmap=cmap, vmin=zmin, vmax=zmax)
+                            mpl.pcolor(x, y, z.T,  cmap=cmap, vmin=zmin, vmax=zmax)
                             mpl.grid(linestyle='--')
                             mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                             mpl.xlabel('Azimuth, [degrees]')
@@ -194,7 +190,7 @@ class chimage_TX():
                         if matsav:
                             sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.format(self.source.txs[i].setid, i,
                                                                                        self.source.rxs[j].setid, j),
-                            {'X': X, 'Y': Y, 'Z': Z})
+                            {'X': x, 'Y': y, 'Z': z})
 
         if mkpng is False and show:
             mpl.show()
@@ -211,8 +207,8 @@ if __name__ == "__main__":
 
     enable_latex()
 
-    DE = chimage_RX(DS)
-    DE.export(rxgrp=[2,6,5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
-    DT = chimage_TX(DS)
-    DT.export(rxgrp=[2,6,5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
+    DE = CHImageRX(DS)
+    DE.export(rxgrp=[2, 6, 5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
+    DT = CHImageTx(DS)
+    DT.export(rxgrp=[2, 6, 5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
     exit()

@@ -20,10 +20,12 @@ from cir import CIR
 from circollator import CIRCollator
 from plpow import PLPlot
 from auxfun import enable_latex
+from asap_probs_extract import DistancedHistExtractor
 
 gencir = False
 gencircoll = False
 genreg = True
+disthis = True
 
 print('Loading data fleece...')
 DS = DataStorage('dbconf.txt')
@@ -58,11 +60,12 @@ if gencir:
     c3dc = CIR(DC)
     c3dc.export(rxgrp=2, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
     c3dl = CIR(DL)
-    c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Leather ')
+    c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3, title='Leather ')
     c3dn = CIR(DN)
-    c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3,
-                title='Naked ')
+    c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=4, title='Naked ')
 
+    if gencircoll:
+        print('Collating CIRs')
     ccl = CIRCollator()
 
     ccl + [c3dn, c3ds, c3dl]
@@ -78,10 +81,13 @@ if gencir:
 
 
 if genreg:
+    print('Trying to build regression')
     plp = PLPlot(source=DN)
     print(plp.regr_comp(typ='LOS', threshold=-250, nff=False))
     plp.export(csvsav=True, matsav=True)
-#print('Printing distanced histogram')
-#asap = asap_probs_extract.distanced_hist_extractor(DS)
-#asap.build(typ='LOS')
-#asap.plot_hist()
+
+if disthis:
+    print('Printing distanced histogram')
+    asap = DistancedHistExtractor(DN, nffilt=False, thrs=-150, range=(0.1, 1.0), minbins=0.05)
+    asap.build_trans(typ='LOS->LOS')
+    asap.plot_hist()

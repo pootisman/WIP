@@ -15,6 +15,7 @@
 
 from pairdata import DataStorage, Node
 from auxclass import ProbHist
+from auxfun import l2db
 import numpy as np
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
@@ -24,7 +25,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 class DistancedHistExtractor:
-    def __init__(self, src: DataStorage, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.7,
+    def __init__(self, src: DataStorage, histbins: int = 10, range: tuple = (1, 16), frac: float = 0.95,
                  thrs: float = -115, minbins: float = 0.2, nffilt: bool = True):
         self.hist = ProbHist(binc=histbins, rstart=range[0], rstop=range[1], frac=frac, minbins=minbins)
         self.source = src
@@ -32,7 +33,7 @@ class DistancedHistExtractor:
         self.trans_type = None
         self.mut = False
         self.thresh = thrs
-        self.rx_proc = {Node: list}
+        self.rx_proc = dict()
         self.nffilt = nffilt
 
     def has_path(self, src: Node, dest: Node, typ: str):
@@ -63,7 +64,6 @@ class DistancedHistExtractor:
                 else:
                     print('NF test failed, ignoring path {} in chan {}->{}'.format(i[1].pathid, src.node_id,
                                                                                    dest.node_id))
-                    #pass
         else:
             return False
 
@@ -98,7 +98,7 @@ class DistancedHistExtractor:
     '''Builds delta histogram for one point, called multiple times for eac individual TX'''
     def build_delta(self, ctx: Node, crx: Node, trans_typ: str = 'LOS'):
         if ctx not in self.rx_proc.keys():
-            self.rx_proc[ctx] = []
+            self.rx_proc[ctx] = list()
 
         self.rx_proc[ctx].append(crx)
 
@@ -150,7 +150,7 @@ class DistancedHistExtractor:
         bars2 = []
 
         for i in self.hist.bins.items():
-            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] -  i[0][0], i[1][1]/self.hist.tothits))
+            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][1]/self.hist.tothits))
             ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][1]), rotation='vertical',
                     horizontalalignment='center', verticalalignment='center')
 
@@ -168,17 +168,14 @@ if __name__ == "__main__":
     DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions(store=True)
-    #DS.dump_paths(csvsav=True)
 
     from phys_path_procs import *
-    #check_data_NF(DS)
 
     DE = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
     DA = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
 
-    DA.build(txgrp=-1,rxgrp=-1, typ='any')
+    DA.build(txgrp=-1, rxgrp=-1, typ='any')
     DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->LOS')
-    #gen_data_clusters(DS, threshold=0.00001, nff=True)
     DE.plot_hist(log=False)
     DA.plot_hist(log=False)
     exit()

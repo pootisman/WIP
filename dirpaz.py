@@ -24,7 +24,7 @@ from auxclass import PowHist, PowHist2D
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
-class RXPatAz():
+class RXPatAz:
     def __init__(self, source: DataStorage):
         self.source = source
 
@@ -33,7 +33,7 @@ class RXPatAz():
         self.zlim = [-np.Inf, np.Inf]
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             nff: bool = True, csvsav: bool = False, matsav: bool = False):
+               nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -79,7 +79,6 @@ class RXPatAz():
                         r.append(r[0])
 
                         ax = mpl.subplot(111, projection='polar')
-                        #ax.plot(np.deg2rad(tt), r, 'b-')
                         ax.fill(np.deg2rad(tt), r)
                         ax.set_rmax(-60)
                         ax.set_rmin(-180)
@@ -116,7 +115,7 @@ class RXPatEl:
         self.zdata = list()
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             nff: bool = True, csvsav: bool = False, matsav: bool = False):
+               nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -198,7 +197,7 @@ class RXPatAll:
         self.zdata = list()
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-             nff: bool = True, matsav: bool = False):
+               nff: bool = True, matsav: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:

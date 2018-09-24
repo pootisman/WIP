@@ -83,7 +83,7 @@ class ProbHist(VarHist):
                     self.tothits += 1
                     self.linadd(i, (0, 1))
 
-
+#TODO: IMPLEMENT
 class ProbHist4D:
     def __init__(self, binc: int = 40, dxstart: float = -10.0, dxstop: float = 10.0, dystart: float = -10.0,
                  dystop: float = 10.0, dzstart: float = -10.0, dzstop: float = 10.0, frac: float = 0.6,
@@ -136,6 +136,12 @@ class PowHist:
                     self.tothits += 1
                     return True
         return False
+
+    def __setitem__(self, key, value):
+        if key in self.bins.keys():
+            self.bins[key] = value
+        else:
+            raise KeyError
 
     def __add__(self, other):
         assert (self.binc != other.binc or self.floor != other.floor or self.ceiling != other.ceiling),\

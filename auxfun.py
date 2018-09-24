@@ -27,7 +27,7 @@ def enable_latex():
 def basint2(x: list, y: list, xc: int):
     xlim = [np.nanmin(x), np.nanmax(x)]
 
-    xo, step_x = np.linspace(start=xlim[0], stop=xlim[1], num=xc, retstep=True)
+    xo, step_x = np.linspace(start=float(xlim[0]), stop=float(xlim[1]), num=xc, retstep=True)
     yo = np.tile(np.nanmin(y), [xo.__len__()])
 
     for i in range(y.__len__()):
@@ -44,8 +44,8 @@ def basint2(x: list, y: list, xc: int):
     return xo, yo
 
 
-def basint3(x: list, y: list, z: list, xc: float, yc: float, xmin: float = np.nan, xmax: float = np.nan,
-            ymin: float = np.nan, ymax: float = np.nan, zmin: float = np.nan, zmax: float = np.nan):
+def basint3(x: list, y: list, z: list, xc: int, yc: int, xmin: float = np.nan, xmax: float = np.nan,
+            ymin: float = np.nan, ymax: float = np.nan, zmin: float = np.nan):
     if np.isnan(xmin) or np.isnan(xmax):
         xlim = [np.nanmin(x), np.nanmax(x)]
     else:
@@ -56,8 +56,8 @@ def basint3(x: list, y: list, z: list, xc: float, yc: float, xmin: float = np.na
     else:
         ylim = [ymin, ymax]
 
-    xo, step_x = np.linspace(start=xlim[0], stop=xlim[1], num=xc, retstep=True)
-    yo, step_y = np.linspace(start=ylim[0], stop=ylim[1], num=yc, retstep=True)
+    xo, step_x = np.linspace(start=float(xlim[0]), stop=float(xlim[1]), num=xc, retstep=True)
+    yo, step_y = np.linspace(start=float(ylim[0]), stop=float(ylim[1]), num=yc, retstep=True)
 
     zo = np.tile(np.nanmin(z) if np.isnan(zmin) else zmin, [xo.__len__(), yo.__len__()])
 

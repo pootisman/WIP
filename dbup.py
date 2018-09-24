@@ -63,7 +63,6 @@ sqlconn = msc.connect(host=host.strip('\n'), user=user.strip('\n'), password=pw.
 sqlcurs = sqlconn.cursor()
 
 
-
 if argv.__len__() == 1:
     dbf = input('Type in DB path: ')
     dbn = input('Type in database name: ')
@@ -72,8 +71,6 @@ else:
     dbn = dbf.split('\\')[-1]
 
 dbn = dbn.replace('.', '_').replace('@','at').replace(' ', '_')
-
-
 
 sqlcurs.execute('CREATE DATABASE {};'.format(dbn))
 sqlcurs.execute('USE {};'.format(dbn))
@@ -127,6 +124,8 @@ for i in WI_TABLES.items():
         key_prep = False
 
         print('Writing {}'.format(i[0]))
+
+        myreq = None
 
         for j in sqlicurs.execute(req):
             if comm % stepping == 0:
