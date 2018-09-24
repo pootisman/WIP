@@ -15,28 +15,33 @@
 
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
-import pairdata
-import cir
-import circollator
+from pairdata import DataStorage
+from cir import CIR
+from circollator import CIRCollator
+from plpow import PLPlot
 from auxfun import enable_latex
 
+gencir = False
+gencircoll = False
+genreg = True
+
 print('Loading data fleece...')
-DS = pairdata.DataStorage('dbconf.txt')
+DS = DataStorage('dbconf.txt')
 DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
 DS.load_paths(npaths=250)
 DS.load_interactions(store=True)
-#print('Loading data cotton...')
-#DC = pairdata.data_stor('dbconf.txt')
-#DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
-#DC.load_paths(npaths=250)
-#DC.load_interactions(store=True)
+print('Loading data cotton...')
+DC = DataStorage('dbconf.txt')
+DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
+DC.load_paths(npaths=250)
+DC.load_interactions(store=True)
 print('Loading data Leather...')
-DL = pairdata.DataStorage('dbconf.txt')
+DL = DataStorage('dbconf.txt')
 DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
 DL.load_paths(npaths=250)
 DL.load_interactions(store=True)
 print('Loading data naked...')
-DN = pairdata.DataStorage('dbconf.txt')
+DN = DataStorage('dbconf.txt')
 DN.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
 DN.load_paths(npaths=250)
 DN.load_interactions(store=True)
@@ -45,29 +50,37 @@ DN.load_interactions(store=True)
 rxgrp = 5
 
 enable_latex()
-print('Plotting 3D CIRs')
-c3ds = cir.CIR(DS)
-c3ds.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
-#c3dc = cir.cirs(DC)
-#c3dc.export(rxgrp=2, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
-c3dl = cir.CIR(DL)
-c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Leather ')
-c3dn = cir.CIR(DN)
-c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3,
-            title='Naked ')
 
-ccl = circollator.CIRCollator()
+if gencir:
+    print('Plotting 3D CIRs')
+    c3ds = CIR(DS)
+    c3ds.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
+    c3dc = CIR(DC)
+    c3dc.export(rxgrp=2, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
+    c3dl = CIR(DL)
+    c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Leather ')
+    c3dn = CIR(DN)
+    c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3,
+                title='Naked ')
 
-ccl + [c3dn, c3ds, c3dl]
+    ccl = CIRCollator()
 
-ccl.export_collated(show=True, idxs=[0, 1], csq=True, xlabel=False, ylabel=True, title_draw=False, figsize=(5, 6),
-                    csqloc=2)
-ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
-                    csqloc=2)
-#ccl.export_collated(show=True, idxs=[0, 2])
-#ccl.export_collated(show=True, idxs=[0, 3])
+    ccl + [c3dn, c3ds, c3dl]
+
+    ccl.export_collated(show=True, idxs=[0, 1], csq=True, xlabel=False, ylabel=True, title_draw=False, figsize=(5, 6),
+                        csqloc=2)
+    ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
+                        csqloc=2)
+    ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
+                        csqloc=2)
+    ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
+                        csqloc=2)
 
 
+if genreg:
+    plp = PLPlot(source=DN)
+    print(plp.regr_comp(typ='LOS', threshold=-250, nff=False))
+    plp.export(csvsav=True, matsav=True)
 #print('Printing distanced histogram')
 #asap = asap_probs_extract.distanced_hist_extractor(DS)
 #asap.build(typ='LOS')

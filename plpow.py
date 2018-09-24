@@ -54,47 +54,60 @@ class PLPlot:
                     # Destination in a valid group or group is ignored?
                     if j[0].setid in rxgrp or rxgrp[0] == -1:
                         # Check paths for the RX-TX, only pick valid ones
+                        last_pow = -1.0
+
                         for k in j[1].paths.items():
+                            # We care about near-field conditions and do not consider paths with short hops (failed
+                            # near-field test)
                             if nff and not k[1].near_field_failed:
-                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld\
+                                        and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
-                                        l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
-                                        l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
                                 elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
-                                        l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
+                            # We do not care about near field test result, all links are considered
                             elif not nff:
-                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld\
+                                        and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
-                                        l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
-                                        l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
                                 elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
-                                        l2db(k[1].pow) >= self.thrshld:
-                                    self.xdata.append(np.log10(j[1].dist))
-                                    self.ydata.append(k[1].FSPL)
-                                    self.nsamps += 1
+                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                    best_dist = j[1].dist
+                                    best_fspl = k[1].fspl
+                                    last_pow = k[1].pow
+
+                        if last_pow > 0.0:
+                            print('Appending {} m with {} dBm'.format(best_dist, best_fspl))
+                            self.xdata.append(np.log10(best_dist))
+                            self.ydata.append(best_fspl)
+                            self.nsamps += 1
 
         self.xdata = np.asarray(self.xdata)
         self.ydata = np.asarray(self.ydata)
@@ -111,16 +124,17 @@ class PLPlot:
             mpl.figure()
             mpl.plot(np.power(10, self.xdata), self.ydata, 'r.', label='Experimental data')
             mpl.plot(np.power(10, self.xdata), self.b + self.a * self.xdata, 'b.', label='Fitted model')
-            mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm, m={:3.2}dBm , s={:3.2}dBm'.
-                      format(self.typ, self.a, self.b, self.mean_res, self.var_res))
+            mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm,\\\\ m={:3.2}dBm , s={:3.2}dBm, N={} samples'.
+                      format(self.typ, self.a, self.b, self.mean_res, self.var_res, self.nsamps))
             mpl.xlabel('Distance, [meters]')
             mpl.ylabel('Pathloss, [dB]')
             mpl.grid(linestyle='--')
-            mpl.xlim([0, np.nanmax(np.power(10.0, self.xdata))])
+            mpl.legend()
+            mpl.xlim([0, np.nanmax(np.power(10.0, self.xdata + self.xdata / 0.9))])
             mpl.show()
 
         if csvsav:
-            file = open('FSPL_regr.csv', mode='w')
+            file = open('fspl_regr.csv', mode='w')
             file.write('Dist. [m],fspl [dB]\n')
             for k in range(self.ydata.__len__()):
                 file.write('{},{}\n'.format(self.xdata[k], self.ydata[k]))
@@ -129,7 +143,7 @@ class PLPlot:
             file.close()
 
         if matsav:
-            sio.savemat('FSPL_regr.mat', {'A': self.a, 'B': self.b, 'xdata': self.xdata, 'ydata': self.ydata})
+            sio.savemat('fspl_regr.mat', {'A': self.a, 'B': self.b, 'xdata': self.xdata, 'ydata': self.ydata})
 
 
 if __name__ == '__main__':
@@ -139,6 +153,6 @@ if __name__ == '__main__':
     DS.load_interactions()
     check_data_nf(DS)
     plp = PLPlot(source=DS)
-    print(plp.regr_comp(typ='NLOS', threshold=-115, nff=True))
+    print(plp.regr_comp(typ='NLOS-1', threshold=-115, nff=True))
     plp.export(csvsav=True, matsav=True)
     exit()
