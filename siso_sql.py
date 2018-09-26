@@ -53,4 +53,4 @@ INTERS = 'SELECT * FROM interaction_type;'
 INTERS_SPEC_CHAN = 'SELECT x, y, z, interaction_type_id, path_id FROM interaction WHERE path_id IN' \
                    '(SELECT path_id FROM path WHERE channel_id = {});'
 
-INTERS_SPEC = 'SELECT x,y,z,interaction_type_id FROM interaction WHERE path_id = {};'
+INTERS_SPEC = 'SELECT x, y, z, interaction_type_id FROM interaction WHERE path_id = {};'

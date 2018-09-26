@@ -45,6 +45,7 @@ class PLPlot:
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
 
+        # TODO: Figure out what invalid Electric fields, delays and phases mean...
         # Prepare data for making the regression
         for i in self.source.txs.items():
             # TX is in valid group or group is ignored?
@@ -54,59 +55,61 @@ class PLPlot:
                     # Destination in a valid group or group is ignored?
                     if j[0].setid in rxgrp or rxgrp[0] == -1:
                         # Check paths for the RX-TX, only pick valid ones
-                        last_pow = -1.0
+                        best_pow = -1.0
+                        best_dist = 0.0
+                        best_fspl = 0.0
 
                         for k in j[1].paths.items():
                             # We care about near-field conditions and do not consider paths with short hops (failed
                             # near-field test)
                             if nff and not k[1].near_field_failed:
                                 if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld\
-                                        and last_pow < k[1].pow:
+                                        and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
-                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
-                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                                 elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
-                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                             # We do not care about near field test result, all links are considered
                             elif not nff:
                                 if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld\
-                                        and last_pow < k[1].pow:
+                                        and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
-                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                                 elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
-                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
                                 elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
-                                        l2db(k[1].pow) >= self.thrshld and last_pow < k[1].pow:
+                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    last_pow = k[1].pow
+                                    best_pow = k[1].pow
 
-                        if last_pow > 0.0:
-                            print('Appending {} m with {} dBm'.format(best_dist, best_fspl))
+                        if best_pow > 0.0:
+                            print('Appending {} m with FSPL {} dB and power {}'.format(best_dist, best_fspl, l2db(best_pow)))
                             self.xdata.append(np.log10(best_dist))
-                            self.ydata.append(best_fspl)
+                            self.ydata.append(-l2db(best_pow))
                             self.nsamps += 1
 
         self.xdata = np.asarray(self.xdata)

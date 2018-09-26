@@ -55,6 +55,9 @@ class Node:
                     return self.chans_to_pairs[i]
         return None
 
+    def __repr__(self):
+        return 'Radio channel {} node'.format(self.type)
+
 
 class Channel:
     def __init__(self, dest: Node = None, src: Node = None):
@@ -63,7 +66,7 @@ class Channel:
         self.src = src
         self.pow = 0.0
         self.delay = 0.0
-        self.ds = 0.0
+        self.delay_spread = 0.0
         self.dist = 0.0
         self.chid = 0
         self.clusters = dict()
@@ -72,8 +75,8 @@ class Channel:
         return 'Radio channel'
 
     def __str__(self):
-        return 'Sumpow = {}, delay = {}, ds = {}, Ncl = {}, {} -> {}'.\
-            format(self.pow, self.delay, self.ds, self.clusters.__len__(), self.src.node_id, self.dest.node_id)
+        return 'Sumpow = {}, delay = {}, delay_spread = {}, Ncl = {}, {} -> {}'.\
+            format(self.pow, self.delay, self.delay_spread, self.clusters.__len__(), self.src.node_id, self.dest.node_id)
 
 
 class Path:
@@ -129,7 +132,7 @@ def _load_paths_txthread(self, txsids, host, user, pw, dbname):
         self.rxs[i[-2]].chans_to_pairs[self.txs[i]] = self.txs[i[-1]].chans_to_pairs[dst]
         self.txs[i[-1]].chans_to_pairs[dst].pow = i[1] * 1e3
         self.txs[i[-1]].chans_to_pairs[dst].delay = i[2]
-        self.txs[i[-1]].chans_to_pairs[dst].ds = i[3]
+        self.txs[i[-1]].chans_to_pairs[dst].delay_spread = i[3]
         self.txs[i[-1]].chans_to_pairs[dst].dist = norm(self.txs[i].coords - self.rxs[i[-2]].coords)
         self.txs[i[-1]].chans_to_pairs[dst].chid = i[0]
 
@@ -166,7 +169,7 @@ def _load_paths_rxthread(self, rxsids, host, user, pw, dbname):
         self.txs[i[-2]].chans_to_pairs[dst] = dst.chans_to_pairs[self.txs[i[-2]]]
         dst.chans_to_pairs[self.txs[i[-2]]].pow = i[1] * 1e3
         dst.chans_to_pairs[self.txs[i[-2]]].delay = i[2]
-        dst.chans_to_pairs[self.txs[i[-2]]].ds = i[3]
+        dst.chans_to_pairs[self.txs[i[-2]]].delay_spread = i[3]
         dst.chans_to_pairs[self.txs[i[-2]]].dist = norm(dst.coords - self.txs[i[-2]].coords)
         dst.chans_to_pairs[self.txs[i[-2]]].chid = i[0]
 
@@ -387,7 +390,7 @@ class DataStorage:
                     dst.chans_to_pairs[self.txs[i]] = self.txs[i].chans_to_pairs[dst]
                     self.txs[i].chans_to_pairs[dst].pow = j[1] * 1e3
                     self.txs[i].chans_to_pairs[dst].delay = j[2]
-                    self.txs[i].chans_to_pairs[dst].ds = j[3]
+                    self.txs[i].chans_to_pairs[dst].delay_spread = j[3]
                     self.txs[i].chans_to_pairs[dst].dist = norm(self.txs[i].coords - dst.coords)
                     self.txs[i].chans_to_pairs[dst].chid = j[0]
 

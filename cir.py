@@ -69,9 +69,9 @@ class CIR:
 
         for i in txrange:
             if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
-                self.xdata = []
-                self.ydata = []
-                self.zdata = []
+                self.xdata = list()
+                self.ydata = list()
+                self.zdata = list()
 
                 self.ydim = ydim
                 self.xdim = 0
@@ -95,7 +95,7 @@ class CIR:
                                 self.ydata.append(self.ymax)
                                 self.zdata.append(zmin)
 
-                if np.max(self.ydata) == 0:
+                if np.nanmax(self.ydata) == 0:
                     self.ydata[-1] = 1e-9
 
                 if np.isnan(np.nanmin(self.zdata)):
@@ -133,7 +133,7 @@ class CIR:
 
                     mpl.xlabel('RX Position')
                     mpl.ylabel('Delay, [ns]')
-                    mpl.title('{}CIR\@TX \#{}'.format(title, i))
+                    mpl.title('{}CIR\@[TX{}\\rightarrow RXg{}]'.format(title, i, rxgrp))
                     mpl.tight_layout()
 
                 if mkpng:
@@ -199,7 +199,7 @@ class CIR:
                         mpl.stem(delay, pow, bottom=-120)
                         mpl.xlabel('Delay, [s]')
                         mpl.ylabel('Power, [dBm]')
-                        mpl.title('{}PDP@[TX{}<->RX{}]'.format(title, i, j))
+                        mpl.title('{}PDP@[TX{} \\rightarrow RX{}]'.format(title, i, j))
                         offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                         mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                         mpl.grid(linestyle='--')
@@ -222,7 +222,7 @@ class CIR:
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
                 mpl.ylabel('Power, [dBm]')
-                mpl.title('Average {}PDP\@[TX<->RX]'.format(title))
+                mpl.title('Average {}PDP\@[TX \\rightarrow RX]'.format(title))
                 offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                 mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                 mpl.grid(linestyle='--')

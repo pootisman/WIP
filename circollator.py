@@ -209,7 +209,7 @@ class CIRCollator:
                 mpl.clim(vmin=self.zmin, vmax=self.zmax)
                 mpl.xlabel('RX Position')
                 mpl.ylabel('Delay, [ns]')
-                mpl.title('{}CIR\@TX \#{}'.format(title, i.title))
+                mpl.title('{}CIR\@[TX {} \\rightarrow RXg {}]'.format(title, i.title, i.rxgrp))
                 mpl.tight_layout()
 
             if mkpng:

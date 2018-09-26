@@ -21,11 +21,13 @@ from circollator import CIRCollator
 from plpow import PLPlot
 from auxfun import enable_latex
 from asap_probs_extract import DistancedHistExtractor
+from delay_spread import DelaySpreadPlot
 
 gencir = False
 gencircoll = False
-genreg = True
-disthis = True
+genreg = False
+disthis = False
+ds = True
 
 print('Loading data fleece...')
 DS = DataStorage('dbconf.txt')
@@ -49,7 +51,7 @@ DN.load_paths(npaths=250)
 DN.load_interactions(store=True)
 
 
-rxgrp = 5
+rxgrp = 4
 
 enable_latex()
 
@@ -58,7 +60,7 @@ if gencir:
     c3ds = CIR(DS)
     c3ds.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
     c3dc = CIR(DC)
-    c3dc.export(rxgrp=2, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
+    c3dc.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
     c3dl = CIR(DL)
     c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3, title='Leather ')
     c3dn = CIR(DN)
@@ -83,7 +85,7 @@ if gencir:
 if genreg:
     print('Trying to build regression')
     plp = PLPlot(source=DN)
-    print(plp.regr_comp(typ='LOS', threshold=-250, nff=False))
+    print(plp.regr_comp(typ='NLOS-1', rxgrp=[2, 4, 5], threshold=-250, nff=False))
     plp.export(csvsav=True, matsav=True)
 
 if disthis:
@@ -91,3 +93,9 @@ if disthis:
     asap = DistancedHistExtractor(DN, nffilt=False, thrs=-150, range=(0.1, 1.0), minbins=0.05)
     asap.build_trans(typ='LOS->LOS')
     asap.plot_hist()
+
+if ds:
+    print('Printing delaye spread')
+    dspr = DelaySpreadPlot(DN)
+    #dspr.plot_group(rxgrp=rxgrp, mkpng=False, matsav=False, csvsav=False)
+    dspr.plot_groups(rxgrp=[2, 4, 5], overlay=True)
