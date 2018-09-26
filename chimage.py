@@ -183,13 +183,13 @@ class CHImageTx:
                             mpl.tight_layout()
 
                         if mkpng or not show:
-                            mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.format(self.source.txs[i].setid, i,
-                                                                                       self.source.rxs[j].setid, j))
+                            mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.
+                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j))
                             mpl.close(f)
 
                         if matsav:
-                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.format(self.source.txs[i].setid, i,
-                                                                                       self.source.rxs[j].setid, j),
+                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.
+                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
                             {'X': x, 'Y': y, 'Z': z})
 
         if mkpng is False and show:

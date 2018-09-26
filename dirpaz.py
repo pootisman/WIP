@@ -106,14 +106,6 @@ class RXPatEl:
     def __init__(self, source: DataStorage):
         self.source = source
 
-        self.xlim = [-np.Inf, np.Inf]
-        self.ylim = [-np.Inf, np.Inf]
-        self.zlim = [-np.Inf, np.Inf]
-
-        self.xdata = list()
-        self.ydata = list()
-        self.zdata = list()
-
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
                nff: bool = True, csvsav: bool = False, matsav: bool = False):
         if txrange == -1:
@@ -188,14 +180,6 @@ class RXPatAll:
     def __init__(self, source: DataStorage):
         self.source = source
 
-        self.xlim = [-np.Inf, np.Inf]
-        self.ylim = [-np.Inf, np.Inf]
-        self.zlim = [-np.Inf, np.Inf]
-
-        self.xdata = list()
-        self.ydata = list()
-        self.zdata = list()
-
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
                nff: bool = True, matsav: bool = False):
         if txrange == -1:
@@ -268,5 +252,5 @@ if __name__ == "__main__":
                  'Class@60GHz.TEST_60_MKE_15.sqlite')
     DS.load_paths(npaths=250)
     DS.load_interactions()
-    cir = RXPatAz(DS)
+    cir = RXPatAll(DS)
     cir.export(rxgrp=4, mkpng=False)

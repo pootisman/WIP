@@ -96,6 +96,15 @@ if disthis:
 
 if ds:
     print('Printing delaye spread')
-    dspr = DelaySpreadPlot(DN)
-    #dspr.plot_group(rxgrp=rxgrp, mkpng=False, matsav=False, csvsav=False)
-    dspr.plot_groups(rxgrp=[2, 4, 5], overlay=True)
+    dspn = DelaySpreadPlot(DN)
+    dspn.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Naked ', ymin=0.0, ymax=1.0, matsav=True,
+                     name_mapping={2: "Belt", 4: "Up", 5: "Diag"})
+    dsps = DelaySpreadPlot(DS)
+    dsps.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Fleece ', ymin=0.0, ymax=1.0, matsav=True,
+                     name_mapping={2: "Belt", 4: "Up", 5: "Diag"})
+    dspl = DelaySpreadPlot(DL)
+    dspl.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Leather ', ymin=0.0, ymax=1.0, matsav=True,
+                     name_mapping={2: "Belt", 4: "Up", 5: "Diag"})
+    dspc = DelaySpreadPlot(DC)
+    dspc.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Cotton ', ymin=0.0, ymax=1.0, matsav=True,
+                     name_mapping={2: "Belt", 4: "Up", 5: "Diag"})

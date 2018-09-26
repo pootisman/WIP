@@ -23,10 +23,10 @@ import scipy.io as sio
 
 from itertools import product
 
-COLORS_PLT = ['r', 'g', 'b', 'k']
-DASHES_PLT = ['-', '--', ':', '-.']
+COLORS = ['r', 'g', 'b', 'k']
+DASHES = ['-', '--', ':', '-.']
 
-LINESTYLES_PLT = list(product(DASHES_PLT, COLORS_PLT))
+LINESTYLES = list(product(DASHES, COLORS))
 
 
 class DelaySpreadPlot:
@@ -38,6 +38,7 @@ class DelaySpreadPlot:
         self.source = source
         self.xdata = list()
         self.ydata = list()
+        self.data = dict()
 
         self.title = str()
 
@@ -87,6 +88,8 @@ class DelaySpreadPlot:
                 self.xdata = list()
                 self.ydata = list()
 
+                self.data = dict()
+
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
                         try:
@@ -133,8 +136,9 @@ class DelaySpreadPlot:
             mpl.show()
 
     def plot_groups(self, txgrp: list = [-1], rxgrp: list = [-1], txrange: list = [-1], rxrange: list = [-1],
-                   title: str = '', mkpng: bool = False, fidbase: int = 0, matsav: bool = True, csvsav: bool = True,
-                   show: bool = True, overlay: bool = True):
+                    title: str = '', mkpng: bool = False, fidbase: int = 0, matsav: bool = False, csvsav: bool = False,
+                    show: bool = True, overlay: bool = True, ymin: float = np.NINF, ymax: float = np.NINF,
+                    name_mapping: dict = None):
         '''
         Plot multiple delay spread curves
         '''
@@ -154,6 +158,7 @@ class DelaySpreadPlot:
         f = mpl.figure(fidbase)
 
         plot_index = 0
+
         for i in txrange:
             if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 for j in rxgrp:
@@ -178,18 +183,29 @@ class DelaySpreadPlot:
 
                     if overlay:
                         mpl.plot(list(np.linspace(start=0, stop=self.ydata.__len__(), num=self.ydata.__len__(),
-                                                  endpoint=True)), self.ydata, ''.join(LINESTYLES_PLT[plot_index]),
-                                 label=self.title)
+                                                  endpoint=True)), self.ydata, ''.join(LINESTYLES[plot_index]),
+                                 label='RX grp {}'.format(j if name_mapping is None else name_mapping[j]))
+                        self.data['{}_X_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                            = list(np.linspace(start=0, stop=self.ydata.__len__(),
+                                               num=self.ydata.__len__(), endpoint=True))
+                        self.data['{}_Y_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                            = self.ydata
                     else:
-                        mpl.plot(self.xdata, self.ydata, ''.join(LINESTYLES_PLT[plot_index]), label=self.title)
+                        self.data['{}_X_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                            = self.xdata
+                        self.data['{}_Y_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                            = self.ydata
+                        mpl.plot(self.xdata, self.ydata, ''.join(LINESTYLES[plot_index]),
+                                 label='RX grp {}'.format(j if name_mapping is None else name_mapping[j]))
 
                     plot_index += 1
 
-        mpl.xlim([self.xmin, self.xmax])
-        mpl.ylim([0.0, self.ymax + 0.1 * self.ymax])
+        mpl.xlim([self.xmin, self.xmax if not overlay else self.ydata.__len__()])
+        mpl.ylim([0.0 if ymin == np.NINF else ymin, (self.ymax + 0.1 * self.ymax) if ymax == np.NINF else ymax])
         mpl.xlabel('RX Position')
         mpl.ylabel('Delay Spread, [ns]')
-        mpl.title('Delay spread [TX{} $\\rightarrow$ RXg){})]'.format(title, rxgrp))
+        mpl.title('{}delay spread [TXg{} $\\rightarrow$ RXg{}]'.format(title, txgrp if txgrp[0] != -1 else 'All',
+                                                                       rxgrp))
         mpl.grid(linestyle='--')
         mpl.legend()
         mpl.tight_layout()
@@ -199,8 +215,7 @@ class DelaySpreadPlot:
             mpl.close(f)
 
         if matsav:
-            sio.savemat('{2}DS_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'rx': self.xdata,
-                                                                                        'delay_spread': self.ydata})
+            sio.savemat('{2}DS_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), self.data)
 
         if csvsav:
             file = open('delay_spread.csv', mode='w')
@@ -211,3 +226,6 @@ class DelaySpreadPlot:
 
         if mkpng is False and show:
             mpl.show()
+
+    def collate(self, other):
+        assert isinstance(other, DelaySpreadPlot), 'Can\'t collate DelaySpreadPlot with something other!'
