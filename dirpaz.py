@@ -217,7 +217,7 @@ class RXPatAll:
                             z.append(k[1] if k[1] > 0 else np.nan)
                             z.append(z[-1])
 
-                        minz = np.nanmin(z)
+                        minz = float(np.nanmin(z))
 
                         for k in range(z.__len__()):
                             z[k] = l2db(z[k]) if not np.isnan(z[k]) else l2db(minz)
@@ -230,8 +230,8 @@ class RXPatAll:
                         plot_z = z - np.min(np.min(z))
 
                         mlab.mesh((plot_z.T * np.cos(np.tile(np.deg2rad(x), [ylen, 1])) *
-                                    np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
-                                  (plot_z.T *np.sin(np.tile(np.deg2rad(x), [ylen, 1]))
+                                   np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
+                                  (plot_z.T * np.sin(np.tile(np.deg2rad(x), [ylen, 1]))
                                    * np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
                                   (plot_z.T * np.cos(np.tile(np.deg2rad(x), [ylen, 1]))))
 

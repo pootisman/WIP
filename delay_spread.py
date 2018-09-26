@@ -53,7 +53,7 @@ class DelaySpreadPlot:
 
     def plot_group(self, txgrp: list = [-1], rxgrp: list = [-1], txrange: list = [-1], rxrange: list = [-1],
                    title: str = '', plot: bool = True, mkpng: bool = True, fidbase: int = 0, matsav: bool = True,
-                   csvsav: bool = True, show: bool = True):
+                   csvsav: bool = True, show: bool = True, rx_name_map: dict = None, tx_name_map: dict = None):
         '''
         Plots delay spread value vs receiver number between specific group of RX&TX, only one group is plotted
         :param txgrp: TX group to use. Ignored if set to -1
@@ -67,6 +67,8 @@ class DelaySpreadPlot:
         :param matsav: Save data to .mat file for use MATLAB later on?
         :param csvsav: Save data to .csv file?
         :param show: Show figure window?
+        :param rx_name_map: Maps certain RX groups to string names
+        :param tx_name_map: Maps certain TX groups to string names
         :return:
         '''
 
@@ -109,7 +111,14 @@ class DelaySpreadPlot:
 
                 if plot or mkpng:
                     f = mpl.figure(fidbase + i)
-                    mpl.stem(self.xdata, self.ydata, label=self.title)
+
+                    self.data['{}_X_{}'.format(title.strip(' '), j if rx_name_map is None else rx_name_map[j])] \
+                        = self.xdata
+                    self.data['{}_Y_{}'.format(title.strip(' '), j if rx_name_map is None else rx_name_map[j])] \
+                        = self.ydata
+
+                    mpl.stem(self.xdata, self.ydata, label='RX grp {}'.
+                             format(j if rx_name_map is None else rx_name_map[j]))
                     mpl.xlabel('RX Position')
                     mpl.ylabel('Delay Spread, [ns]')
                     mpl.title('{}Delay spread [TX {} $\\rightarrow$ RXg {}]'.format(title, i, rxgrp))
@@ -138,7 +147,7 @@ class DelaySpreadPlot:
     def plot_groups(self, txgrp: list = [-1], rxgrp: list = [-1], txrange: list = [-1], rxrange: list = [-1],
                     title: str = '', mkpng: bool = False, fidbase: int = 0, matsav: bool = False, csvsav: bool = False,
                     show: bool = True, overlay: bool = True, ymin: float = np.NINF, ymax: float = np.NINF,
-                    name_mapping: dict = None):
+                    rx_name_map: dict = None, tx_name_map: dict = None):
         '''
         Plot multiple delay spread curves
         '''
@@ -184,19 +193,19 @@ class DelaySpreadPlot:
                     if overlay:
                         mpl.plot(list(np.linspace(start=0, stop=self.ydata.__len__(), num=self.ydata.__len__(),
                                                   endpoint=True)), self.ydata, ''.join(LINESTYLES[plot_index]),
-                                 label='RX grp {}'.format(j if name_mapping is None else name_mapping[j]))
-                        self.data['{}_X_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                                 label='RX grp {}'.format(j if rx_name_map is None else rx_name_map[j]))
+                        self.data['{}_X_{}'.format(title.strip(' '), j if rx_name_map is None else rx_name_map[j])]\
                             = list(np.linspace(start=0, stop=self.ydata.__len__(),
                                                num=self.ydata.__len__(), endpoint=True))
-                        self.data['{}_Y_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                        self.data['{}_Y_{}'.format(title.strip(' '), j if rx_name_map is None else rx_name_map[j])]\
                             = self.ydata
                     else:
-                        self.data['{}_X_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                        self.data['{}_X_{}'.format(title.strip(' '), j if rx_name_map is None else rx_name_map[j])]\
                             = self.xdata
-                        self.data['{}_Y_{}'.format(title.strip(' '), j if name_mapping is None else name_mapping[j])]\
+                        self.data['{}_Y_{}'.format(title.strip(' '), j if rx_name_map is None else rx_name_map[j])]\
                             = self.ydata
                         mpl.plot(self.xdata, self.ydata, ''.join(LINESTYLES[plot_index]),
-                                 label='RX grp {}'.format(j if name_mapping is None else name_mapping[j]))
+                                 label='RX grp {}'.format(j if rx_name_map is None else rx_name_map[j]))
 
                     plot_index += 1
 
