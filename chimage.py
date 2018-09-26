@@ -13,13 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
 import matplotlib.pyplot as mpl
 import scipy.io as sio
 import pairdata
 from auxclass import *
-
-__author__ = 'Aleksei Ponomarenko-Timofeev'
-
 
 class CHImageRX:
     def __init__(self, source):

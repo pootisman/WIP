@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
 from pairdata import DataStorage, Node
 from auxclass import ProbHist
 from auxfun import l2db
@@ -20,8 +22,6 @@ import numpy as np
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
 import matplotlib.collections as mpc
-
-__author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 class DistancedHistExtractor:

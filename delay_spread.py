@@ -171,8 +171,8 @@ class DelaySpreadPlot:
         for i in txrange:
             if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
                 for j in rxgrp:
-                    self.xdata.clear()
-                    self.ydata.clear()
+                    self.xdata = list()
+                    self.ydata = list()
                     for k in rxrange:
                         if self.source.rxs[k].setid == j or rxgrp[0] == -1:
                             try:
@@ -180,7 +180,7 @@ class DelaySpreadPlot:
                                 self.ydata.append(self.source.txs[i].chan_to(self.source.rxs[k]).delay_spread * 1e9)
                             except AttributeError:
                                 print('No path between {} and {}'.format(i, k))
-                    
+
                     self.xmax = np.max([np.nanmax(self.xdata), self.xmax])
                     self.xmin = np.min([np.nanmin(self.xdata), self.xmin])
 

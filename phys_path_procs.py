@@ -13,13 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
 import numpy as np
 from pairdata import DataStorage, Channel, Path
 from scipy.constants import speed_of_light
 from sklearn.metrics import r2_score
 from auxfun import *
-
-__author__ = 'Aleksei Ponomarenko-Timofeev'
 
 
 def check_chan_NF(chan: Channel = None, freq: float = 60e9):

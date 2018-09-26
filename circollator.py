@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
@@ -163,7 +164,6 @@ class CIRCollator:
 
 
         # Determine min and max of all datasets
-        # Replace with lambdas?
         for i in self.datas:
             if self.xmin > i.xmin:
                 self.xmin = i.xmin

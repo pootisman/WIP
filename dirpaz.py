@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
 import matplotlib.pyplot as mpl
 import mayavi.mlab as mlab
 import scipy.io as sio
@@ -20,9 +22,6 @@ import numpy as np
 from pairdata import DataStorage
 from auxfun import l2db, basint3
 from auxclass import PowHist, PowHist2D
-
-__author__ = 'Aleksei Ponomarenko-Timofeev'
-
 
 class RXPatAz:
     def __init__(self, source: DataStorage):

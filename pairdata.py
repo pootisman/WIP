@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+__author__ = 'Aleksei Ponomarenko-Timofeev'
+
 import sqlite3
 import mysql.connector as msqlc
 from mysql.connector.constants import ClientFlag
@@ -25,10 +27,6 @@ from multiprocessing import cpu_count
 import scipy.io as sio
 from siso_sql import *
 from auxfun import l2db
-
-
-__author__ = 'Aleksei Ponomarenko-Timofeev'
-
 
 class Node:
     def __init__(self, typ: str):
