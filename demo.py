@@ -39,11 +39,11 @@ print('Loading data cotton...')
 #DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
 #DC.load_paths(npaths=250)
 #DC.load_interactions(store=True)
-#print('Loading data Leather...')
-#DL = DataStorage('dbconf.txt')
-#DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
-#DL.load_paths(npaths=250)
-#DL.load_interactions(store=True)
+print('Loading data Leather...')
+DL = DataStorage('dbconf.txt')
+DL.load_rxtx('Human_sitting_legsback_Standing_leather_sqlite')
+DL.load_paths(npaths=250)
+DL.load_interactions(store=True)
 print('Loading data naked...')
 DN = DataStorage('dbconf.txt')
 DN.load_rxtx('Standing_naked_sqlite')
@@ -61,21 +61,21 @@ if gencir:
     c3ds.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
     #c3dc = CIR(DC)
     #c3dc.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
-    #c3dl = CIR(DL)
-    #c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3, title='Leather ')
+    c3dl = CIR(DL)
+    c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3, title='Leather ')
     c3dn = CIR(DN)
-    c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=4, title='Naked ')
+    c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=True, zmin=-110, zmax=-40, fidbase=4, title='Naked ')
 
     if gencircoll:
         print('Collating CIRs')
         ccl = CIRCollator()
 
-        ccl + [c3dn, c3ds]
+        ccl + [c3dn, c3ds, c3dl]
 
         ccl.export_collated(show=True, idxs=[0, 1], csq=True, xlabel=False, ylabel=True, title_draw=False,
                             figsize=(5, 6), csqloc=2)
-        #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
-        #               csqloc=2)
+        ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False,
+                            figsize=(5, 6))
     #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
     #                    csqloc=2)
     #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),

@@ -18,6 +18,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as mpl
+import matplotlib.gridspec as gsp
 from pairdata import DataStorage
 from phys_path_procs import *
 
@@ -26,9 +27,9 @@ class CIR:
     def __init__(self, source: DataStorage):
         self.source = source
 
-        self.xdata = []
-        self.ydata = []
-        self.zdata = []
+        self.xdata = list()
+        self.ydata = list()
+        self.zdata = list()
 
         self.xmin = 0.0
         self.xmax = 0.0
@@ -50,7 +51,7 @@ class CIR:
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
                cmap: str = 'Blues', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
                nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
-               title: str = ''):
+               title: str = '', iconvec: dict = None):
 
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -122,19 +123,36 @@ class CIR:
                     self.zmax = zmax
 
                 if plot or mkpng:
-                    f = mpl.figure(fidbase + i)
+                    if iconvec is not None:
+                        f = mpl.figure(fidbase + i, constrained_layout=True)
+                    else:
+                        f = mpl.figure(fidbase + i)
+
+                    if iconvec is not None:
+                        gs_top = gsp.GridSpec(2, 1, figure=f, height_ratios=[5, 1])
+                        ax = f.add_subplot(gs_top[0, 0])
+                    else:
+                        ax = mpl.gca()
+
+                    mpl.sca(ax)
 
                     mpl.pcolor(np.transpose(x), np.transpose(y), z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
-
                     cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=11, endpoint=True).tolist())
                     cb.set_label('RX power, [dBm]')
                     cb.set_clim(vmin=self.zmin, vmax=self.zmax)
                     mpl.clim(vmin=self.zmin, vmax=self.zmax)
-
-                    mpl.xlabel('RX Position')
                     mpl.ylabel('Delay, [ns]')
                     mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i, rxgrp))
-                    mpl.tight_layout()
+
+                    if iconvec is None:
+                        mpl.xlabel('RX Position')
+                        mpl.tight_layout()
+                    else:
+                        ax, sf = f.add_subplot(gs_top[1, 0])
+                        mpl.sca(ax)
+                        for i in iconvec:
+                            sax = sf.add_axes(0.1, 0.1, 0.1, 0.1)
+                            sax.set_frame_on(True)
 
                 if mkpng:
                     mpl.savefig('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0], title))
