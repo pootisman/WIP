@@ -23,63 +23,63 @@ from auxfun import enable_latex
 from asap_probs_extract import DistancedHistExtractor
 from delay_spread import DelaySpreadPlot
 
-gencir = False
-gencircoll = False
+gencir = True
+gencircoll = True
 genreg = False
 disthis = False
-ds = True
+ds = False
 
 print('Loading data fleece...')
 DS = DataStorage('dbconf.txt')
-DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
+DS.load_rxtx('Human_sitting_legsback_Standing_fleece_sqlite')
 DS.load_paths(npaths=250)
 DS.load_interactions(store=True)
 print('Loading data cotton...')
-DC = DataStorage('dbconf.txt')
-DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
-DC.load_paths(npaths=250)
-DC.load_interactions(store=True)
-print('Loading data Leather...')
-DL = DataStorage('dbconf.txt')
-DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
-DL.load_paths(npaths=250)
-DL.load_interactions(store=True)
+#DC = DataStorage('dbconf.txt')
+#DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
+#DC.load_paths(npaths=250)
+#DC.load_interactions(store=True)
+#print('Loading data Leather...')
+#DL = DataStorage('dbconf.txt')
+#DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
+#DL.load_paths(npaths=250)
+#DL.load_interactions(store=True)
 print('Loading data naked...')
 DN = DataStorage('dbconf.txt')
-DN.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
+DN.load_rxtx('Standing_naked_sqlite')
 DN.load_paths(npaths=250)
 DN.load_interactions(store=True)
 
 
-rxgrp = 4
+rxgrp = 2
 
 enable_latex()
 
 if gencir:
     print('Plotting 3D CIRs')
     c3ds = CIR(DS)
-    c3ds.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
-    c3dc = CIR(DC)
-    c3dc.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
-    c3dl = CIR(DL)
-    c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3, title='Leather ')
+    c3ds.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=1, title='Fleece ')
+    #c3dc = CIR(DC)
+    #c3dc.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=2, title='Cotton ')
+    #c3dl = CIR(DL)
+    #c3dl.export(rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=3, title='Leather ')
     c3dn = CIR(DN)
     c3dn.export(cmap='Blues', rxgrp=rxgrp, mkpng=False, show=False, zmin=-110, zmax=-40, fidbase=4, title='Naked ')
 
     if gencircoll:
         print('Collating CIRs')
-    ccl = CIRCollator()
+        ccl = CIRCollator()
 
-    ccl + [c3dn, c3ds, c3dl]
+        ccl + [c3dn, c3ds]
 
-    ccl.export_collated(show=True, idxs=[0, 1], csq=True, xlabel=False, ylabel=True, title_draw=False, figsize=(5, 6),
-                        csqloc=2)
-    ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
-                        csqloc=2)
-    ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
-                        csqloc=2)
-    ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
-                        csqloc=2)
+        ccl.export_collated(show=True, idxs=[0, 1], csq=True, xlabel=False, ylabel=True, title_draw=False,
+                            figsize=(5, 6), csqloc=2)
+        #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
+        #               csqloc=2)
+    #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
+    #                    csqloc=2)
+    #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
+    #                    csqloc=2)
 
 
 if genreg:

@@ -133,7 +133,7 @@ class CIR:
 
                     mpl.xlabel('RX Position')
                     mpl.ylabel('Delay, [ns]')
-                    mpl.title('{}CIR\@[TX{}\\rightarrow RXg{}]'.format(title, i, rxgrp))
+                    mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i, rxgrp))
                     mpl.tight_layout()
 
                 if mkpng:
@@ -199,7 +199,7 @@ class CIR:
                         mpl.stem(delay, pow, bottom=-120)
                         mpl.xlabel('Delay, [s]')
                         mpl.ylabel('Power, [dBm]')
-                        mpl.title('{}PDP@[TX{} \\rightarrow RX{}]'.format(title, i, j))
+                        mpl.title('{}PDP@[TX{} $\\rightarrow$ RX{}]'.format(title, i, j))
                         offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                         mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                         mpl.grid(linestyle='--')
@@ -222,7 +222,7 @@ class CIR:
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
                 mpl.ylabel('Power, [dBm]')
-                mpl.title('Average {}PDP\@[TX \\rightarrow RX]'.format(title))
+                mpl.title('Average {}PDP\@[TX $\\rightarrow$ RX]'.format(title))
                 offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                 mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                 mpl.grid(linestyle='--')
