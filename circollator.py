@@ -49,8 +49,10 @@ class CIRCollator:
             raise TypeError('List or CIRs needed, got {}'.format(other))
 
     def export_collated(self, mkpng: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
-                        title: str = '', cmaplist: list = None, idxs: list = None, csq: bool = False, csqloc: int = 1,
-                        xlabel: bool = True, ylabel: bool = True, title_draw: bool = True, figsize: tuple = (8, 6)):
+                        title: str = '', cmaplist: list = None, idxs: list = None, csq: bool = False,
+                        csqloc: list = [0.3, 0.65, 0.3, 0.3], xlabel: bool = True, ylabel: bool = True,
+                        title_draw: bool = True, figsize: tuple = (8, 6), yrange: tuple = None, xtics: int = 5,
+                        ytics: int = 5, mkpdf: bool = False, fnappend: str = ''):
         self.titles = list()
 
         if idxs is None:
@@ -104,9 +106,16 @@ class CIRCollator:
                 mpl.pcolor(np.transpose(x), np.transpose(y), z, clip_on=True,
                            cmap=cmap_cus, vmin=self.zmin, vmax=self.zmax)
 
-            iind+=1
+            iind += 1
 
         mpl.clim(vmin=self.zmin, vmax=self.zmax)
+
+        if yrange:
+            mpl.yticks(np.linspace(start=yrange[0], num=xtics, stop=yrange[1], endpoint=True).tolist())
+        else:
+            mpl.yticks(np.linspace(start=self.ymin, num=ytics, stop=self.ymax, endpoint=True).tolist())
+
+        mpl.xticks(np.linspace(start=self.xmin, num=xtics, stop=self.xmax, endpoint=True).tolist())
 
         if xlabel:
             mpl.xlabel('RX Position')
@@ -120,7 +129,7 @@ class CIRCollator:
         mpl.tight_layout()
 
         if csq:
-            axins = f.add_axes([0.3, 0.65, 0.3, 0.3])
+            axins = f.add_axes(csqloc)
 
             cmap = mpl.get_cmap(self.cmap_ids[0])
             cmap1 = cmap(np.arange(cmap.N))
@@ -144,17 +153,21 @@ class CIRCollator:
             axins.set_xticks(np.linspace(start=0.0, num=5, stop=cmap.N, endpoint=True))
             axins.set_yticks(np.linspace(start=0.0, num=5, stop=cmap.N, endpoint=True))
 
-            powerticks = np.linspace(start=self.zmin, num=5, stop=self.zmax, endpoint=True).tolist()
-            powerticks = [str(i) for i in powerticks]
-            axins.set_xticklabels(powerticks, rotation=-45, ha='left')
-            axins.set_yticklabels(reversed(powerticks))
+            #powerticks = np.linspace(start=self.zmin, num=5, stop=self.zmax, endpoint=True).tolist()
+            #powerticks = [str(i) for i in powerticks]
+            #axins.set_xticklabels(powerticks, rotation=-45, ha='left')
+            #axins.set_yticklabels(reversed(powerticks))
 
         if mkpng:
-            mpl.savefig('Collated CIR3D.png')
-            mpl.close(f)
+            mpl.savefig('Collated[{}] CIR3D {}.png'.format('|'.join(self.titles).strip(' '), fnappend))
+
+        if mkpdf:
+            mpl.savefig('Collated[{}] CIR3D {}.pdf'.format('|'.join(self.titles).strip(' '), fnappend))
 
         if show:
             mpl.show()
+        else:
+            mpl.close(f)
 
     def export_adjusted(self, mkpng: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
                         title: str = '', cmaplist: list = None, idxs: list = [0]):

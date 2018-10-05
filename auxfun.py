@@ -18,10 +18,11 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 
 
-def enable_latex():
+def enable_latex(pt: float = 12.0):
     from matplotlib import pyplot as plt
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
+    plt.rc('font', size=pt)
 
 
 def basint2(x: list, y: list, xc: int):

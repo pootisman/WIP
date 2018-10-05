@@ -53,7 +53,8 @@ class DelaySpreadPlot:
 
     def plot_group(self, txgrp: list = [-1], rxgrp: list = [-1], txrange: list = [-1], rxrange: list = [-1],
                    title: str = '', plot: bool = True, mkpng: bool = True, fidbase: int = 0, matsav: bool = True,
-                   csvsav: bool = True, show: bool = True, rx_name_map: dict = None, tx_name_map: dict = None):
+                   csvsav: bool = True, show: bool = True, rx_name_map: dict = None, tx_name_map: dict = None,
+                   mkpdf: bool = False):
         '''
         Plots delay spread value vs receiver number between specific group of RX&TX, only one group is plotted
         :param txgrp: TX group to use. Ignored if set to -1
@@ -130,6 +131,10 @@ class DelaySpreadPlot:
                     mpl.savefig('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0], title))
                     mpl.close(f)
 
+                if mkpdf:
+                    mpl.savefig('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.pdf'.format(i, rxgrp[0], title))
+                    mpl.close(f)
+
                 if matsav:
                     sio.savemat('{2}DS_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title),
                                 {'rx': self.xdata, 'delay_spread': self.ydata})
@@ -147,7 +152,8 @@ class DelaySpreadPlot:
     def plot_groups(self, txgrp: list = [-1], rxgrp: list = [-1], txrange: list = [-1], rxrange: list = [-1],
                     title: str = '', mkpng: bool = False, fidbase: int = 0, matsav: bool = False, csvsav: bool = False,
                     show: bool = True, overlay: bool = True, ymin: float = np.NINF, ymax: float = np.NINF,
-                    rx_name_map: dict = None, tx_name_map: dict = None):
+                    rx_name_map: dict = None, tx_name_map: dict = None, dispylabel: bool = True,
+                    dispxlabel: bool = True, disptitle: bool = True):
         '''
         Plot multiple delay spread curves
         '''
@@ -211,10 +217,14 @@ class DelaySpreadPlot:
 
         mpl.xlim([self.xmin, self.xmax if not overlay else self.ydata.__len__()])
         mpl.ylim([0.0 if ymin == np.NINF else ymin, (self.ymax + 0.1 * self.ymax) if ymax == np.NINF else ymax])
-        mpl.xlabel('RX Position')
-        mpl.ylabel('Delay Spread, [ns]')
-        mpl.title('{}delay spread [TXg{} $\\rightarrow$ RXg{}]'.format(title, txgrp if txgrp[0] != -1 else 'All',
-                                                                       rxgrp))
+        if dispxlabel:
+            mpl.xlabel('RX Position')
+
+        if dispylabel:
+            mpl.ylabel('Delay Spread, [ns]')
+        if disptitle:
+            mpl.title('{}delay spread [TXg{} $\\rightarrow$ RXg{}]'.format(title, txgrp if txgrp[0] != -1 else 'All',
+                                                                           rxgrp))
         mpl.grid(linestyle='--')
         mpl.legend()
         mpl.tight_layout()

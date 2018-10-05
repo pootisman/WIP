@@ -51,7 +51,11 @@ class CIR:
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
                cmap: str = 'Blues', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
                nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
-               title: str = '', iconvec: dict = None):
+               title: str = '', iconvec: dict = None, disptitle: bool = True, dispylabel: bool = True, dispxlabel: bool
+               = True, yrange: tuple = (np.NINF, np.PINF), mkpdf: bool = False, fnappend: str = ''):
+
+        accept = lambda o: ((nff and not o.near_field_failed) or not nff) and (zmin < l2db(o.pow) < zmax) and\
+                 (yrange[0] < o.delay * 1e9 < yrange[1])
 
         if txrange == -1:
             txrange = self.source.txs.keys()
@@ -81,11 +85,7 @@ class CIR:
                         self.xdim += 1
                         if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
                             for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
-                                if nff and not k[1].near_field_failed and zmax > l2db(k[1].pow) > zmin:
-                                    self.xdata.append(j)
-                                    self.ydata.append(k[1].delay * 1e9)
-                                    self.zdata.append(l2db(k[1].pow))
-                                elif not nff and zmax > l2db(k[1].pow) > zmin:
+                                if accept(k[1]):
                                     self.xdata.append(j)
                                     self.ydata.append(k[1].delay * 1e9)
                                     self.zdata.append(l2db(k[1].pow))
@@ -95,6 +95,16 @@ class CIR:
                                 self.xdata.append(j)
                                 self.ydata.append(self.ymax)
                                 self.zdata.append(zmin)
+
+                        if yrange[1] != np.PINF:
+                            self.xdata.append(j)
+                            self.ydata.append(yrange[1])
+                            self.zdata.append(zmin)
+
+                        if yrange[0] != np.NINF:
+                            self.xdata.append(j)
+                            self.ydata.append(yrange[0])
+                            self.zdata.append(zmin)
 
                 if np.nanmax(self.ydata) == 0:
                     self.ydata[-1] = 1e-9
@@ -137,15 +147,19 @@ class CIR:
                     mpl.sca(ax)
 
                     mpl.pcolor(np.transpose(x), np.transpose(y), z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
-                    cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=11, endpoint=True).tolist())
+                    cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=5, endpoint=True).tolist())
                     cb.set_label('RX power, [dBm]')
                     cb.set_clim(vmin=self.zmin, vmax=self.zmax)
                     mpl.clim(vmin=self.zmin, vmax=self.zmax)
-                    mpl.ylabel('Delay, [ns]')
-                    mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i, rxgrp))
+                    mpl.yticks(np.linspace(start=self.ymin, stop=self.ymax, num=5, endpoint=True).tolist())
+                    if dispylabel:
+                        mpl.ylabel('Delay, [ns]')
+                    if disptitle:
+                        mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i, rxgrp))
 
                     if iconvec is None:
-                        mpl.xlabel('RX Position')
+                        if dispxlabel:
+                            mpl.xlabel('RX Position')
                         mpl.tight_layout()
                     else:
                         ax, sf = f.add_subplot(gs_top[1, 0])
@@ -155,13 +169,15 @@ class CIR:
                             sax.set_frame_on(True)
 
                 if mkpng:
-                    mpl.savefig('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0], title))
-                    mpl.close(f)
+                    mpl.savefig('{3}{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0], title, fnappend))
+
+                if mkpdf:
+                    mpl.savefig('{3}{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.pdf'.format(i, rxgrp[0], title, fnappend))
 
                 if matsav:
                     sio.savemat('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'X': x, 'Y': y, 'Z': z})
 
-                if not mkpng and (not plot or not show):
+                if not plot or not show:
                     mpl.close(f)
 
         if mkpng is False and plot and show:
