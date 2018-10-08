@@ -28,7 +28,7 @@ gencir = True
 gencircoll = True
 genreg = False
 disthis = False
-ds = False
+ds = True
 
 print('Loading data fleece...')
 DS = DataStorage('dbconf.txt')
@@ -106,16 +106,16 @@ if disthis:
     asap.plot_hist()
 
 if ds:
-    print('Printing delaye spread')
+    print('Printing delay spread')
     dspn = DelaySpreadPlot(DN)
-    dspn.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Naked ', ymin=0.0, ymax=1.0, matsav=True,
-                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"})
+    dspn.plot_groups(rxgrp=[2, 4, 5], overlay=True, disptitle=False, dispxlabel=False, ymin=0.0, ymax=1.0, matsav=True,
+                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"}, dispylabel=False, title='Naked')
     dsps = DelaySpreadPlot(DS)
-    dsps.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Fleece ', ymin=0.0, ymax=1.0, matsav=True,
-                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"})
+    dsps.plot_groups(rxgrp=[2, 4, 5], overlay=True, disptitle=False, dispxlabel=False, ymin=0.0, ymax=1.0, matsav=True,
+                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"}, dispylabel=False, title='Fleece')
     dspl = DelaySpreadPlot(DL)
-    dspl.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Leather ', ymin=0.0, ymax=1.0, matsav=True,
-                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"})
+    dspl.plot_groups(rxgrp=[2, 4, 5], overlay=True, disptitle=False, dispxlabel=False, ymin=0.0, ymax=1.0, matsav=True,
+                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"}, dispylabel=False, title='Leather')
     dspc = DelaySpreadPlot(DC)
-    dspc.plot_groups(rxgrp=[2, 4, 5], overlay=True, title='Cotton ', ymin=0.0, ymax=1.0, matsav=True,
-                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"})
+    dspc.plot_groups(rxgrp=[2, 4, 5], overlay=True, disptitle=False, dispxlabel=False, ymin=0.0, ymax=1.0, matsav=True,
+                     rx_name_map={2: "Belt", 4: "Up", 5: "Diag"}, dispylabel=False, title='Cotton')

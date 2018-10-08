@@ -153,7 +153,7 @@ class DelaySpreadPlot:
                     title: str = '', mkpng: bool = False, fidbase: int = 0, matsav: bool = False, csvsav: bool = False,
                     show: bool = True, overlay: bool = True, ymin: float = np.NINF, ymax: float = np.NINF,
                     rx_name_map: dict = None, tx_name_map: dict = None, dispylabel: bool = True,
-                    dispxlabel: bool = True, disptitle: bool = True):
+                    dispxlabel: bool = True, disptitle: bool = True, mkpdf: bool = False):
         '''
         Plot multiple delay spread curves
         '''
@@ -219,7 +219,6 @@ class DelaySpreadPlot:
         mpl.ylim([0.0 if ymin == np.NINF else ymin, (self.ymax + 0.1 * self.ymax) if ymax == np.NINF else ymax])
         if dispxlabel:
             mpl.xlabel('RX Position')
-
         if dispylabel:
             mpl.ylabel('Delay Spread, [ns]')
         if disptitle:
@@ -230,8 +229,13 @@ class DelaySpreadPlot:
         mpl.tight_layout()
 
         if mkpng:
-            mpl.savefig('DelSprd_TX->.png')
+            mpl.savefig('DelSprd_TX_{}.png'.format(title))
             mpl.close(f)
+
+        if mkpdf:
+            mpl.savefig('DelSprd_TX_{}.pdf'.format(title))
+            mpl.close(f)
+
 
         if matsav:
             sio.savemat('{2}DS_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), self.data)
