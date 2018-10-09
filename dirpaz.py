@@ -32,7 +32,7 @@ class RXPatAz:
         self.zlim = [-np.Inf, np.Inf]
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-               nff: bool = True, csvsav: bool = False, matsav: bool = False):
+               nff: bool = True, csvsav: bool = False, matsav: bool = False, mkpdf: bool = True, fnappend: str = ''):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -83,15 +83,20 @@ class RXPatAz:
                         ax.set_rmin(-180)
                         ax.grid(linestyle='--')
                         mpl.title('aoa@[TX #{} -> RX #{}]'.format(i, j))
+                        
                         if mkpng:
-                            mpl.savefig('RXaz_tx{0:03d}->rx{1:03d}.png'.format(i, j))
+                            mpl.savefig('{2}RXaz_tx{0:03d}->rx{1:03d}.png'.format(i, j, fnappend))
                             mpl.close(f)
 
+                        if mkpdf:
+                            mlab.savefig('{2}RXpat_tx{0:03d}->rx{1:03d}.pdf'.format(i, j, fnappend))
+                            mlab.close(f)
+
                         if matsav:
-                            sio.savemat('RXaz_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'theta': tt, 'pow': r})
+                            sio.savemat('{2}RXaz_tx{0:03d}->rx{1:03d}.mat'.format(i, j, fnappend), {'theta': tt, 'pow': r})
 
                         if csvsav:
-                            file = open('RXaz_tx{0:03d}->rx{1:03d}.csv'.format(i, j), mode='w')
+                            file = open('{2}RXaz_tx{0:03d}->rx{1:03d}.csv'.format(i, j, fnappend), mode='w')
                             file.write('Ang. [deg], Pow [dBm]\n')
                             for k in range(tt.__len__()):
                                 file.write('{},{}\n'.format(tt[k], r[k]))
@@ -106,7 +111,7 @@ class RXPatEl:
         self.source = source
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-               nff: bool = True, csvsav: bool = False, matsav: bool = False):
+               nff: bool = True, csvsav: bool = False, matsav: bool = False, mkpdf: bool = False, fnappend: str = ''):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -156,16 +161,20 @@ class RXPatEl:
                         ax.set_rmax(-60)
                         ax.set_rmin(-180)
                         ax.grid(linestyle='--')
-                        mpl.title('aoa@[TX #{} -> RX #{}]'.format(i, j))
+                        mpl.title('EoA@[TX #{} -> RX #{}]'.format(i, j))
                         if mkpng:
-                            mpl.savefig('RXel_tx{0:03d}->rx{1:03d}.png'.format(i, j))
+                            mpl.savefig('{2}RXel_tx{0:03d}->rx{1:03d}.png'.format(i, j, fnappend))
                             mpl.close(f)
 
+                        if mkpdf:
+                            mlab.savefig('{2}RXpat_tx{0:03d}->rx{1:03d}.pdf'.format(i, j, fnappend))
+                            mlab.close(f)
+
                         if matsav:
-                            sio.savemat('RXel_tx{0:03d}->rx{1:03d}.mat'.format(i, j), {'theta': tt, 'pow': r})
+                            sio.savemat('{2}RXel_tx{0:03d}->rx{1:03d}.mat'.format(i, j, fnappend), {'theta': tt, 'pow': r})
 
                         if csvsav:
-                            file = open('RXel_tx{0:03d}->rx{1:03d}.csv'.format(i, j), mode='w')
+                            file = open('{2}RXel_tx{0:03d}->rx{1:03d}.csv'.format(i, j, fnappend), mode='w')
                             file.write('Ang. [deg], Pow [dBm]\n')
                             for k in range(tt.__len__()):
                                 file.write('{},{}\n'.format(tt[k], r[k]))
@@ -180,7 +189,7 @@ class RXPatAll:
         self.source = source
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-               nff: bool = True, matsav: bool = False):
+               nff: bool = True, matsav: bool = False, mkpdf: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -236,6 +245,10 @@ class RXPatAll:
 
                         if mkpng:
                             mlab.savefig('RXpat_tx{0:03d}->rx{1:03d}.png'.format(i, j))
+                            mlab.close(f)
+
+                        if mkpdf:
+                            mlab.savefig('RXpat_tx{0:03d}->rx{1:03d}.pdf'.format(i, j))
                             mlab.close(f)
 
                         if matsav:

@@ -68,8 +68,8 @@ class DelaySpreadPlot:
         :param matsav: Save data to .mat file for use MATLAB later on?
         :param csvsav: Save data to .csv file?
         :param show: Show figure window?
-        :param rx_name_map: Maps certain RX groups to string names
-        :param tx_name_map: Maps certain TX groups to string names
+        :param rx_name_map: Maps certain RX groups to string names [cosmetic]
+        :param tx_name_map: Maps certain TX groups to string names [cosmetic]
         :return:
         '''
 
