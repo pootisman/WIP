@@ -28,7 +28,7 @@ class P2MConnector:
 
                 for j in range(numpoints):
                     infovec = file.readline().split(' ')
-                    ckey = '{}->{}'.format(TX_desc, j)
+                    ckey = 'TX[{}]->RX[{}]'.format(TX_desc, j)
 
                     if ckey not in data_dict.keys():
                         data_dict[ckey] = dict()
