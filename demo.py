@@ -28,7 +28,7 @@ gencir = True
 gencircoll = True
 genreg = False
 disthis = False
-ds = True
+ds = False
 
 print('Loading data fleece...')
 DS = DataStorage('dbconf.txt')
@@ -52,7 +52,7 @@ DN.load_paths(npaths=250)
 DN.load_interactions(store=True)
 
 
-rxgrp = 2
+rxgrp = 5
 
 enable_latex(pt=14.0)
 
@@ -84,9 +84,11 @@ if gencir:
         ccl + [c3dn, c3ds, c3dl]
 
         ccl.export_collated(show=False, idxs=[0, 1], csq=True, xlabel=False, ylabel=True, title_draw=False,
-                            figsize=(5, 6), csqloc=[0.5, 0.65, 0.3, 0.3], mkpdf=True, fnappend=rxgrp)
+                            figsize=(5, 6), csqloc=[0.5, 0.65, 0.3, 0.3], mkpdf=True, fnappend=rxgrp, mainlabels_fs=16,
+                            xdraw=True, ydraw=True)
         ccl.export_collated(show=False, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False,
-                            figsize=(5, 6), csqloc=[0.5, 0.65, 0.3, 0.3], mkpdf=True, fnappend=rxgrp)
+                            figsize=(5, 6), csqloc=[0.5, 0.65, 0.3, 0.3], mkpdf=True, fnappend=rxgrp, ydraw=False,
+                            mainlabels_fs=16, xdraw=True)
         #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),
                             #csqloc=2)
         #ccl.export_collated(show=True, idxs=[0, 2], csq=True, xlabel=False, ylabel=False, title_draw=False, figsize=(5, 6),

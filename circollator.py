@@ -52,7 +52,8 @@ class CIRCollator:
                         title: str = '', cmaplist: list = None, idxs: list = None, csq: bool = False,
                         csqloc: list = [0.3, 0.65, 0.3, 0.3], xlabel: bool = True, ylabel: bool = True,
                         title_draw: bool = True, figsize: tuple = (8, 6), yrange: tuple = None, xtics: int = 5,
-                        ytics: int = 5, mkpdf: bool = False, fnappend: str = ''):
+                        ytics: int = 5, mkpdf: bool = False, fnappend: str = '', xdraw: bool = True,
+                        ydraw: bool = True, mainlabels_fs: int = 12):
         self.titles = list()
 
         if idxs is None:
@@ -118,13 +119,19 @@ class CIRCollator:
         mpl.xticks(np.linspace(start=self.xmin, num=xtics, stop=self.xmax, endpoint=True).tolist())
 
         if xlabel:
-            mpl.xlabel('RX Position')
+            mpl.xlabel('RX Position', fontsize=mainlabels_fs)
 
         if ylabel:
-            mpl.ylabel('Delay, [ns]')
+            mpl.ylabel('Delay, [ns]', fontsize=mainlabels_fs)
 
         if title_draw:
             mpl.title('{}CIR\\@TX \\#{}'.format(title, 'vs '.join(self.titles)))
+
+        if not xdraw:
+            mpl.gca().set_xticklabels([])
+
+        if not ydraw:
+            mpl.gca().set_yticklabels([])
 
         mpl.tight_layout()
 
@@ -153,10 +160,10 @@ class CIRCollator:
             axins.set_xticks(np.linspace(start=0.0, num=5, stop=cmap.N, endpoint=True))
             axins.set_yticks(np.linspace(start=0.0, num=5, stop=cmap.N, endpoint=True))
 
-            #powerticks = np.linspace(start=self.zmin, num=5, stop=self.zmax, endpoint=True).tolist()
-            #powerticks = [str(i) for i in powerticks]
-            #axins.set_xticklabels(powerticks, rotation=-45, ha='left')
-            #axins.set_yticklabels(reversed(powerticks))
+            powerticks = np.linspace(start=self.zmin, num=5, stop=self.zmax, endpoint=True).tolist()
+            powerticks = [str(i) for i in powerticks]
+            axins.set_xticklabels(powerticks, rotation=-45, ha='left')
+            axins.set_yticklabels(reversed(powerticks))
 
         if mkpng:
             mpl.savefig('Collated[{}] CIR3D {}.png'.format('|'.join(self.titles).strip(' '), fnappend))
