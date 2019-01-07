@@ -17,7 +17,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 from pairdata import DataStorage, Node
 from auxclass import ProbHist
-from auxfun import l2db
+from auxfun import l2db, excl_interactions
 import numpy as np
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
@@ -55,6 +55,27 @@ class DistancedHistExtractor:
                         return False
                     elif typ == 'noNLOS' and i[1].interactions.__len__() > 0 and l2db(i[1].pow) >= self.thresh:
                         return False
+                    elif typ == 'LOS-pen' and excl_interactions(i[1].interactions) == 0 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-pen' and excl_interactions(i[1].interactions) > 0 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-1-pen' and excl_interactions(i[1].interactions) == 1 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-2-pen' and excl_interactions(i[1].interactions) == 2 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'NLOS-3-pen' and excl_interactions(i[1].interactions) == 3 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return True
+                    elif typ == 'noLOS-pen' and excl_interactions(i[1].interactions) == 0 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return False
+                    elif typ == 'noNLOS-pen' and excl_interactions(i[1].interactions) > 0 and\
+                            l2db(i[1].pow) >= self.thresh:
+                        return False
                     elif typ == 'link' and l2db(i[1].pow) >= self.thresh:
                         return True
                     elif typ == 'nolink' and l2db(i[1].pow) >= self.thresh:
@@ -67,29 +88,30 @@ class DistancedHistExtractor:
         else:
             return False
 
-        if typ in ['LOS', 'NLOS', 'link', 'NLOS-1', 'NLOS-2', 'NLOS-3']:
+        if typ in ['LOS', 'NLOS', 'link', 'NLOS-1', 'NLOS-2', 'NLOS-3', 'LOS-pen', 'NLOS-pen', 'NLOS-1-pen',
+                   'NLOS-2-pen', 'NLOS-3-pen', 'noNLOS-pen', 'noLOS-pen']:
             return False
         else:
             return True
 
-    def build(self, txgrp: int = -1, rxgrp: int = -1, typ: str = 'LOS'):
+    def build(self, txgrp: list = [-1], rxgrp: list = [-1], typ: str = 'LOS'):
         self.type = typ
         for i in self.source.txs.items():
-            if i[1].setid == txgrp or txgrp == -1:
+            if i[1].setid in txgrp or txgrp[0] == -1:
                 for j in i[1].chans_to_pairs.items():
-                    if j[0].setid == rxgrp or rxgrp == -1:
+                    if j[0].setid in rxgrp or rxgrp[0] == -1:
                         if self.has_path(i[1], j[0], typ):
                             self.hist.append_succ(j[1].dist)
                         else:
                             self.hist.append_fail(j[1].dist)
 
-    def build_trans(self, txgrp: int = -1, rxgrp: int = -1, typ: str = 'LOS->LOS'):
+    def build_trans(self, txgrp: list = [-1], rxgrp: list = [-1], typ: str = 'LOS->LOS'):
         self.type = typ
         start, stop = typ.split('->')
         for i in self.source.txs.items():
-            if i[1].setid == txgrp or txgrp == -1:
+            if i[1].setid in txgrp or txgrp == -1:
                 for j in i[1].chans_to_pairs.keys():
-                    if j.setid == rxgrp or rxgrp == -1:
+                    if j.setid in rxgrp or rxgrp == -1:
                         if self.has_path(i[1], j, start):
                             self.build_delta(ctx=i[1], crx=j, trans_typ=stop)
                         else:
@@ -164,18 +186,18 @@ class DistancedHistExtractor:
 
 
 if __name__ == "__main__":
-    DS = DataStorage(conf='dbconf.txt', threaded=True)
-    DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
-    DS.load_paths(npaths=250)
+    DS = DataStorage()
+    DS.load_rxtx(dbname='Human_sitting_legsback.Sitting.sqlite')
+    DS.load_paths()
     DS.load_interactions(store=True)
 
     from phys_path_procs import *
 
-    DE = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
-    DA = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.01, nffilt=False)
+    #DE = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.03, nffilt=False)
+    DA = DistancedHistExtractor(DS, range=(0.1, 0.45), histbins=30, frac=0.85, thrs=-65, minbins=0.01, nffilt=False)
 
-    DA.build(txgrp=-1, rxgrp=-1, typ='any')
-    DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->LOS')
-    DE.plot_hist(log=False)
+    DA.build(rxgrp=[2, 4, 5], typ='NLOS-pen')
+    #DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->LOS')
+    #DE.plot_hist(log=False)
     DA.plot_hist(log=False)
     exit()

@@ -528,6 +528,12 @@ class DataStorage:
                                                                           eoa[k], aod[k], eod[k], pathlen[k]))
                         file.close()
 
+    def load_all(self, dbname: str = ''):
+        self.load_rxtx(dbname=dbname)
+        self.load_paths()
+        self.load_interactions()
+
+
 
 if __name__ == '__main__':
     DS = DataStorage(conf='dbconf.txt')

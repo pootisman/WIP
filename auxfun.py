@@ -17,12 +17,15 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
 
+colors = ['m', 'k', 'r', 'g', 'b']
+markers = ['*', '.', '+', '^', 'o', 'd', '1', '2', '3', '4', '8']
+styles = [':', '-', '-.', '--']
 
 def enable_latex(pt: float = 12.0):
     from matplotlib import pyplot as plt
     plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-    plt.rc('font', size=pt)
+    font = {'family': 'serif', 'size': pt, 'serif': ['Latin Modern Roman']}
+    plt.rc('font', **font)
 
 
 def basint2(x: list, y: list, xc: int):
@@ -93,3 +96,12 @@ def l2db(val: float):
 
 def db2l(val: float):
     return np.power(10.0, val / 10.0)
+
+
+def excl_interactions(interactions: list = list()):
+    c = 0
+    for i in interactions:
+        if i.typ not in [4]:
+            c += 1
+
+    return c

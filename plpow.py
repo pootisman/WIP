@@ -17,17 +17,24 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
 import matplotlib.pyplot as mpl
+import matplotlib.ticker as tck
 import scipy.io as sio
 from pairdata import DataStorage
 from phys_path_procs import check_data_nf
-from auxfun import l2db
+from auxfun import l2db, markers, excl_interactions, styles, colors
 
 
 class PLPlot:
     def __init__(self, source: DataStorage = None):
         assert source is not None
-        self.xdata = None
-        self.ydata = None
+        self.xdata = list()
+        self.ydata = list()
+        self.raw_xdata = list()
+        self.raw_ydata = list()
+        self.pair_info = list()
+        self.raw_pair_info = list()
+        self.raw_dist_info = list()
+        self.dist_info = list()
         self.nsamps = 0
         self.source = source
         self.a = 0.0
@@ -37,10 +44,16 @@ class PLPlot:
         self.mean_res = 0.0
         self.var_res = np.PINF
 
+    def __sigma_rm(self, sigmamul: float = 1):
+        mask = np.abs(self.ydata - (self.a + self.b * self.xdata)) < np.sqrt(np.var(self.ydata)) * sigmamul
+        self.ydata = self.ydata[mask]
+        self.xdata = self.xdata[mask]
+        self.pair_info = self.pair_info[mask]
+        self.dist_info = np.extract(mask, self.dist_info)
+
     def regr_comp(self, rxgrp: list = [-1], txgrp: list = [-1], typ: str ='LOS', threshold: float = -130,
-                  nff: bool = True):
-        self.xdata = list()
-        self.ydata = list()
+                  nff: bool = True, xrange: tuple = (0.0, 1.0), sigma_f: float = 1, sigma_rounds: int = 1,
+                  additive: bool = False):
         self.typ = typ
         self.thrshld = threshold
 
@@ -57,86 +70,175 @@ class PLPlot:
                     # Destination in a valid group or group is ignored?
                     if j[0].setid in rxgrp or rxgrp[0] == -1:
                         # Check paths for the RX-TX, only pick valid ones
-                        best_pow = -1.0
+                        best_pow = 0.0
                         best_dist = 0.0
                         best_fspl = 0.0
 
-                        for k in j[1].paths.items():
-                            # We care about near-field conditions and do not consider paths with short hops (failed
-                            # near-field test)
-                            if nff and not k[1].near_field_failed:
-                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld\
-                                        and best_pow < k[1].pow:
+                        if typ != 'FULL':
+                            for k in j[1].paths.items():
+                                # Near field condition check is now integrated into the if-blocks, it is ignored if nff
+                                # is False
+                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and \
+                                        l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) and \
+                                        (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
-                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and \
+                                        l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                        and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
-                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and \
+                                        l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                        and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
-                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and \
+                                        l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                        and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                            # We do not care about near field test result, all links are considered
-                            elif not nff:
-                                if k[1].interactions.__len__() == 0 and typ == 'LOS' and l2db(k[1].pow) >= self.thrshld\
-                                        and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif excl_interactions(k[1].interactions) == 0 and typ == 'LOS-pen' and \
+                                        l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                        and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                                elif k[1].interactions.__len__() == 1 and typ == 'NLOS-1' and\
-                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif excl_interactions(k[1].interactions) == 1 and typ == 'NLOS-1-pen' and \
+                                         l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                         and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                                elif k[1].interactions.__len__() == 2 and typ == 'NLOS-2' and\
-                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif excl_interactions(k[1].interactions) == 2 and typ == 'NLOS-2-pen' and \
+                                         l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                         and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
-                                    best_pow = k[1].pow
-                                elif k[1].interactions.__len__() >= 1 and typ == 'NLOS' and\
-                                        l2db(k[1].pow) >= self.thrshld and best_pow < k[1].pow:
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                                elif excl_interactions(k[1].interactions) >= 1 and typ == 'NLOS-pen' and \
+                                         l2db(k[1].pow) >= self.thrshld and (best_pow < k[1].pow or additive) \
+                                         and (not nff or not k[1].near_field_failed):
                                     best_dist = j[1].dist
                                     best_fspl = k[1].fspl
+                                    if additive:
+                                        best_pow += k[1].pow
+                                    else:
+                                        best_pow = k[1].pow
+                        else:
+                            if l2db(j[1].pow) >= self.thrshld:
+                                best_pow = j[1].pow
+                                if additive:
+                                    best_pow += k[1].pow
+                                else:
                                     best_pow = k[1].pow
 
                         if best_pow > 0.0:
-                            print('Appending {} m with FSPL {} dB and power {}'.format(best_dist, best_fspl, l2db(best_pow)))
-                            self.xdata.append(np.log10(best_dist))
-                            self.ydata.append(-l2db(best_pow))
+                            self.raw_xdata.append(np.log10(best_dist))
+                            self.raw_ydata.append(-l2db(best_pow))
                             self.nsamps += 1
+                            self.raw_pair_info.append(j[0].setid)
+                            self.raw_dist_info.append(xrange[0] < best_dist < xrange[1])
 
-        self.xdata = np.asarray(self.xdata)
-        self.ydata = np.asarray(self.ydata)
-        # Data ready, calculate ax + b regression
-        self.a, self.b = np.linalg.lstsq(np.vstack([self.xdata, np.ones(self.xdata.__len__())]).T,
-                                         self.ydata, rcond=None)[0]
-        return self.a, self.b
 
-    def export(self, plot: bool = True, csvsav: bool = False, matsav: bool = False):
-        self.mean_res = np.mean(self.ydata - self.b - self.a * self.xdata)
-        self.var_res = np.sqrt(np.var(self.ydata - self.b - self.a * self.xdata))
+
+        # Convert NumPy arrays for further processing
+        self.xdata = np.asarray(self.raw_xdata)
+        self.ydata = np.asarray(self.raw_ydata)
+
+        self.raw_xdata = np.asarray(self.raw_xdata)
+        self.raw_ydata = np.asarray(self.raw_ydata)
+
+        self.pair_info = np.asarray(self.raw_pair_info)
+        self.dist_info = np.asarray(self.raw_dist_info)
+
+        self.b, self.a = np.linalg.lstsq(np.vstack([self.xdata[self.dist_info],
+                                                    np.ones(self.xdata[self.dist_info].__len__())]).T,
+                                         self.ydata[self.dist_info], rcond=None)[0]
+        if sigma_f < np.PINF:
+            for i in range(sigma_rounds):
+                self.__sigma_rm(sigma_f)
+                self.b, self.a = np.linalg.lstsq(np.vstack([self.xdata[self.dist_info],
+                                                        np.ones(self.xdata[self.dist_info].__len__())]).T,
+                                                 self.ydata[self.dist_info], rcond=None)[0]
+
+        self.residues = self.raw_ydata - self.a - self.b * self.raw_xdata
+        self.mean_res = np.mean(self.residues)
+        self.var_res = np.sqrt(np.var(self.residues))
+
+        return (self.a, self.b, self.mean_res, self.var_res, self.nsamps, self.typ, self.xdata, self.ydata,
+                np.asarray(self.raw_xdata), np.asarray(self.raw_ydata), self.residues)
+
+    def export(self, plot: bool = True, csvsav: bool = False, matsav: bool = False, split_points: bool = True,
+               trajmap: dict = dict(), title_draw: bool = False, mkpdf: bool = False, mkpng: bool = False,
+               show: bool = True, fname_suffix: str = "", draw_resudues: bool = True):
 
         if plot:
-            mpl.figure()
-            mpl.plot(np.power(10, self.xdata), self.ydata, 'r.', label='Experimental data')
-            mpl.plot(np.power(10, self.xdata), self.b + self.a * self.xdata, 'b.', label='Fitted model')
-            mpl.title('{} Regression b={:3.2}dBm, a={:3.2}dBm,\\\\ m={:3.2}dBm , s={:3.2}dBm, N={} samples'.
-                      format(self.typ, self.a, self.b, self.mean_res, self.var_res, self.nsamps))
+            loc = tck.AutoLocator()
+            loc.create_dummy_axis()
+            ytics = loc.tick_values(np.min([self.ydata.min(), self.a + self.b * self.xdata.min()]),
+                                    np.max([self.ydata.max(), self.a + self.b * self.xdata.max()]))
+            xtics = loc.tick_values(np.power(10.0, self.xdata).min(), np.power(10.0, self.xdata.max()))
+            x_mod_data = np.linspace(start=np.min(xtics), stop=np.max(xtics), endpoint=True, num=20)
+            f = mpl.figure()
+            if split_points is False:
+                mpl.plot(np.power(10.0, self.xdata), self.ydata, 'r.', label='SBR data')
+            else:
+                grps = np.unique(self.pair_info)
+                for v in grps:
+                    pi = np.where(np.asarray(self.pair_info) == v)
+                    mpl.plot(np.power(10.0, self.xdata[pi]), self.ydata[pi], markers[v], label='SBR data, group {}'.
+                             format(trajmap[v]))
+
+            mpl.plot(x_mod_data, self.a + self.b * np.log10(x_mod_data), 'b-', label='Fitted model')
+
+            if title_draw:
+                mpl.title('{} Regression $\\alpha$={:3.2f}dBm, $\\beta$={:3.2f}dBm,\\'
+                          '\\ m={:3.2f}dBm, $\\sigma$={:3.2f}dBm, N={} samples'.
+                          format(self.typ, self.a, self.b/10.0, self.mean_res, self.var_res, self.nsamps))
+
             mpl.xlabel('Distance, [meters]')
-            mpl.ylabel('Pathloss, [dB]')
+            mpl.ylabel('Path loss, [dB]')
+            mpl.xticks(xtics)
+            mpl.yticks(ytics)
             mpl.grid(linestyle='--')
             mpl.legend()
-            mpl.xlim([0, np.nanmax(np.power(10.0, self.xdata + self.xdata / 0.9))])
-            mpl.show()
+            mpl.xlim([np.min(xtics), np.max(xtics)])
+            mpl.ylim([np.min(ytics), np.max(ytics)])
+            mpl.tight_layout()
+            if show:
+                mpl.show()
+
+            if mkpng:
+                mpl.savefig('Regr_{}{}.png'.format(self.typ, fname_suffix))
+
+            if mkpdf:
+                mpl.savefig('Regr_{}{}.pdf'.format(self.typ, fname_suffix))
 
         if csvsav:
             file = open('fspl_regr.csv', mode='w')
@@ -148,16 +250,172 @@ class PLPlot:
             file.close()
 
         if matsav:
-            sio.savemat('fspl_regr.mat', {'A': self.a, 'B': self.b, 'xdata': self.xdata, 'ydata': self.ydata})
+            sio.savemat('{}_{}_regr.mat'.format(self.typ, fname_suffix), {'A': self.a, 'B': self.b, 'xdata': self.xdata,
+                                                                          'ydata': self.ydata, 'grps': self.pair_info,
+                                                                          'disti': self.dist_info,
+                                                                          'ydata_raw': self.raw_ydata,
+                                                                          'xdata_raw': self.raw_xdata,
+                                                                          'residues': self.residues})
+
+        if not show:
+            mpl.close(f)
+
+    def plot_regr_only(self, params: dict = {}, title_draw: bool = False, dists: tuple = (0.1, 1.0),
+                       show_data: bool = True, fspl_draw: bool = False, plot_raw: bool = False,
+                       plot_resid: bool = True):
+        resid = []
+
+        mpl.figure()
+
+        loc = tck.AutoLocator()
+        loc.create_dummy_axis()
+        xtics = loc.tick_values(dists[0], dists[1])
+        x_mod_data = np.linspace(start=np.min(xtics), stop=np.max(xtics), endpoint=True, num=20)
+
+        ylims = [np.PINF, np.NINF]
+
+        if fspl_draw:
+            mpl.plot(x_mod_data, 20 * np.log10(4.0 * np.pi * x_mod_data * 60e9 / 3e8), ':', label='FSPL equation', linewidth=4.0)
+
+        n = 0
+        for i in params.keys():
+            data = params[i][0] + params[i][1] * np.log10(x_mod_data)
+
+            ylims[0] = np.min(data) if np.min(data) < ylims[0] else ylims[0]
+            ylims[1] = np.max(data) if np.max(data) > ylims[1] else ylims[1]
+
+            for j in params[i][10]:
+                resid.append(j)
+
+            mpl.plot(x_mod_data, data, ''.join([styles[n], colors[n]]), linewidth=2, label='Fitted model [{}]'.format(i))
+            if show_data:
+                if plot_raw:
+                    mpl.plot(10.0**(params[i][8]), params[i][9], ''.join([markers[n], colors[n]]), linewidth=2, label='Simulation [{}]'.format(i))
+                else:
+                    mpl.plot(10.0**(params[i][6]), params[i][7], ''.join([markers[n], colors[n]]), linewidth=2, label='Simulation [{}]'.format(i))
+
+
+            if title_draw:
+                mpl.title('{} Regression $\\alpha$={:3.2f}dBm, $\\beta$={:3.2f}dBm,\\'
+                          '\\ m={:3.2f}dBm, $\\sigma$={:3.2f}dBm, N={} samples'.
+                          format(self.typ, self.a, self.b / 10.0, self.mean_res, self.var_res, self.nsamps))
+
+            mpl.xlabel('Distance, [meters]')
+            mpl.ylabel('Path loss, [dB]')
+            mpl.xticks(xtics)
+            mpl.grid(linestyle='--')
+            mpl.legend()
+            mpl.xlim([np.min(xtics), np.max(xtics)])
+            n+=1
+
+
+
+        ytics = loc.tick_values(ylims[0], ylims[1])
+        mpl.yticks(ytics)
+        mpl.ylim([np.min(ytics), np.max(ytics)])
+        mpl.tight_layout()
+
+        if plot_resid:
+            mpl.figure()
+            mpl.hist(resid, bins=30)
+            mpl.xlabel('Residue, [dB]')
+            mpl.ylabel('Hits')
+            mpl.grid(linestyle='--')
+
+        mpl.show()
 
 
 if __name__ == '__main__':
-    DS = DataStorage(conf='dbconf.txt')
-    DS.load_rxtx('class_sqlite')
-    DS.load_paths()
-    DS.load_interactions()
-    check_data_nf(DS)
+    from auxfun import enable_latex
+    enable_latex(pt=14)
+
+    def loadall(name: str = ''):
+        DS = DataStorage()
+        DS.load_rxtx(name)
+        DS.load_paths()
+        DS.load_interactions()
+        return DS
+
+    typd = 'LOS-pen'
+
+    dd = {}
+    dd2 = {}
+
+    sr = 1
+    add = False
+    fspl_draw = False
+    td = False
+    drraw = True
+
+    DS = loadall('Human_sitting_legsback.Sitting Leather.sqlite')
     plp = PLPlot(source=DS)
-    print(plp.regr_comp(typ='NLOS-1', threshold=-115, nff=True))
-    plp.export(csvsav=True, matsav=True)
+    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.1, 0.4), sigma_rounds=sr,
+                         additive=add)
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+              show=False, fname_suffix='_sitting_leather')
+
+    print(data[0], data[1], data[3])
+
+    dd['Leather'] = data
+
+    DS = loadall('Human_sitting_legsback.Sitting fleece.sqlite')
+    plp = PLPlot(source=DS)
+    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.1, 0.4), sigma_rounds=sr,
+                         additive=add)
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+              show=False, fname_suffix='_sitting_fleece')
+
+    print(data[0], data[1], data[3])
+
+    dd['Fleece'] = data
+
+    DS = loadall('Human_sitting_legsback.Sitting.sqlite')
+    plp = PLPlot(source=DS)
+    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.1, 0.4), sigma_rounds=sr,
+                         additive=add)
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+              show=False, fname_suffix='_sitting')
+
+    print(data[0], data[1], data[3])
+
+    dd['Naked'] = data
+
+    DS = loadall('Human_sitting_legsback.Standing leather.sqlite')
+    plp = PLPlot(source=DS)
+    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.3, 0.6), sigma_rounds=sr,
+                         additive=add)
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+              show=False, fname_suffix='_standing_leather')
+
+    print(data[0], data[1], data[3])
+
+    dd2['Leather'] = data
+
+    DS = loadall('Human_sitting_legsback.Standing fleece.sqlite')
+    plp = PLPlot(source=DS)
+    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.3, 0.6), sigma_rounds=sr,
+                         additive=add)
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+              show=False, fname_suffix='_standing_fleece')
+
+    print(data[0], data[1], data[3])
+
+    dd2['Fleece'] = data
+
+    DS = loadall('Human_sitting_legsback.Standing_still.sqlite')
+    plp = PLPlot(source=DS)
+    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.3, 0.6), sigma_rounds=sr,
+                         additive=add)
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+              show=False, fname_suffix='_standing')
+
+    print(data[0], data[1], data[3])
+
+    dd2['Naked'] = data
+
+    plp.plot_regr_only(dd, dists=(0.1, 0.6), fspl_draw=fspl_draw, title_draw=td, plot_raw=drraw)
+    plp.plot_regr_only(dd2, dists=(0.3, 0.6), fspl_draw=fspl_draw, title_draw=td, plot_raw=drraw)
+
+    #plp.export(csvsav=False, matsav=False, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
+    #           show=False, fname_suffix='_sitting_leather')
     exit()
