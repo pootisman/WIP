@@ -22,6 +22,7 @@ import concurrent.futures as cof
 from multiprocessing import cpu_count
 from time import sleep
 from sys import argv
+from os import sep
 
 max_waiting = 5 * cpu_count()
 stepping = 1e3
@@ -68,7 +69,7 @@ if argv.__len__() == 1:
     dbn = input('Type in database name: ')
 else:
     dbf = ' '.join(argv[1:argv.__len__()]).strip('"').strip("'")
-    dbn = dbf.split('\\')[-1]
+    dbn = dbf.split(sep)[-1]
 
 dbn = dbn.replace('.', '_').replace('@','at').replace(' ', '_')
 
@@ -125,7 +126,7 @@ for i in WI_TABLES.items():
 
         print('Writing {}'.format(i[0]))
 
-        myreq = None
+        myreq = []
 
         for j in sqlicurs.execute(req):
             if comm % stepping == 0:

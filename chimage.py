@@ -17,8 +17,9 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import matplotlib.pyplot as mpl
 import scipy.io as sio
-import pairdata
+from pairdata import DataStorage
 from auxclass import *
+from auxfun import enable_latex, basint3, l2db
 
 class CHImageRX:
     def __init__(self, source):
@@ -32,9 +33,9 @@ class CHImageRX:
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-               cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan,
-               zmax: float = np.nan):
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkimg: str = '',
+               cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan, show: bool = True,
+               zmax: float = np.nan, showtit: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -53,13 +54,18 @@ class CHImageRX:
                 rr = 0
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        f = mpl.figure(rr)
+                        if mkimg or show:
+                            f = mpl.figure(rr)
+
                         rr += 1
                         hist = PowHist2D(azbinc=180, elbinc=90)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
-                                hist.append(k[1].AoA, k[1].EoA, k[1].pow)
+                                hist.append(k[1].aoa, k[1].eoa, k[1].pow)
+                            elif not nff:
+                                hist.append(k[1].aoa, k[1].eoa, k[1].pow)
+
 
                         x = []
                         y = []
@@ -84,24 +90,29 @@ class CHImageRX:
 
                         x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        mpl.pcolor(x, y, z.T, cmap=cmap, vmin=zmin, vmax=zmax)
-                        mpl.grid(linestyle='--')
-                        mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
-                        mpl.xlabel('Azimuth, [degrees]')
-                        mpl.ylabel('Elevation, [degrees]')
-                        cbr = mpl.colorbar()
-                        cbr.set_label('RX Power, [dBm]')
-                        mpl.tight_layout()
-                        if mkpng:
-                            mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.
-                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j))
+                        if mkimg != '' or show:
+                            pcol = mpl.pcolor(x, y, z.T, cmap=cmap, vmin=zmin, vmax=zmax, linewidth=1)
+                            pcol.set_edgecolor('face')
+                            mpl.grid(linestyle='--')
+                            if showtit:
+                                mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
+                            mpl.xlabel('Azimuth, [degrees]')
+                            mpl.ylabel('Elevation, [degrees]')
+                            mpl.gca().invert_yaxis()
+                            cbr = mpl.colorbar()
+                            cbr.set_label('RX Power, [dBm]')
+                            mpl.tight_layout()
+
+                        if mkimg != '':
+                            mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].{4:s}'.
+                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j, mkimg))
                             mpl.close(f)
                         if matsav:
                             sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
                                         {'X': x, 'Y': y, 'Z': z})
 
-        if mkpng is False:
+        if mkimg == '':
             mpl.show()
 
 
@@ -117,9 +128,9 @@ class CHImageTx:
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkimg: str = '',
                cmap: str = 'viridis', nff: bool = True, matsav: bool = False, show: bool = True, zmin: float = np.nan,
-               zmax: float = np.nan):
+               zmax: float = np.nan, showtit: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -138,7 +149,7 @@ class CHImageTx:
                 rr = 0
                 for j in rxrange:
                     if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        if mkpng or show:
+                        if mkimg or show:
                             f = mpl.figure(rr)
 
                         rr += 1
@@ -146,8 +157,9 @@ class CHImageTx:
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
-                                hist.append(k[1].AoD, k[1].EoD, k[1].pow)
-
+                                hist.append(k[1].aod, k[1].eod, k[1].pow)
+                            elif not nff:
+                                hist.append(k[1].aoa, k[1].eoa, k[1].pow)
                         x = []
                         y = []
                         z = []
@@ -171,19 +183,22 @@ class CHImageTx:
 
                         x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        if mkpng or show:
-                            mpl.pcolor(x, y, z.T,  cmap=cmap, vmin=zmin, vmax=zmax)
+                        if mkimg != '' or show:
+                            pcol = mpl.pcolormesh(x, y, z.T,  cmap=cmap, vmin=zmin, vmax=zmax, linewidths=1)
+                            pcol.set_edgecolor('face')
                             mpl.grid(linestyle='--')
-                            mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
+                            if showtit:
+                                mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                             mpl.xlabel('Azimuth, [degrees]')
                             mpl.ylabel('Elevation, [degrees]')
                             cbr = mpl.colorbar()
                             cbr.set_label('RX Power, [dBm]')
                             mpl.tight_layout()
+                            mpl.gca().invert_yaxis()
 
-                        if mkpng or not show:
-                            mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].png'.
-                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j))
+                        if mkimg != '' or not show:
+                            mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].{4:s}'.
+                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j, mkimg))
                             mpl.close(f)
 
                         if matsav:
@@ -191,23 +206,23 @@ class CHImageTx:
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
                             {'X': x, 'Y': y, 'Z': z})
 
-        if mkpng is False and show:
+        if mkimg == '' and show:
             mpl.show()
 
 
 if __name__ == "__main__":
-    DS = pairdata.DataStorage(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
+    DS = DataStorage("dbconf.txt")
+    DS.load_rxtx('BUSMOD')
     DS.load_paths(npaths=250)
-    DS.load_interactions(store=True)
+    #DS.load_interactions(store=False)
 
-    from phys_path_procs import *
-    check_data_nf(DS)
+    #from phys_path_procs import *
+    #check_data_nf(DS)
 
     enable_latex()
 
     DE = CHImageRX(DS)
-    DE.export(rxgrp=[2, 6, 5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
+    DE.export(rxgrp=[2,4], mkimg='svg', nff=False, zmin=-160.0, zmax=-70.0)
     DT = CHImageTx(DS)
-    DT.export(rxgrp=[2, 6, 5], mkpng=True, nff=True, zmin=-130.0, zmax=-40.0)
+    DT.export(rxgrp=[2,4], mkimg='svg', nff=False, zmin=-160.0, zmax=-80.0)
     exit()
