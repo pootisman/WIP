@@ -104,11 +104,11 @@ class CHImageRX:
                             mpl.tight_layout()
 
                         if mkimg != '':
-                            mpl.savefig('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].{4:s}'.
+                            mpl.savefig('RXCImage.tx[{0:01d}.{1:03d}]-rx[{2:01d}.{3:03d}].{4:s}'.
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j, mkimg))
                             mpl.close(f)
                         if matsav:
-                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.
+                            sio.savemat('RXCImage.tx[{0:01d}.{1:03d}]-rx[{2:01d}.{3:03d}].mat'.
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
                                         {'X': x, 'Y': y, 'Z': z})
 
@@ -197,12 +197,12 @@ class CHImageTx:
                             mpl.gca().invert_yaxis()
 
                         if mkimg != '' or not show:
-                            mpl.savefig('TXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].{4:s}'.
+                            mpl.savefig('TXCImage.tx[{0:01d}.{1:03d}]-rx[{2:01d}.{3:03d}].{4:s}'.
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j, mkimg))
                             mpl.close(f)
 
                         if matsav:
-                            sio.savemat('RXCImage_tx[{0:01d}.{1:03d}]->rx[{2:01d}.{3:03d}].mat'.
+                            sio.savemat('TXCImage.tx[{0:01d}.{1:03d}]-rx[{2:01d}.{3:03d}].mat'.
                                         format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
                             {'X': x, 'Y': y, 'Z': z})
 
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     enable_latex()
 
     DE = CHImageRX(DS)
-    DE.export(rxgrp=[2,4], mkimg='svg', nff=False, zmin=-160.0, zmax=-70.0)
+    DE.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0)
     DT = CHImageTx(DS)
-    DT.export(rxgrp=[2,4], mkimg='svg', nff=False, zmin=-160.0, zmax=-80.0)
+    DT.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-80.0)
     exit()
