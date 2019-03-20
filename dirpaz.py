@@ -16,12 +16,13 @@
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import matplotlib.pyplot as mpl
-#import mayavi.mlab as mlab
+import mayavi.mlab as mlab
 import scipy.io as sio
 import numpy as np
 from pairdata import DataStorage
-from auxfun import l2db, basint3, enable_latex
+from auxfun import l2db, basint3, enable_latex, squre_up
 from auxclass import PowHist, PowHist2D
+
 
 class RXPatAz:
     def __init__(self, source: DataStorage):
@@ -262,7 +263,7 @@ class TXPatAz:
                                         {'theta': tt, 'pow': r})
 
                         if gennpz:
-                            np.savez_compressed('{2}TXel.tx{0:03d}-rx{1:03d}'.format(i, j, fnappend),
+                            np.savez_compressed('{2}TXaz.tx{0:03d}-rx{1:03d}'.format(i, j, fnappend),
                                                 theta=tt, power=r)
 
                         if csvsav:
@@ -282,7 +283,7 @@ class TXPatEl:
 
     def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkimg: str = '',
                nff: bool = True, csvsav: bool = False, matsav: bool = False, fnappend: str = '',
-               rlims: tuple = (-110, -75), drawtit: bool = False, npzgen: bool = False):
+               rlims: tuple = (-110, -75), drawtit: bool = False, gennpz: bool = False):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -344,6 +345,10 @@ class TXPatEl:
                             sio.savemat('{2}TXel.tx{0:03d}-rx{1:03d}.mat'.format(i, j, fnappend),
                                         {'theta': tt, 'pow': r})
 
+                        if gennpz:
+                            np.savez_compressed('{2}TXel.tx{0:03d}-rx{1:03d}'.format(i, j, fnappend),
+                                                theta=tt, power=r)
+
                         if csvsav:
                             file = open('{2}TXel.tx{0:03d}-rx{1:03d}.csv'.format(i, j, fnappend), mode='w')
                             file.write('Ang. [deg], Pow [dBm]\n')
@@ -359,8 +364,8 @@ class RXPatAll:
     def __init__(self, source: DataStorage):
         self.source = source
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
-               nff: bool = True, matsav: bool = False, mkpdf: bool = False):
+    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkimg: str='',
+               nff: bool = True, matsav: bool = False, gennpz: bool=False, fnappend: str=''):
         if txrange == -1:
             txrange = self.source.txs.keys()
         else:
@@ -376,7 +381,7 @@ class RXPatAll:
                 rr = 0
                 for j in rxrange:
                     if rxgrp in (self.source.rxs[j].setid, -1):
-                        f = mlab.figure(j)
+                        f = mlab.figure(j, bgcolor=(1,1,1))
                         rr += 1
                         hist = PowHist2D()
 
@@ -389,10 +394,10 @@ class RXPatAll:
                         z = list()
 
                         for k in hist.bins.items():
-                            x.append(k[0][0])
-                            x.append(k[0][1])
-                            y.append(k[0][2])
-                            y.append(k[0][3])
+                            y.append(k[0][0])
+                            y.append(k[0][1])
+                            x.append(k[0][2])
+                            x.append(k[0][3])
                             z.append(k[1] if k[1] > 0 else np.nan)
                             z.append(z[-1])
 
@@ -408,24 +413,25 @@ class RXPatAll:
 
                         plot_z = z - np.min(np.min(z))
 
-                        mlab.mesh((plot_z.T * np.cos(np.tile(np.deg2rad(x), [ylen, 1])) *
-                                   np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
-                                  (plot_z.T * np.sin(np.tile(np.deg2rad(x), [ylen, 1]))
-                                   * np.sin(np.tile(np.deg2rad(y), [xlen, 1])).T),
-                                  (plot_z.T * np.cos(np.tile(np.deg2rad(x), [ylen, 1]))))
+                        mlab.mesh((squre_up(plot_z.T) * np.cos(squre_up(np.tile(np.deg2rad(x), [ylen, 1]), True)) *
+                                   np.sin(squre_up(np.tile(np.deg2rad(y), [xlen, 1]), True)).T),
+                                  (squre_up(plot_z.T) * np.sin(squre_up(np.tile(np.deg2rad(x), [ylen, 1]), True)) *
+                                   np.sin(squre_up(np.tile(np.deg2rad(y), [xlen, 1]), True)).T),
+                                  (squre_up(plot_z.T) * np.cos(squre_up(np.tile(np.deg2rad(x), [ylen, 1]), True))),
+                                  scalars=squre_up(plot_z.T), colormap='jet')
 
-                        if mkpng:
-                            mlab.savefig('RXpat.tx{0:03d}-rx{1:03d}.png'.format(i, j))
-                            mlab.close(f)
-
-                        if mkpdf:
-                            mlab.savefig('RXpat.tx{0:03d}-rx{1:03d}.pdf'.format(i, j))
+                        if mkimg:
+                            mlab.savefig('RXpat.tx{0:03d}-rx{1:03d}.{2}'.format(i, j, mkimg))
                             mlab.close(f)
 
                         if matsav:
-                            sio.savemat('RXPat.tx{0:03d}-rx{1:03d}.mat'.format(i, j), {'X': x, 'Y': y, 'Z': z})
+                            sio.savemat('RXPat.tx{0:03d}-rx{1:03d}.mat'.format(i, j), {'X': x, 'Y': y, 'Z': plot_z})
 
-        if mkpng is False:
+                        if gennpz:
+                            np.savez_compressed('{2}TXaz.tx{0:03d}-rx{1:03d}'.format(i, j, fnappend),
+                                                x=x, y=y, z=plot_z)
+
+        if mkimg == '':
             mlab.show()
 
 
@@ -435,5 +441,5 @@ if __name__ == "__main__":
     DS.load_rxtx('BUSMOD')
     DS.load_paths(npaths=250)
     DS.load_interactions()
-    cir = TXPatAz(DS)
-    cir.export(rxgrp=4, mkimg='', gennpz=True, rlims=(-100, -75), drawtit=False)
+    cir = RXPatAll(DS)
+    cir.export(rxgrp=4, mkimg='', gennpz=False, matsav=True)
