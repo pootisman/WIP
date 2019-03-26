@@ -20,7 +20,7 @@ import mayavi.mlab as mlab
 import scipy.io as sio
 import numpy as np
 from pairdata import DataStorage
-from auxfun import l2db, basint3, enable_latex, squre_up
+from auxfun import l2db, basint3, enable_latex, square_up
 from auxclass import PowHist, PowHist2D
 
 
@@ -411,25 +411,26 @@ class RXPatAll:
                         xlen = x.size
                         ylen = y.size
 
-                        plot_z = z - np.min(np.min(z))
+                        r = square_up(z - np.min(np.min(z)))
+                        ele = square_up(np.tile(np.deg2rad(x), [ylen, 1]), True)
+                        azi = square_up(np.tile(np.deg2rad(y), [xlen, 1]), True).T
 
-                        mlab.mesh((squre_up(plot_z.T) * np.cos(squre_up(np.tile(np.deg2rad(x), [ylen, 1]), True)) *
-                                   np.sin(squre_up(np.tile(np.deg2rad(y), [xlen, 1]), True)).T),
-                                  (squre_up(plot_z.T) * np.sin(squre_up(np.tile(np.deg2rad(x), [ylen, 1]), True)) *
-                                   np.sin(squre_up(np.tile(np.deg2rad(y), [xlen, 1]), True)).T),
-                                  (squre_up(plot_z.T) * np.cos(squre_up(np.tile(np.deg2rad(x), [ylen, 1]), True))),
-                                  scalars=squre_up(plot_z.T), colormap='jet')
+                        x = r.T * np.cos(ele) * np.sin(azi)
+                        y = r.T * np.sin(ele) * np.sin(azi)
+                        z = r.T * np.cos(ele)
+
+                        mlab.mesh(x, y, z, scalars=r.T, colormap='jet')
 
                         if mkimg:
                             mlab.savefig('RXpat.tx{0:03d}-rx{1:03d}.{2}'.format(i, j, mkimg))
                             mlab.close(f)
 
                         if matsav:
-                            sio.savemat('RXPat.tx{0:03d}-rx{1:03d}.mat'.format(i, j), {'X': x, 'Y': y, 'Z': plot_z})
+                            sio.savemat('RXPat.tx{0:03d}-rx{1:03d}.mat'.format(i, j), {'X': x, 'Y': y, 'Z': z})
 
                         if gennpz:
                             np.savez_compressed('{2}TXaz.tx{0:03d}-rx{1:03d}'.format(i, j, fnappend),
-                                                x=x, y=y, z=plot_z)
+                                                x=x, y=y, z=z)
 
         if mkimg == '':
             mlab.show()

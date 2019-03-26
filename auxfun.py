@@ -18,7 +18,7 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import numpy as np
 from numba import jit,autojit
 from matplotlib import pyplot as plt
-from scipy.ndimage.filters import median_filter
+from scipy.ndimage.filters import uniform_filter
 
 colors = ['m', 'k', 'r', 'g', 'b']
 markers = ['*', '.', '+', '^', 'o', 'd', '1', '2', '3', '4', '8']
@@ -93,9 +93,11 @@ def basint3(x: list, y: list, z: list, xc: int, yc: int, xmin: float = np.nan, x
     return xo, yo, zo
 
 @jit
-def squre_up(array: np.ndarray, smooth: bool = False):
-    return np.repeat(np.repeat(array, 2, axis=0).T, 2, axis=0).T if not smooth else\
-        median_filter(np.repeat(np.repeat(array, 2, axis=0).T, 2, axis=0).T, size=(3))
+def square_up(array: np.ndarray, smooth: bool = False):
+    if not smooth:
+        return np.repeat(np.repeat(array, 2, axis=0).T, 2, axis=0).T
+    else:
+        return uniform_filter(np.repeat(np.repeat(array, 2, axis=0).T, 2, axis=0).T, size=(2, 2))
 
 @jit
 def l2db(val: float):

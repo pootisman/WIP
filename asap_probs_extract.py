@@ -172,7 +172,7 @@ class DistancedHistExtractor:
         bars2 = []
 
         for i in self.hist.bins.items():
-            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], i[1][1]/self.hist.tothits))
+            bars2.append(mpp.Rectangle((i[0][0], 0), i[0][1] - i[0][0], (i[1][1]/self.hist.tothits) if self.hist.tothits > 0 else 0.0))
             ax.text(i[0][0] + (i[0][1] - i[0][0])/2.0, 0.5, s='{}'.format(i[1][1]), rotation='vertical',
                     horizontalalignment='center', verticalalignment='center')
 
@@ -186,18 +186,18 @@ class DistancedHistExtractor:
 
 
 if __name__ == "__main__":
-    DS = DataStorage()
-    DS.load_rxtx(dbname='Human_sitting_legsback.Sitting.sqlite')
+    DS = DataStorage('dbconf.txt')
+    DS.load_rxtx(dbname='Bus_geom_HHD_sqlite')
     DS.load_paths()
     DS.load_interactions(store=True)
 
     from phys_path_procs import *
 
-    #DE = DistancedHistExtractor(DS, range=(0.0, 1.0), histbins=50, frac=0.95, thrs=-95, minbins=0.03, nffilt=False)
-    DA = DistancedHistExtractor(DS, range=(0.1, 0.45), histbins=30, frac=0.85, thrs=-65, minbins=0.01, nffilt=False)
+    DE = DistancedHistExtractor(DS, range=(0.5, 11), histbins=50, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
+    DA = DistancedHistExtractor(DS, range=(0.5, 11), histbins=30, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
 
-    DA.build(rxgrp=[2, 4, 5], typ='NLOS-pen')
-    #DE.build_trans(txgrp=-1, rxgrp=-1, typ='LOS->LOS')
-    #DE.plot_hist(log=False)
+    DA.build(rxgrp=[5,6], typ='NLOS-pen')
+    DE.build_trans(rxgrp=[5,6], typ='LOS->LOS')
+    DE.plot_hist(log=False)
     DA.plot_hist(log=False)
     exit()

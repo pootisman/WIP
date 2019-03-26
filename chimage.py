@@ -224,5 +224,5 @@ if __name__ == "__main__":
     DE = CHImageRX(DS)
     DE.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0)
     DT = CHImageTx(DS)
-    DT.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-80.0)
+    DT.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0)
     exit()
