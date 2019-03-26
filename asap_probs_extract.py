@@ -187,7 +187,7 @@ class DistancedHistExtractor:
 
 if __name__ == "__main__":
     DS = DataStorage('dbconf.txt')
-    DS.load_rxtx(dbname='Bus_geom_HHD_sqlite')
+    DS.load_rxtx(dbname='Bus_geom_Humans_sqlite')
     DS.load_paths()
     DS.load_interactions(store=True)
 

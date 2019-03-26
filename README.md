@@ -14,8 +14,3 @@
 
 * 3D mesh storage (Grab model references and floor plans from project?)
 * Temporal/Spatial characteristics analysis
-
-## Media
-
-![Image](RXCI[1->2].gif)
-![Image](TXCI[1->2].gif)
