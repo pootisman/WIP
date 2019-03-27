@@ -22,6 +22,7 @@ import numpy as np
 import matplotlib.pyplot as mpl
 import matplotlib.patches as mpp
 import matplotlib.collections as mpc
+import pickle
 
 
 class DistancedHistExtractor:
@@ -97,9 +98,9 @@ class DistancedHistExtractor:
     def build(self, txgrp: list = [-1], rxgrp: list = [-1], typ: str = 'LOS'):
         self.type = typ
         for i in self.source.txs.items():
-            if i[1].setid in txgrp or txgrp[0] == -1:
+            if i[1].setid in txgrp or txgrp[0] == [-1]:
                 for j in i[1].chans_to_pairs.items():
-                    if j[0].setid in rxgrp or rxgrp[0] == -1:
+                    if j[0].setid in rxgrp or rxgrp[0] == [-1]:
                         if self.has_path(i[1], j[0], typ):
                             self.hist.append_succ(j[1].dist)
                         else:
@@ -109,9 +110,9 @@ class DistancedHistExtractor:
         self.type = typ
         start, stop = typ.split('->')
         for i in self.source.txs.items():
-            if i[1].setid in txgrp or txgrp == -1:
+            if i[1].setid in txgrp or txgrp == [-1]:
                 for j in i[1].chans_to_pairs.keys():
-                    if j.setid in rxgrp or rxgrp == -1:
+                    if j.setid in rxgrp or rxgrp == [-1]:
                         if self.has_path(i[1], j, start):
                             self.build_delta(ctx=i[1], crx=j, trans_typ=stop)
                         else:
@@ -184,20 +185,36 @@ class DistancedHistExtractor:
         mpl.tight_layout()
         mpl.show()
 
+    def putpickle(self, fnappend: str = ''):
+        output = open('asap,{}{}.pickle'.format(self.type, ',' + fnappend if fnappend != '' else ''), 'wb')
+        pickle.dump(self.hist, output)
+        output.close()
+
+    def getpickle(self, fnappend:str):
+        input = open('asap,{}.pickle'.format(fnappend), 'rb')
+        self.hist = pickle.load(input)
+        input.close()
+
 
 if __name__ == "__main__":
     DS = DataStorage('dbconf.txt')
-    DS.load_rxtx(dbname='Bus_geom_Humans_sqlite')
+    DS.load_rxtx('Bus_geom_HHD_sqlite')
     DS.load_paths()
     DS.load_interactions(store=True)
 
     from phys_path_procs import *
 
-    DE = DistancedHistExtractor(DS, range=(0.5, 11), histbins=50, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
-    DA = DistancedHistExtractor(DS, range=(0.5, 11), histbins=30, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
+    #DS = None
 
-    DA.build(rxgrp=[5,6], typ='NLOS-pen')
+    DE = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
+    DA = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
+
+    DA.build(rxgrp=[5,6], typ='LOS-pen')
     DE.build_trans(rxgrp=[5,6], typ='LOS->LOS')
+    DE.putpickle('DE')
+    DA.putpickle('DA')
+    #DA.getpickle(fnappend='LOS-pen,DA')
+    #DE.getpickle(fnappend='LOS->LOS,DE')
     DE.plot_hist(log=False)
     DA.plot_hist(log=False)
     exit()

@@ -58,7 +58,7 @@ class CHImageRX:
                             f = mpl.figure(rr)
 
                         rr += 1
-                        hist = PowHist2D(azbinc=180, elbinc=90)
+                        hist = PowHist2D(azbinc=36, elbinc=18)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
@@ -153,7 +153,7 @@ class CHImageTx:
                             f = mpl.figure(rr)
 
                         rr += 1
-                        hist = PowHist2D(azbinc=180, elbinc=90)
+                        hist = PowHist2D(azbinc=36, elbinc=18)
 
                         for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
                             if nff and not k[1].near_field_failed:
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     #from phys_path_procs import *
     #check_data_nf(DS)
 
-    enable_latex()
+    enable_latex(pt=16)
 
     DE = CHImageRX(DS)
     DE.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True)
