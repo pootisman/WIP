@@ -108,7 +108,7 @@ class DistancedHistExtractor:
 
     def build_trans(self, txgrp: list = [-1], rxgrp: list = [-1], typ: str = 'LOS->LOS'):
         self.type = typ
-        start, stop = typ.split('->')
+        start, stop = typ.split('to')
         for i in self.source.txs.items():
             if i[1].setid in txgrp or txgrp == [-1]:
                 for j in i[1].chans_to_pairs.keys():
@@ -197,20 +197,20 @@ class DistancedHistExtractor:
 
 
 if __name__ == "__main__":
-    DS = DataStorage('dbconf.txt')
-    DS.load_rxtx('Bus_geom_HHD_sqlite')
+    DS = DataStorage()
+    DS.load_rxtx('Bus_geom.HHD.sqlite')
     DS.load_paths()
-    DS.load_interactions(store=True)
+    #DS.load_interactions(store=True)
 
     from phys_path_procs import *
 
     #DS = None
 
-    DE = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
-    DA = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-110, minbins=0.1, nffilt=False)
+    DE = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-90, minbins=0.1, nffilt=False)
+    DA = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-90, minbins=0.1, nffilt=False)
 
-    DA.build(rxgrp=[5,6], typ='LOS-pen')
-    DE.build_trans(rxgrp=[5,6], typ='LOS->LOS')
+    DA.build(rxgrp=[5,6], typ='LOS')
+    DE.build_trans(rxgrp=[5,6], typ='LOStoNLOS')
     DE.putpickle('DE')
     DA.putpickle('DA')
     #DA.getpickle(fnappend='LOS-pen,DA')

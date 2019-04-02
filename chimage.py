@@ -33,18 +33,14 @@ class CHImageRX:
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkimg: str = '',
+    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1], mkimg: str = '',
                cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan, show: bool = True,
-               zmax: float = np.nan, showtit: bool = False):
-        if txrange == -1:
+               zmax: float = np.nan, showtit: bool = False, cbar: bool = True, ylab: bool = True):
+        if txrange[0] == -1:
             txrange = self.source.txs.keys()
-        else:
-            txrange = range(txrange)
 
-        if rxrange == -1:
+        if rxrange[0] == -1:
             rxrange = self.source.rxs.keys()
-        else:
-            rxrange = range(rxrange)
 
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
@@ -97,10 +93,14 @@ class CHImageRX:
                             if showtit:
                                 mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                             mpl.xlabel('Azimuth, [degrees]')
-                            mpl.ylabel('Elevation, [degrees]')
+
+                            if ylab:
+                                mpl.ylabel('Elevation, [degrees]')
+
                             mpl.gca().invert_yaxis()
-                            cbr = mpl.colorbar()
-                            cbr.set_label('RX Power, [dBm]')
+                            if cbar:
+                                cbr = mpl.colorbar()
+                                cbr.set_label('RX Power, [dBm]')
                             mpl.tight_layout()
 
                         if mkimg != '':
@@ -128,18 +128,14 @@ class CHImageTx:
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkimg: str = '',
+    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1], mkimg: str = '',
                cmap: str = 'viridis', nff: bool = True, matsav: bool = False, show: bool = True, zmin: float = np.nan,
-               zmax: float = np.nan, showtit: bool = False):
-        if txrange == -1:
+               zmax: float = np.nan, showtit: bool = False, cbar: bool = True, ylab: bool = True):
+        if txrange[0] == -1:
             txrange = self.source.txs.keys()
-        else:
-            txrange = range(txrange)
 
-        if rxrange == -1:
+        if rxrange[0] == -1:
             rxrange = self.source.rxs.keys()
-        else:
-            rxrange = range(rxrange)
 
         txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
         rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
@@ -190,9 +186,11 @@ class CHImageTx:
                             if showtit:
                                 mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
                             mpl.xlabel('Azimuth, [degrees]')
-                            mpl.ylabel('Elevation, [degrees]')
-                            cbr = mpl.colorbar()
-                            cbr.set_label('RX Power, [dBm]')
+                            if ylab:
+                                mpl.ylabel('Elevation, [degrees]')
+                            if cbar:
+                                cbr = mpl.colorbar()
+                                cbr.set_label('RX Power, [dBm]')
                             mpl.tight_layout()
                             mpl.gca().invert_yaxis()
 
@@ -211,18 +209,18 @@ class CHImageTx:
 
 
 if __name__ == "__main__":
-    DS = DataStorage("dbconf.txt")
-    DS.load_rxtx('BUSMOD')
+    DS = DataStorage()
+    DS.load_rxtx('BUS_geom.HHD.sqlite')
     DS.load_paths(npaths=250)
     #DS.load_interactions(store=False)
 
     #from phys_path_procs import *
     #check_data_nf(DS)
 
-    enable_latex(pt=16)
+    enable_latex(pt=22)
 
     DE = CHImageRX(DS)
-    DE.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True)
+    DE.export(rxgrp=[4], mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True, cbar=True, ylab=False)
     DT = CHImageTx(DS)
-    DT.export(rxgrp=4, mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True)
+    DT.export(rxgrp=[4], mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True, cbar=False, ylab=True)
     exit()

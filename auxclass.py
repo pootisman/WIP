@@ -16,6 +16,7 @@
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
+from numba import jit
 
 
 class VarHist:
@@ -50,6 +51,7 @@ class VarHist:
     def linadd(self, binidx, val):
         self.bins[binidx] += val
 
+    @jit
     def append(self, val):
         if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
@@ -71,6 +73,7 @@ class ProbHist(VarHist):
     def linadd(self, binidx, tuple_val):
         self.bins[binidx] = (self.bins[binidx][0] + tuple_val[0], self.bins[binidx][1] + tuple_val[1])
 
+    @jit
     def append_succ(self, val):
         if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
@@ -78,6 +81,7 @@ class ProbHist(VarHist):
                     self.tothits += 1
                     self.linadd(i, (1, 1))
 
+    @jit
     def append_fail(self, val):
         if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
