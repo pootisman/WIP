@@ -26,6 +26,11 @@ class VarHist:
         self.floor = rstart
         self.ceiling = rstop
         self.tothits = 0
+        self.frac = frac
+        self.minbins = minbins
+        self.rstart = rstart
+        self.rstop = rstop
+        self.binc = binc
 
         if addfun is None:
             self.addfun = self.linadd
@@ -89,6 +94,14 @@ class ProbHist(VarHist):
                     self.tothits += 1
                     self.linadd(i, (0, 1))
 
+    @jit
+    def __add__(self, other):
+        assert isinstance(other, ProbHist), 'Expected ProbHist, got {}'.format(type(other))
+        self.tothits = self.tothits + other.tithits
+        
+        for i in other.bins.keys():
+            self.linadd(i, other.bins(i))
+            
 #TODO: IMPLEMENT
 class ProbHist4D:
     def __init__(self, binc: int = 40, dxstart: float = -10.0, dxstop: float = 10.0, dystart: float = -10.0,
@@ -114,6 +127,8 @@ class ProbHist4D:
                     self.linadd(i, (0, 1))
 
 
+
+
 class PowHist:
     def __init__(self, binc: int = 36, rstart: float = 0.0, rstop: float = 360.0, addfun: callable = None):
         self.bins = dict()
@@ -133,7 +148,8 @@ class PowHist:
 
     def linadd(self, binidx, val):
         self.bins[binidx] += val
-
+    
+    @jit
     def append(self, ang, linpow):
         if self.floor <= ang <= self.ceiling:
             for i in self.bins.keys():
@@ -190,7 +206,8 @@ class PowHist2D:
 
     def linadd(self, binidx, val):
         self.bins[binidx] += val
-
+    
+    @jit
     def append(self, azang, elang, linpow):
         if self.azfloor <= azang <= self.azceiling and self.elfloor <= elang <= self.elceiling:
             for i in self.bins.keys():
@@ -199,3 +216,4 @@ class PowHist2D:
                     self.tothits += 1
                     return True
         return False
+

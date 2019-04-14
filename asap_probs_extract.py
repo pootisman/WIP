@@ -197,8 +197,8 @@ class DistancedHistExtractor:
 
 
 if __name__ == "__main__":
-    DS = DataStorage()
-    DS.load_rxtx('Bus_geom.HHD.sqlite')
+    DS = DataStorage(dbname='Bus_geom.HHD.sqlite')
+    DS.load_rxtx()
     DS.load_paths()
     #DS.load_interactions(store=True)
 

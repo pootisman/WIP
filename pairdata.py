@@ -54,7 +54,7 @@ class Node:
         return None
 
     def __repr__(self):
-        return 'Radio channel {} node'.format(self.type)
+        return '{} node {}'.format(self.type, self.node_id)
 
 
 class Channel:
@@ -254,10 +254,12 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
 
 
 class DataStorage:
-    def __init__(self, conf: str = None, threaded: bool = True):
+    def __init__(self, conf: str = None, threaded: bool = True, dbname: str = ''):
         self.txs = dict()
         self.rxs = dict()
-        self.dbname = None
+        self.dbname = dbname
+        self.pw = None
+        self.uname = None
         self.dbconn = None
         self.dbcurs = None
         self.possible_inters = dict()
@@ -286,21 +288,28 @@ class DataStorage:
         else:
             return 'Database in file {}.'.format(self.dbname)
 
-    def load_rxtx(self, dbname: str = None):
-        print('Loading TX/RX nodes...', end='', flush=True)
-
+    def __link(self):
         if self.dbconn is None:
             if not hasattr(self, 'host'):
-                self.dbconn = sqlite3.connect(dbname)
+                self.dbconn = sqlite3.connect(self.dbname)
                 self.dbcurs = self.dbconn.cursor()
-                self.dbname = dbname
             else:
-                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
-                                            client_flags=[ClientFlag.SSL], database=dbname)
+                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pw,
+                                            client_flags=[ClientFlag.SSL], database=self.dbname)
                 self.dbcurs = self.dbconn.cursor()
-                self.dbcurs.execute('USE {};'.format(dbname))
-                self.dbname = dbname
+                self.dbcurs.execute('USE {};'.format(self.dbname))
+                self.dbname = self.dbname
 
+    def __unlink(self):
+        if self.dbconn is not None:
+            self.dbconn.close()
+            self.dbcurs = None
+            self.dbconn = None
+
+    def load_rxtx(self):
+        print('Loading TX/RX nodes...', end='', flush=True)
+
+        self.__link()
         # Read TX data
         self.dbcurs.execute(TX_EXTR)
         j = self.dbcurs.fetchall()
@@ -325,22 +334,13 @@ class DataStorage:
 
         print('Success!', flush=True)
 
-        if hasattr(self, 'host'):
-            self.dbconn.close()
-            self.dbconn = None
+        self.__unlink()
 
     def load_paths(self, npaths: int = 250):
         print('Loading paths...', end='', flush=True)
         self.npaths = npaths
-        if self.dbconn is None:
-            if os.path.isfile(self.dbname) and not hasattr(self, 'host'):
-                print('Error: connect to DB and load txs/rxs first!')
-                exit(1)
-            else:
-                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
-                                            client_flags=[ClientFlag.SSL], database=self.dbname)
-                
-                self.dbcurs = self.dbconn.cursor()
+
+        self.__link()
 
         if hasattr(self, 'host') and self.threaded:
             txs_per_thread = self.txs.__len__() / self.nthreads
@@ -411,21 +411,12 @@ class DataStorage:
 
         print('Success!')
 
-        if hasattr(self, 'host'):
-            self.dbconn.close()
-            self.dbconn = None
+        self.__unlink()
 
     def load_interactions(self, store: bool = True):
         print('Loading interactions...', end='', flush=True)
 
-        if self.dbconn is None:
-            if os.path.isfile(self.dbname) and not hasattr(self, 'host'):
-                print('Error: connect to DB and load txs/rxs first!')
-                exit(1)
-            else:
-                self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pasw,
-                                            client_flags=[ClientFlag.SSL], database=self.dbname)
-                self.dbcurs = self.dbconn.cursor()
+        self.__link()
 
         if hasattr(self, 'host') and self.threaded:
             txs_per_thread = self.txs.__len__() / self.nthreads
@@ -485,9 +476,7 @@ class DataStorage:
                         k[1].length = sum(dists)
         print('Success!', flush=True)
 
-        if hasattr(self, 'host'):
-            self.dbconn.close()
-            self.dbconn = None
+        self.__unlink()
 
     def dump_paths(self,  txgrp: list = [-1], rxgrp: list = [-1], csvsav: bool = True, matsav: bool = True):
         for i in self.txs.items():
@@ -529,15 +518,15 @@ class DataStorage:
                         file.close()
 
     def load_all(self, dbname: str = ''):
-        self.load_rxtx(dbname=dbname)
+        self.load_rxtx()
         self.load_paths()
         self.load_interactions()
 
 
 
 if __name__ == '__main__':
-    DS = DataStorage(conf='dbconf.txt')
-    DS.load_rxtx(dbname='Human_sitting_legsback_Sitting_sqlite')
+    DS = DataStorage(conf='dbconf.txt', dbname='Human_sitting_legsback_Sitting_sqlite')
+    DS.load_rxtx()
     DS.load_paths()
     DS.load_interactions()
     from phys_path_procs import *
