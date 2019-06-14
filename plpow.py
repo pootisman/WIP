@@ -124,11 +124,11 @@ class PLPlot:
 
 if __name__ == '__main__':
     DS = pairdata.data_stor(conf='dbconf.txt')
-    DS.load_rxtx('class_sqlite')
+    DS.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
     DS.load_paths()
     DS.load_interactions()
     check_data_NF(DS)
     plp = PLPlot(source=DS)
-    print(plp.regr_comp(typ='NLOS', threshold=-115, nff=True))
+    print(plp.regr_comp(typ='LOS', threshold=-115, nff=True))
     plp.export(csvsav=True, matsav=True)
     exit()
