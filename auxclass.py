@@ -16,7 +16,6 @@
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
-from numba import jit
 
 
 class VarHist:
@@ -56,7 +55,6 @@ class VarHist:
     def linadd(self, binidx, val):
         self.bins[binidx] += val
 
-    @jit
     def append(self, val):
         if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
@@ -78,7 +76,6 @@ class ProbHist(VarHist):
     def linadd(self, binidx, tuple_val):
         self.bins[binidx] = (self.bins[binidx][0] + tuple_val[0], self.bins[binidx][1] + tuple_val[1])
 
-    @jit
     def append_succ(self, val):
         if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
@@ -86,7 +83,6 @@ class ProbHist(VarHist):
                     self.tothits += 1
                     self.linadd(i, (1, 1))
 
-    @jit
     def append_fail(self, val):
         if self.floor <= val <= self.ceiling:
             for i in self.bins.keys():
@@ -94,7 +90,6 @@ class ProbHist(VarHist):
                     self.tothits += 1
                     self.linadd(i, (0, 1))
 
-    @jit
     def __add__(self, other):
         assert isinstance(other, ProbHist), 'Expected ProbHist, got {}'.format(type(other))
         self.tothits = self.tothits + other.tithits
@@ -148,8 +143,7 @@ class PowHist:
 
     def linadd(self, binidx, val):
         self.bins[binidx] += val
-    
-    @jit
+
     def append(self, ang, linpow):
         if self.floor <= ang <= self.ceiling:
             for i in self.bins.keys():
@@ -207,7 +201,6 @@ class PowHist2D:
     def linadd(self, binidx, val):
         self.bins[binidx] += val
     
-    @jit
     def append(self, azang, elang, linpow):
         if self.azfloor <= azang <= self.azceiling and self.elfloor <= elang <= self.elceiling:
             for i in self.bins.keys():

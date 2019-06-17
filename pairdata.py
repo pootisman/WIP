@@ -272,7 +272,7 @@ class DataStorage:
             conff = open(conf)
             self.host = conff.readline().strip('\n')
             self.user = conff.readline().strip('\n')
-            self.pasw = conff.readline().strip('\n')
+            self.pw = conff.readline().strip('\n')
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
             self.nthreads = cpu_count()
@@ -356,12 +356,12 @@ class DataStorage:
                 for i in self.txs.keys():
                     txs.append(i)
                     if txs.__len__() == txs_per_thread:
-                        thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw,
+                        thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pw,
                                            self.dbname)
                         txs = list()
 
                 if txs.__len__() > 0 or txs_per_thread <= 1:
-                    thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pasw, self.dbname)
+                    thread_pool.submit(_load_paths_txthread, self, txs, self.host, self.user, self.pw, self.dbname)
             else:
                 print('RXward...', end='', flush=True)
                 rxs_per_thread = int(rxs_per_thread)
@@ -370,12 +370,12 @@ class DataStorage:
                 for i in self.rxs.keys():
                     rxs.append(i)
                     if rxs.__len__() == rxs_per_thread:
-                        thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw,
+                        thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pw,
                                            self.dbname)
                         rxs = list()
 
                 if rxs.__len__() > 0 or rxs_per_thread <= 1:
-                    thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pasw, self.dbname)
+                    thread_pool.submit(_load_paths_rxthread, self, rxs, self.host, self.user, self.pw, self.dbname)
 
             thread_pool.shutdown()
         else:
@@ -430,26 +430,26 @@ class DataStorage:
                 txs_per_thread = int(txs_per_thread)
                 for i in self.txs.keys():
                     if txs.__len__() % txs_per_thread == 0 and txs.__len__() != 0:
-                        thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw,
+                        thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pw,
                                                self.dbname, store)
                         txs = list()
                     txs.append(i)
 
                 if txs.__len__() != 0 or txs_per_thread <= 1:
-                    thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pasw, self.dbname, store)
+                    thread_pool.submit(_load_iters_txs, self, txs, self.host, self.user, self.pw, self.dbname, store)
             else:
                 print('RXward...', end='', flush=True)
                 rxs = []
                 rxs_per_thread = int(rxs_per_thread)
                 for i in self.rxs.keys():
                     if rxs.__len__() % rxs_per_thread == 0 and rxs.__len__() != 0:
-                        thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw,
+                        thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pw,
                                            self.dbname, store)
                         rxs = list()
                     rxs.append(i)
 
                 if rxs.__len__() != 0 or rxs_per_thread <= 1:
-                    thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pasw, self.dbname, store)
+                    thread_pool.submit(_load_iters_rxs, self, rxs, self.host, self.user, self.pw, self.dbname, store)
 
             thread_pool.shutdown()
         else:
