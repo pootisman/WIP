@@ -16,7 +16,8 @@
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
-
+from numba import jit
+import types
 
 class VarHist:
     def __init__(self, binc: int = 40, rstart: float = 0.0, rstop: float = 1.0, frac: float = 0.6, minbins: float = 1.0,
@@ -136,13 +137,19 @@ class PowHist:
         if addfun is None:
             self.addfun = self.linadd
         else:
-            self.addfun = addfun
+            self.addfun = self.add_delay
 
         for i in range(binc):
             self.bins[(rstart + i * (rstop - rstart) / binc, rstart + (i + 1) * (rstop - rstart) / binc)] = 0.0
 
     def linadd(self, binidx, val):
         self.bins[binidx] += val
+
+    def add_delay(self, binidx, val):
+        if not isinstance(self.bins[binidx], tuple):
+            self.bins[binidx] = (1, val)
+        else:
+            self.bins[binidx] = (self.bins[binidx][0] + 1, (self.bins[binidx][1] * self.bins[binidx][0] + val) / (self.bins[binidx][0] + 1))
 
     def append(self, ang, linpow):
         if self.floor <= ang <= self.ceiling:
@@ -159,6 +166,7 @@ class PowHist:
         else:
             raise KeyError
 
+    @jit
     def __add__(self, other):
         assert (self.binc != other.binc or self.floor != other.floor or self.ceiling != other.ceiling),\
             'Histograms must be same, bailing out!'

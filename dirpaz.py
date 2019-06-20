@@ -438,9 +438,9 @@ class RXPatAll:
 
 if __name__ == "__main__":
     enable_latex(22)
-    DS = DataStorage('dbconf.txt')
-    DS.load_rxtx('BUSMOD')
+    DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
+    DS.load_rxtx()
     DS.load_paths(npaths=250)
     DS.load_interactions()
-    cir = RXPatAll(DS)
+    cir = RXPatAz(DS)
     cir.export(rxgrp=4, mkimg='', gennpz=False, matsav=True)

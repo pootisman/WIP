@@ -16,7 +16,6 @@
 __author__ = 'Aleksei Ponomarenko-Timofeev'
 
 import numpy as np
-from numba import jit,autojit
 from matplotlib import pyplot as plt
 from scipy.ndimage.filters import uniform_filter
 
@@ -30,7 +29,6 @@ def enable_latex(pt: float = 12.0):
     font = {'family': 'serif', 'size': pt, 'serif': ['Latin Modern Roman']}
     plt.rc('font', **font)
 
-@jit
 def basint2(x: list, y: list, xc: int):
     xlim = [np.nanmin(x), np.nanmax(x)]
 
@@ -50,7 +48,6 @@ def basint2(x: list, y: list, xc: int):
 
     return xo, yo
 
-@jit
 def basint3(x: list, y: list, z: list, xc: int, yc: int, xmin: float = np.nan, xmax: float = np.nan,
             ymin: float = np.nan, ymax: float = np.nan, zmin: float = np.nan):
     if np.isnan(xmin) or np.isnan(xmax):
@@ -92,22 +89,18 @@ def basint3(x: list, y: list, z: list, xc: int, yc: int, xmin: float = np.nan, x
 
     return xo, yo, zo
 
-@jit
 def square_up(array: np.ndarray, smooth: bool = False):
     if not smooth:
         return np.repeat(np.repeat(array, 2, axis=0).T, 2, axis=0).T
     else:
         return uniform_filter(np.repeat(np.repeat(array, 2, axis=0).T, 2, axis=0).T, size=(2, 2))
 
-@jit
 def l2db(val: float):
     return 10.0 * np.log10(val)
 
-@jit
 def db2l(val: float):
     return np.power(10.0, val / 10.0)
 
-@jit
 def excl_interactions(interactions: list = list()):
     c = 0
     for i in interactions:

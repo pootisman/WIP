@@ -197,7 +197,7 @@ class DistancedHistExtractor:
 
 
 if __name__ == "__main__":
-    DS = DataStorage(dbname='Bus_geom.HHD.sqlite')
+    DS = DataStorage(conf='dbconf.txt', dbname='Bus_geom_HHD_sqlite')
     DS.load_rxtx()
     DS.load_paths()
     #DS.load_interactions(store=True)
@@ -209,8 +209,8 @@ if __name__ == "__main__":
     DE = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-90, minbins=0.1, nffilt=False)
     DA = DistancedHistExtractor(DS, range=(0.05, 11), histbins=30, frac=0.85, thrs=-90, minbins=0.1, nffilt=False)
 
-    DA.build(rxgrp=[5,6], typ='LOS')
-    DE.build_trans(rxgrp=[5,6], typ='LOStoNLOS')
+    DA.build(rxgrp=[5, 6], typ='LOS')
+    DE.build_trans(rxgrp=[5, 6], typ='LOStoNLOS')
     DE.putpickle('DE')
     DA.putpickle('DA')
     #DA.getpickle(fnappend='LOS-pen,DA')
