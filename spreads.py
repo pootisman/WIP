@@ -52,24 +52,32 @@ class DelaySpreadHist:
 
         bars = []
         ticks = []
+        eebars = []
+        yebars = []
+        xebars = []
 
         for i in rms_hist.bins.items():
-            if not isinstance(i[1], tuple):
+            if not isinstance(i[1], list):
                 bars.append(mpp.Rectangle((i[0][0], 0.0), i[0][1] - i[0][0], i[1] * 1e9))
             else:
-                bars.append(mpp.Rectangle((i[0][0], 0.0), i[0][1] - i[0][0], i[1][1] * 1e9))
+                bars.append(mpp.Rectangle((i[0][0], 0.0), i[0][1] - i[0][0], np.mean(i[1]) * 1e9))
 
             ticks.append(i[0][0])
+
+            xebars.append((i[0][0] + i[0][1]) / 2.0)
+            yebars.append(np.mean(i[1]) * 1e9)
+            eebars.append(np.var(np.asarray(i[1])*1e9))
 
         rms_bc = mpc.PatchCollection(bars, facecolor='r', alpha=0.5, edgecolors='k')
 
         ax = fig.add_subplot(111)
         ax.grid(linestyle='--')
         ax.set_xlim(self.binrange[0], self.binrange[1])
-        ax.set_ylim(0, 50)
+        ax.set_ylim(0, 10)
         mpl.xlabel('Distance [m]')
         mpl.ylabel('RMS delay spread [ns]')
         mpl.xticks(ticks)
+        mpl.errorbar(xebars, yebars, eebars, linestyle='', linewidth=0)
         mpl.tight_layout()
         ax.add_collection(rms_bc)
 
@@ -79,10 +87,10 @@ class DelaySpreadHist:
 
 if __name__ == '__main__':
     enable_latex(18)
-    DS = pairdata.DataStorage(conf='dbconf.txt', dbname='BUSMOD')
+    DS = pairdata.DataStorage(dbname='/home/nonroot/Downloads/Bus_geom.HHD.sqlite')
     DS.load_rxtx()
     DS.load_paths()
     DS.load_interactions()
     dspr = DelaySpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[2])
+    dspr.export(matsav=True, plot=True, rxgrp=[5, 6])
     exit()

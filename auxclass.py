@@ -146,10 +146,11 @@ class PowHist:
         self.bins[binidx] += val
 
     def add_delay(self, binidx, val):
-        if not isinstance(self.bins[binidx], tuple):
-            self.bins[binidx] = (1, val)
+        if not isinstance(self.bins[binidx], list):
+            self.bins[binidx] = list()
+            self.bins[binidx].append(val)
         else:
-            self.bins[binidx] = (self.bins[binidx][0] + 1, (self.bins[binidx][1] * self.bins[binidx][0] + val) / (self.bins[binidx][0] + 1))
+            self.bins[binidx].append(val)
 
     def append(self, ang, linpow):
         if self.floor <= ang <= self.ceiling:
