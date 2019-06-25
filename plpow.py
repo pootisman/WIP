@@ -329,14 +329,14 @@ if __name__ == '__main__':
     from auxfun import enable_latex
     enable_latex(pt=14)
 
-    def loadall(name: str = ''):
-        DS = DataStorage()
-        DS.load_rxtx(name)
+    def loadall(conf='dbconf.txt', name: str = 'BUSTRX'):
+        DS = DataStorage(conf=conf, dbname=name)
+        DS.load_rxtx()
         DS.load_paths()
         DS.load_interactions()
         return DS
 
-    typd = 'LOS-pen'
+    typd = 'NLOS-1'
 
     dd = {}
     dd2 = {}
@@ -347,75 +347,25 @@ if __name__ == '__main__':
     td = False
     drraw = True
 
-    DS = loadall('Human_sitting_legsback.Sitting Leather.sqlite')
+    DS = loadall()
     plp = PLPlot(source=DS)
-    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.1, 0.4), sigma_rounds=sr,
+    data = plp.regr_comp(rxgrp=[4], typ=typd, threshold=-100, nff=False, xrange=(0.5, 12), sigma_rounds=sr,
                          additive=add)
-    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-              show=False, fname_suffix='_sitting_leather')
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={4: 'Low'}, mkpdf=True,
+              show=False, fname_suffix='low')
 
     print(data[0], data[1], data[3])
 
-    dd['Leather'] = data
+    dd['l'] = data
 
-    DS = loadall('Human_sitting_legsback.Sitting fleece.sqlite')
     plp = PLPlot(source=DS)
-    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.1, 0.4), sigma_rounds=sr,
+    data = plp.regr_comp(rxgrp=[2], typ=typd, threshold=-100, nff=False, xrange=(0.5, 12), sigma_rounds=sr,
                          additive=add)
-    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-              show=False, fname_suffix='_sitting_fleece')
+    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'High'}, mkpdf=True,
+              show=False, fname_suffix='hi')
 
     print(data[0], data[1], data[3])
 
-    dd['Fleece'] = data
+    dd['h'] = data
 
-    DS = loadall('Human_sitting_legsback.Sitting.sqlite')
-    plp = PLPlot(source=DS)
-    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.1, 0.4), sigma_rounds=sr,
-                         additive=add)
-    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-              show=False, fname_suffix='_sitting')
-
-    print(data[0], data[1], data[3])
-
-    dd['Naked'] = data
-
-    DS = loadall('Human_sitting_legsback.Standing leather.sqlite')
-    plp = PLPlot(source=DS)
-    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.3, 0.6), sigma_rounds=sr,
-                         additive=add)
-    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-              show=False, fname_suffix='_standing_leather')
-
-    print(data[0], data[1], data[3])
-
-    dd2['Leather'] = data
-
-    DS = loadall('Human_sitting_legsback.Standing fleece.sqlite')
-    plp = PLPlot(source=DS)
-    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.3, 0.6), sigma_rounds=sr,
-                         additive=add)
-    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-              show=False, fname_suffix='_standing_fleece')
-
-    print(data[0], data[1], data[3])
-
-    dd2['Fleece'] = data
-
-    DS = loadall('Human_sitting_legsback.Standing_still.sqlite')
-    plp = PLPlot(source=DS)
-    data = plp.regr_comp(rxgrp=[2, 4, 5], typ=typd, threshold=-100, nff=False, xrange=(0.3, 0.6), sigma_rounds=sr,
-                         additive=add)
-    plp.export(csvsav=False, matsav=True, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-              show=False, fname_suffix='_standing')
-
-    print(data[0], data[1], data[3])
-
-    dd2['Naked'] = data
-
-    plp.plot_regr_only(dd, dists=(0.1, 0.6), fspl_draw=fspl_draw, title_draw=td, plot_raw=drraw)
-    plp.plot_regr_only(dd2, dists=(0.3, 0.6), fspl_draw=fspl_draw, title_draw=td, plot_raw=drraw)
-
-    #plp.export(csvsav=False, matsav=False, plot=True, trajmap={2: 'Belt', 4: 'Up', 5: 'Diag', 6: 'Head'}, mkpdf=True,
-    #           show=False, fname_suffix='_sitting_leather')
     exit()
