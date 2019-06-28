@@ -56,14 +56,14 @@ INTERS_SPEC_CHAN = 'SELECT x, y, z, interaction_type_id, path_id FROM interactio
 INTERS_SPEC = 'SELECT x, y, z, interaction_type_id FROM interaction WHERE path_id = {};'
 
 TX_CHAN_CONNECTOR = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power,' \
-                 'channel_utd.mean_time_of_arrival, channel_utd.delay_spread FROM channel_utd WHERE channel_utd.channel_id IN' \
-                 '(SELECT channel_id FROM channel WHERE tx_id = {}{})) chan JOIN (SELECT channel.channel_id, channel.tx_id, channel.rx_id FROM channel WHERE tx_id = {}) chan' \
-                 'ON utd.channel_id = chan.channel_id;'
+                 ' channel_utd.mean_time_of_arrival, channel_utd.delay_spread FROM channel_utd WHERE channel_utd.channel_id IN ' \
+                 ' (SELECT channel_id FROM channel WHERE tx_id = {}{})) utd JOIN (SELECT channel.channel_id, channel.tx_id, channel.rx_id FROM channel WHERE tx_id = {}) chan' \
+                 ' ON utd.channel_id = chan.channel_id;'
 
 RX_CHAN_CONNECTOR = 'SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power,' \
-                 'channel_utd.mean_time_of_arrival, channel_utd.delay_spread FROM channel_utd WHERE channel_utd.channel_id IN' \
-                 '(SELECT channel_id FROM channel WHERE rx_id = {}{})) chan JOIN (SELECT channel.channel_id, channel.tx_id, channel.rx_id FROM channel WHERE rx_id = {}) chan' \
-                 'ON utd.channel_id = chan.channel_id;'
+                 ' channel_utd.mean_time_of_arrival, channel_utd.delay_spread FROM channel_utd WHERE channel_utd.channel_id IN ' \
+                 ' (SELECT channel_id FROM channel WHERE rx_id = {}{})) utd JOIN (SELECT channel.channel_id, channel.tx_id, channel.rx_id FROM channel WHERE rx_id = {}) chan' \
+                 ' ON utd.channel_id = chan.channel_id;'
 
 RX_CHAN_getelem ='SELECT * FROM (SELECT channel_utd.channel_id, channel_utd.received_power,' \
                  'channel_utd.mean_time_of_arrival, channel_utd.delay_spread FROM channel_utd WHERE channel_utd.channel_id IN' \

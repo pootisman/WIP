@@ -87,10 +87,7 @@ class DelaySpreadHist:
 
 if __name__ == '__main__':
     enable_latex(18)
-    DS = pairdata.DataStorage(dbname='/home/nonroot/Downloads/Bus_geom.HHD.sqlite')
-    DS.load_rxtx()
-    DS.load_paths()
-    DS.load_interactions()
+    DS = pairdata.DataStorage(conf='dbconf.txt', dbname='Bus_geom_HHD_sqlite')
     dspr = DelaySpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[5, 6])
+    dspr.export(matsav=True, plot=True, rxgrp=[4])
     exit()

@@ -29,95 +29,6 @@ from siso_sql import *
 from auxfun import l2db
 
 
-class Node:
-    def __init__(self, typ: str):
-        self.chans_to_pairs = ChannelConnector()
-        self.node_id = 0
-        self.coords = zeros([3])
-        self.rot = zeros([3])
-        self.setid = 0
-        self.type = typ
-
-        if typ == 'TX':
-            self.txpow = 0.0
-        else:
-            self.rxpow = 0.0
-
-    def chan_to(self, dest):
-        if self.type == 'TX':
-            for i in self.chans_to_pairs.keys():
-                if self.chans_to_pairs[i].dest == dest:
-                    return self.chans_to_pairs[i]
-        else:
-            for i in self.chans_to_pairs.keys():
-                if self.chans_to_pairs[i].src == dest:
-                    return self.chans_to_pairs[i]
-        return None
-
-    def __repr__(self):
-        return '{} node {}'.format(self.type, self.node_id)
-
-
-class Channel:
-    def __init__(self, dest: Node = None, src: Node = None):
-        self.paths = dict()
-        self.dest = dest
-        self.src = src
-        self.pow = 0.0
-        self.delay = 0.0
-        self.delay_spread = 0.0
-        self.dist = 0.0
-        self.chid = 0
-        self.clusters = dict()
-
-    def __repr__(self):
-        return 'Radio channel'
-
-    def __str__(self):
-        return 'Sumpow = {}, delay = {}, delay_spread = {}, Ncl = {}, {} -> {}'.\
-            format(self.pow, self.delay, self.delay_spread, self.clusters.__len__(), self.src.node_id, self.dest.node_id)
-
-
-class Path:
-    def __init__(self):
-        self.pathid = 0
-        self.pow = 0.0
-        self.phase = 0.0
-        self.delay = 0.0
-        self.len = 0.0
-        self.interactions = list()
-        self.aoa = 0.0
-        self.eoa = 0.0
-        self.aod = 0.0
-        self.eod = 0.0
-        self.fspl = 0.0
-        self.length = 0.0
-        self.chan = None
-        self.cluster = None
-        self.near_field_failed = False
-
-    def __repr__(self):
-        return 'Propagation path'
-
-    def __str__(self):
-        return 'Inters = {}, pow = {} mW, len = {} m, {} [Az:{},El:{}]-->[Az:{},El:{}] {}'.\
-            format(self.interactions.__len__(), self.pow, self.len, self.chan.src.node_id, self.aod, self.eod,
-                   self.aoa, self.eoa, self.chan.dest.node_id)
-
-
-class Interaction:
-    def __init__(self):
-        self.typ = 'TX'
-        self.coords = zeros([3])
-        self.path = None
-
-    def __repr__(self):
-        print('Interaction')
-
-    def __str__(self):
-        print('{}@{}'.format(self.typ, self.coords))
-
-
 def _load_paths_txthread(self, txsids, host, user, pw, dbname):
     dbconn = msqlc.connect(host=host, user=user, password=pw, client_flags=[ClientFlag.SSL], database=dbname)
 
@@ -253,10 +164,9 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
 
     dbconn.close()
 
+
 class DataStorage:
     def __init__(self, conf: str = None, threaded: bool = True, dbname: str = ''):
-        self.txs = dict()
-        self.rxs = dict()
         self.dbname = dbname
         self.pw = None
         self.uname = None
@@ -273,11 +183,24 @@ class DataStorage:
             self.host = conff.readline().strip('\n')
             self.user = conff.readline().strip('\n')
             self.pw = conff.readline().strip('\n')
+
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
             self.nthreads = cpu_count()
             print('Will use up to {} threads...'.format(self.nthreads))
             self.pool = None
+            self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pw,
+                                        client_flags=[ClientFlag.SSL], database=self.dbname)
+            self.dbcurs = self.dbconn.cursor()
+            self.dbcurs.execute('USE {};'.format(self.dbname))
+            self.dbname = self.dbname
+        else:
+            self.dbconn = sqlite3.connect(self.dbname)
+            self.dbcurs = self.dbconn.cursor()
+
+        self.txs = TXConnector(dbcursor=self.dbcurs, master=self)
+        self.rxs = RXConnector(dbcursor=self.dbcurs, master=self)
+
 
     def __repr__(self):
         return 'SQL data storage'
