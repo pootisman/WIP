@@ -341,6 +341,10 @@ if __name__ == '__main__':
     dd = {}
     dd2 = {}
 
+    from pairdata import RXConnector
+
+    rxc = RXConnector(host='devito.jumpingcrab.com', db='Bus_geom_HHD_sqlite', user='Aleksei', pw='Aib9za2a aiN4eeda ahSh9Ua2 boure7Yo Boh9Jaex uo9neeTh lie1Zai2 OoY4su0V')
+
     sr = 1
     add = False
     fspl_draw = False

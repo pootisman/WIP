@@ -18,19 +18,20 @@ __author__ = 'Aleksei Ponomarenko-Timofeev'
 import sqlite3
 import mysql.connector as msqlc
 from mysql.connector.constants import ClientFlag
-import os
 from numpy.linalg import norm
 from numpy import asarray
 from numpy import zeros
 import concurrent.futures as cof
 from multiprocessing import cpu_count
 import scipy.io as sio
+from sql_adapters import *
 from siso_sql import *
 from auxfun import l2db
 
+
 class Node:
     def __init__(self, typ: str):
-        self.chans_to_pairs = dict()
+        self.chans_to_pairs = ChannelConnector()
         self.node_id = 0
         self.coords = zeros([3])
         self.rot = zeros([3])
@@ -251,7 +252,6 @@ def _load_iters_rxs(self, rxsids, host, user, pw, dbname, store):
                 k[1].length = sum(dists)
 
     dbconn.close()
-
 
 class DataStorage:
     def __init__(self, conf: str = None, threaded: bool = True, dbname: str = ''):
