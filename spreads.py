@@ -29,11 +29,11 @@ class DelaySpreadHist:
 
         fig = mpl.figure()
 
-        for i in self.source.txs.items():
+        for i in self.source.txs.items(grprange=txgrp):
             # TX is in valid group or group is ignored?
             if i[1].setid in txgrp or txgrp[0] == -1:
                 # Which RXes are reached by TX
-                for j in i[1].chans_to_pairs.items():
+                for j in i[1].chans_to_pairs.items(destgrprange=rxgrp):
                     # Destination in a valid group or group is ignored?
                     if j[0].setid in rxgrp or rxgrp[0] == -1:
                         delay_vector = []
@@ -87,7 +87,8 @@ class DelaySpreadHist:
 
 if __name__ == '__main__':
     enable_latex(18)
-    DS = pairdata.DataStorage(conf='dbconf.txt', dbname='Bus_geom_HHD_sqlite')
+    DS = pairdata.DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     dspr = DelaySpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[4])
+    dspr.export(matsav=True, plot=True, rxgrp=[2])
+    DS.end()
     exit()

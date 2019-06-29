@@ -186,9 +186,6 @@ class DataStorage:
 
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
-            self.nthreads = cpu_count()
-            print('Will use up to {} threads...'.format(self.nthreads))
-            self.pool = None
             self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pw,
                                         client_flags=[ClientFlag.SSL], database=self.dbname)
             self.dbcurs = self.dbconn.cursor()
@@ -444,6 +441,13 @@ class DataStorage:
         self.load_rxtx()
         self.load_paths()
         self.load_interactions()
+
+    def end(self):
+        self.dbcurs.close()
+        self.dbconn.close()
+
+    def __end__(self):
+        self.end()
 
 
 

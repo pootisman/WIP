@@ -118,7 +118,7 @@ class RXConnector:
         else:
             reqstr = ''.join(reqstr)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
         data = self.dbcurs.fetchall()
 
         for i in data:
@@ -128,7 +128,9 @@ class RXConnector:
             n.node_id = i[0]
             n.coords = asarray([i[1], i[2], i[3]])
             n.setid = i[4]
-            output.append((i[0],n))
+            output.append((i[0], n))
+
+        print(output)
 
         return output
 
@@ -137,7 +139,7 @@ class RXConnector:
         reqstr[-1] = ''
         reqstr = ''.join(reqstr) + ' WHERE rx_id = {};'.format(key)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
         data = self.dbcurs.fetchall()
         if len(data) == 0:
             raise KeyError
@@ -147,6 +149,9 @@ class RXConnector:
         n.coords = asarray([data[1], data[2], data[3]])
         n.chans_to_pairs = ChannelConnector(dbcursor=self.dbcurs, origin=n, master=self)
         n.setid = data[4]
+
+        print(n)
+
         return n
 
 
@@ -173,7 +178,7 @@ class TXConnector:
         else:
             reqstr = ''.join(reqstr)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
         data = self.dbcurs.fetchall()
 
         for i in data:
@@ -183,7 +188,9 @@ class TXConnector:
             n.node_id = i[0]
             n.coords = asarray([i[1], i[2], i[3]])
             n.setid = i[4]
-            output.append((i[0],n))
+            output.append((i[0], n))
+
+        print(output)
 
         return output
 
@@ -192,7 +199,7 @@ class TXConnector:
         reqstr[-1] = ''
         reqstr = ''.join(reqstr) + ' WHERE tx_id = {};'.format(key)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
         data = self.dbcurs.fetchall()
         if len(data) == 0:
             raise KeyError
@@ -202,6 +209,9 @@ class TXConnector:
         n.coords = asarray([data[1], data[2], data[3]])
         n.chans_to_pairs = ChannelConnector(dbcursor=self.dbcurs, origin=n, master=self)
         n.setid = data[4]
+
+        print(n)
+
         return n
 
 
@@ -212,7 +222,7 @@ class ChannelConnector:
         self.dest = destination
         self.dbcurs = dbcursor
 
-    def items(self, destrange: list = [-1]):
+    def items(self, destrange: list = [-1], destgrprange: list = [-1]):
         output = []
         additional_filter = ''
 
@@ -220,16 +230,21 @@ class ChannelConnector:
             reqstr = TX_CHAN_CONNECTOR
 
             if destrange != [-1]:
-                additional_filter = ' AND rx_id IN ({})'.format('%d' % i for i in destrange)
+                additional_filter = ' AND rx_id IN ({})'.format(','.join('%d' % i for i in destrange))
+            if destgrprange != [-1]:
+                additional_filter = additional_filter + ' AND rx_id IN (SELECT rx_id FROM rx WHERE rx_set_id IN ({}))'.format(','.join('%d' % i for i in destgrprange))
         else:
             reqstr = RX_CHAN_CONNECTOR
 
             if destrange != [-1]:
                 additional_filter = ' AND tx_id IN ({})'.format('%d' % i for i in destrange)
 
+            if destgrprange != [-1]:
+                additional_filter = additional_filter + ' AND tx_id IN (SELECT tx_id FROM tx WHERE tx_set_id IN ({}))'.format(','.join('%d' % i for i in destgrprange))
+
         reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
 
         data = self.dbcurs.fetchall()
 
@@ -248,6 +263,9 @@ class ChannelConnector:
                 chan.dest = self.origin
                 chan.src = self.master.master.txs[i[5]]
                 chan.dist = norm(self.origin.coords - self.master.master.txs[i[5]].coords)
+            output.append((chan.dest, chan))
+
+        print(output)
 
         return output
 
@@ -259,21 +277,23 @@ class ChannelConnector:
             reqstr = TX_CHAN_CONNECTOR
 
             if destrange != [-1]:
-                additional_filter = ' AND rx_id IN ({}) '.format('%d' % i for i in destrange)
+                additional_filter = ' AND rx_id IN ({}) '.format(','.join('%d' % i for i in destrange))
         else:
             reqstr = RX_CHAN_CONNECTOR
 
             if destrange != [-1]:
-                additional_filter = ' AND tx_id IN ({}) '.format('%d' % i for i in destrange)
+                additional_filter = ' AND tx_id IN ({}) '.format(','.join('%d' % i for i in destrange))
 
         reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
 
         data = self.dbcurs.fetchall()
 
         for i in data:
             output.append(i[0])
+
+        print(output)
 
         return output
 
@@ -289,19 +309,19 @@ class ChannelConnector:
 
         reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
 
         data = self.dbcurs.fetchall()
 
         if len(data) == 0:
             raise KeyError
 
-        i = data[0]
+        data = data[0]
 
-        chan.delay_spread = i[3]
-        chan.delay = i[2]
-        chan.pow = i[1]
-        chan.chid = i[0]
+        chan.delay_spread = data[3]
+        chan.delay = data[2]
+        chan.pow = data[1]
+        chan.chid = data[0]
         chan.paths = PathConnector(dbcursor=self.dbcurs, master=self, partof=chan)
         if self.origin.type == 'TX':
             chan.src = self.origin
@@ -311,6 +331,8 @@ class ChannelConnector:
             chan.dest = self.origin
             chan.src = self.master.master.txs[key]
             chan.dist = norm(self.origin.coords - self.master.master.txs[key].coords)
+
+        print(chan)
 
         return chan
 
@@ -326,7 +348,7 @@ class PathConnector:
 
         reqstr = CHAN_PTH.format(self.partof.chid)
 
-        self.dbcurs.execute(reqstr)
+        self.dbcurs.execute(reqstr, multi=True)
         data = self.dbcurs.fetchall()
 
         for i in data:
@@ -342,27 +364,29 @@ class PathConnector:
             p.phase = i[8]
             output.append((p.pathid, p))
 
+        print(output)
+
         return output
 
     def __getitem__(self, key):
-        output = []
-
         reqstr = CHAN_PTH.format(self.partof.chid)
 
         self.dbcurs.execute(reqstr)
         data = self.dbcurs.fetchall()
 
-        for i in data:
-            p = Path()
-            p.pathid = i[0]
-            p.pow = i[1]
-            p.delay = i[2]
-            p.aod = i[3]
-            p.eod = i[4]
-            p.aoa = i[5]
-            p.eoa = i[6]
-            p.fspl = i[7]
-            p.phase = i[8]
-            output.append(p)
+        data = data[0]
 
-        return output
+        p = Path()
+        p.pathid = data[0]
+        p.pow = data[1]
+        p.delay = data[2]
+        p.aod = data[3]
+        p.eod = data[4]
+        p.aoa = data[5]
+        p.eoa = data[6]
+        p.fspl = data[7]
+        p.phase = data[8]
+
+        print(p)
+
+        return p
