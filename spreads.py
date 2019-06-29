@@ -98,11 +98,11 @@ class AzSpreadHist:
 
         fig = mpl.figure()
 
-        for i in self.source.txs.items():
+        for i in self.source.txs.items(grprange=txgrp):
             # TX is in valid group or group is ignored?
             if i[1].setid in txgrp or txgrp[0] == -1:
                 # Which RXes are reached by TX
-                for j in i[1].chans_to_pairs.items():
+                for j in i[1].chans_to_pairs.items(destgrprange=rxgrp):
                     # Destination in a valid group or group is ignored?
                     if j[0].setid in rxgrp or rxgrp[0] == -1:
                         azimuth_vector = []
@@ -156,9 +156,9 @@ class AzSpreadHist:
 
 if __name__ == '__main__':
     enable_latex(18)
-    DS = pairdata.DataStorage(conf='dbconf.txt', dbname='BUSMOD')
+    DS = pairdata.DataStorage(dbname='Bus_geom.HHD.sqlite')
     dspr = DelaySpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[5,6])
+    dspr.export(matsav=True, plot=True, rxgrp=[4])
     dspr = AzSpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[5,6])
+    dspr.export(matsav=True, plot=True, rxgrp=[4])
     exit()

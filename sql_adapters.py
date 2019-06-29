@@ -118,7 +118,7 @@ class RXConnector:
         else:
             reqstr = ''.join(reqstr)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
         data = self.dbcurs.fetchall()
 
         for i in data:
@@ -139,7 +139,7 @@ class RXConnector:
         reqstr[-1] = ''
         reqstr = ''.join(reqstr) + ' WHERE rx_id = {};'.format(key)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
         data = self.dbcurs.fetchall()
         if len(data) == 0:
             raise KeyError
@@ -167,18 +167,18 @@ class TXConnector:
 
         if grprange != [-1] and txrange == [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
+            reqstr = ''.join(reqstr) + ' WHERE tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
         elif grprange == [-1] and txrange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)))
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)))
         elif grprange != [-1] and txrange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {} AND rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)),
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {} AND tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)),
                                                                                '({})'.format(','.join('%d' % i for i in grprange)))
         else:
             reqstr = ''.join(reqstr)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
         data = self.dbcurs.fetchall()
 
         for i in data:
@@ -199,7 +199,7 @@ class TXConnector:
         reqstr[-1] = ''
         reqstr = ''.join(reqstr) + ' WHERE tx_id = {};'.format(key)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
         data = self.dbcurs.fetchall()
         if len(data) == 0:
             raise KeyError
@@ -244,7 +244,7 @@ class ChannelConnector:
 
         reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
 
         data = self.dbcurs.fetchall()
 
@@ -286,7 +286,7 @@ class ChannelConnector:
 
         reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
 
         data = self.dbcurs.fetchall()
 
@@ -309,7 +309,7 @@ class ChannelConnector:
 
         reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
 
         data = self.dbcurs.fetchall()
 
@@ -348,8 +348,10 @@ class PathConnector:
 
         reqstr = CHAN_PTH.format(self.partof.chid)
 
-        self.dbcurs.execute(reqstr, multi=True)
+        self.dbcurs.execute(reqstr)
         data = self.dbcurs.fetchall()
+
+        data = sorted(data, key=lambda t: t[1], reverse=True)
 
         for i in data:
             p = Path()
@@ -362,6 +364,7 @@ class PathConnector:
             p.eoa = i[6]
             p.fspl = i[7]
             p.phase = i[8]
+            p.chan = self.partof
             output.append((p.pathid, p))
 
         print(output)
