@@ -31,28 +31,15 @@ disthis = False
 ds = False
 
 print('Loading data fleece...')
-DS = DataStorage('dbconf.txt')
-DS.load_rxtx('Human_sitting_legsback_Sitting_fleece_sqlite')
-DS.load_paths(npaths=250)
-DS.load_interactions(store=True)
+DS = DataStorage(conf='dbconf.txt', dbname='Human_sitting_legsback_Sitting_fleece_sqlite')
 print('Loading data cotton...')
-DC = DataStorage('dbconf.txt')
-DC.load_rxtx('Human_sitting_legsback_Sitting_cotton_sqlite')
-DC.load_paths(npaths=250)
-DC.load_interactions(store=True)
+DC = DataStorage(conf='dbconf.txt', dbname='Human_sitting_legsback_Sitting_cotton_sqlite')
 print('Loading data Leather...')
-DL = DataStorage('dbconf.txt')
-DL.load_rxtx('Human_sitting_legsback_Sitting_Leather_sqlite')
-DL.load_paths(npaths=250)
-DL.load_interactions(store=True)
+DL = DataStorage(conf='dbconf.txt', dbname='Human_sitting_legsback_Sitting_Leather_sqlite')
 print('Loading data naked...')
-DN = DataStorage('dbconf.txt')
-DN.load_rxtx('Human_sitting_legsback_Sitting_sqlite')
-DN.load_paths(npaths=250)
-DN.load_interactions(store=True)
+DN = DataStorage(conf='dbconf.txt', dbname='Human_sitting_legsback_Sitting_sqlite')
 
-
-rxgrp = 5
+rxgrp = [5]
 
 enable_latex(pt=14.0)
 

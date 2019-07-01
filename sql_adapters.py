@@ -22,14 +22,15 @@ class Node:
 
     def chan_to(self, dest):
         if self.type == 'TX':
-            for i in self.chans_to_pairs.keys():
-                if self.chans_to_pairs[i.node_id].dest == dest.node_id:
-                    return self.chans_to_pairs[i.node_id]
+            try:
+                return self.chans_to_pairs[dest.node_id]
+            except KeyError:
+                return None
         else:
-            for i in self.chans_to_pairs.keys():
-                if self.chans_to_pairs[i.node_id].src == dest.node_id:
-                    return self.chans_to_pairs[i.node_id]
-        return None
+            try:
+                return self.chans_to_pairs[dest.node_id]
+            except KeyError:
+                return None
 
     def __repr__(self):
         return '{} node {}'.format(self.type, self.node_id)
@@ -308,7 +309,7 @@ class ChannelConnector:
             chan = Channel()
             chan.delay_spread = i[3]
             chan.delay = i[2]
-            chan.pow = i[1]
+            chan.pow = i[1] * 1e3
             chan.chid = i[0]
             chan.paths = PathConnector(dbcursor=self.dbcurs, master=self, partof=chan)
             if self.origin.type == 'TX':
@@ -376,7 +377,7 @@ class ChannelConnector:
 
         chan.delay_spread = data[3]
         chan.delay = data[2]
-        chan.pow = data[1]
+        chan.pow = data[1] * 1e3
         chan.chid = data[0]
         chan.paths = PathConnector(dbcursor=self.dbcurs, master=self, partof=chan)
         if self.origin.type == 'TX':
@@ -431,7 +432,7 @@ class PathConnector:
         for i in data:
             p = Path()
             p.pathid = i[0]
-            p.pow = i[1]
+            p.pow = i[1] * 1e3
             p.delay = i[2]
             p.aod = i[3]
             p.eod = i[4]
@@ -456,7 +457,7 @@ class PathConnector:
 
         p = Path()
         p.pathid = data[0]
-        p.pow = data[1]
+        p.pow = data[1] * 1e3
         p.delay = data[2]
         p.aod = data[3]
         p.eod = data[4]

@@ -166,10 +166,10 @@ class CIRCollator:
             axins.set_yticklabels(reversed(powerticks))
 
         if mkpng:
-            mpl.savefig('Collated[{}] CIR3D {}.png'.format('|'.join(self.titles).strip(' '), fnappend))
+            mpl.savefig('Collated[{}] CIR3D {}.png'.format('_'.join(self.titles).strip(' '), fnappend))
 
         if mkpdf:
-            mpl.savefig('Collated[{}] CIR3D {}.pdf'.format('|'.join(self.titles).strip(' '), fnappend))
+            mpl.savefig('Collated[{}] CIR3D {}.pdf'.format('_'.join(self.titles).strip(' '), fnappend))
 
         if show:
             mpl.show()
