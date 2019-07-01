@@ -58,6 +58,12 @@ class ClusterDetector:
         plt.plot(discreteCIRp/max(discreteCIRp))
         plt.show()
 
+if __name__ == '__main__':
+    from pairdata import DataStorage
+    from cir import CIR
+
+    DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
+    cir = CIR(DS)
 
 
 

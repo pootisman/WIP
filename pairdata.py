@@ -187,7 +187,8 @@ class DataStorage:
             print('Connecting to {} as {}'.format(self.host, self.user))
             conff.close()
             self.dbconn = msqlc.connect(host=self.host, user=self.user, password=self.pw,
-                                        client_flags=[ClientFlag.SSL], database=self.dbname)
+                                        client_flags=[ClientFlag.SSL], database=self.dbname,
+                                        use_pure=False)
             self.dbcurs = self.dbconn.cursor()
             self.dbcurs.execute('USE {};'.format(self.dbname))
             self.dbname = self.dbname

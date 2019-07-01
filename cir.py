@@ -48,7 +48,7 @@ class CIR:
         self.rxgrp = -1
         self.tx = 0
 
-    def export(self, txrange: int = -1, rxrange: int = -1, txgrp: int = -1, rxgrp: int = -1, mkpng: bool = False,
+    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1], mkpng: bool = False,
                cmap: str = 'Blues', xdim: int = 100, ydim: int = 250, zmin: float = -200.0, zmax: float = np.nan,
                nff: bool = True, matsav: bool = False, plot: bool = True, show: bool =True, fidbase: int = 0,
                title: str = '', iconvec: dict = None, disptitle: bool = True, dispylabel: bool = True, dispxlabel: bool
@@ -57,128 +57,113 @@ class CIR:
         accept = lambda o: ((nff and not o.near_field_failed) or not nff) and (zmin < l2db(o.pow) < zmax) and\
                  (yrange[0] < o.delay * 1e9 < yrange[1])
 
-        if txrange == -1:
-            txrange = self.source.txs.keys()
-        else:
-            txrange = range(txrange)
-
-        if rxrange == -1:
-            rxrange = self.source.rxs.keys()
-        else:
-            rxrange = range(rxrange)
-
         self.title = title
 
-        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
-        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+        for i in self.source.txs.items(txrange=txrange, grprange=txgrp):
+            self.xdata = list()
+            self.ydata = list()
+            self.zdata = list()
 
-        for i in txrange:
-            if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
-                self.xdata = list()
-                self.ydata = list()
-                self.zdata = list()
-
-                self.ydim = ydim
-                self.xdim = 0
-                for j in rxrange:
-                    if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        self.xdim += 1
-                        if self.source.txs[i].chan_to(self.source.rxs[j]) is not None:
-                            for k in self.source.txs[i].chan_to(self.source.rxs[j]).paths.items():
-                                if accept(k[1]):
-                                    self.xdata.append(j)
-                                    self.ydata.append(k[1].delay * 1e9)
-                                    self.zdata.append(l2db(k[1].pow))
-                        else:
-                            if self.ydata.__len__() > 0:
-                                self.ymax = np.nanmax(self.ydata)
-                                self.xdata.append(j)
-                                self.ydata.append(self.ymax)
-                                self.zdata.append(zmin)
-
-                        if yrange[1] != np.PINF:
-                            self.xdata.append(j)
-                            self.ydata.append(yrange[1])
-                            self.zdata.append(zmin)
-
-                        if yrange[0] != np.NINF:
-                            self.xdata.append(j)
-                            self.ydata.append(yrange[0])
-                            self.zdata.append(zmin)
-
-                if np.nanmax(self.ydata) == 0:
-                    self.ydata[-1] = 1e-9
-
-                if np.isnan(np.nanmin(self.zdata)):
-                    for z in range(self.zdata.__len__()):
-                        self.zdata[z] = zmin
-
-                (x, y, z) = basint3(self.xdata, self.ydata, self.zdata, self.xdim, self.ydim, zmin=zmin)
-                [x, y] = np.meshgrid(x, y)
-
-                self.xmax = np.nanmax(self.xdata)
-                self.xmin = np.nanmin(self.xdata)
-
-                self.ymax = np.nanmax(self.ydata)
-                self.ymin = np.nanmin(self.ydata)
-
-                self.tx = i
-                self.rxgrp = rxgrp[0]
-
-                if np.isnan(zmax):
-                    self.zmin = np.nanmin(z)
-                    self.zmax = np.nanmax(z) + np.abs(0.1 * np.nanmax(z))
+            self.ydim = ydim
+            self.xdim = 0
+            for j in self.source.rxs.items(rxrange=rxrange, grprange=rxgrp):
+                self.xdim += 1
+                if i[1].chan_to(j[1]) is not None:
+                    for k in i[1].chan_to(j[1]).paths.items():
+                        if accept(k[1]):
+                            self.xdata.append(j[1].node_id)
+                            self.ydata.append(k[1].delay * 1e9)
+                            self.zdata.append(l2db(k[1].pow))
                 else:
-                    self.zmin = zmin
-                    self.zmax = zmax
+                    if self.ydata.__len__() > 0:
+                        self.ymax = np.nanmax(self.ydata)
+                        self.xdata.append(j[1].node_id)
+                        self.ydata.append(self.ymax)
+                        self.zdata.append(zmin)
 
-                if plot or mkpng:
-                    if iconvec is not None:
-                        f = mpl.figure(fidbase + i, constrained_layout=True)
-                    else:
-                        f = mpl.figure(fidbase + i)
+                if yrange[1] != np.PINF:
+                    self.xdata.append(j[1].node_id)
+                    self.ydata.append(yrange[1])
+                    self.zdata.append(zmin)
 
-                    if iconvec is not None:
-                        gs_top = gsp.GridSpec(2, 1, figure=f, height_ratios=[5, 1])
-                        ax = f.add_subplot(gs_top[0, 0])
-                    else:
-                        ax = mpl.gca()
+                if yrange[0] != np.NINF:
+                    self.xdata.append(j[1].node_id)
+                    self.ydata.append(yrange[0])
+                    self.zdata.append(zmin)
 
+            if np.nanmax(self.ydata) == 0:
+                self.ydata[-1] = 1e-9
+
+            if np.isnan(np.nanmin(self.zdata)):
+                for z in range(self.zdata.__len__()):
+                    self.zdata[z] = zmin
+
+            (x, y, z) = basint3(self.xdata, self.ydata, self.zdata, self.xdim, self.ydim, zmin=zmin)
+            [x, y] = np.meshgrid(x, y)
+
+            self.xmax = np.nanmax(self.xdata)
+            self.xmin = np.nanmin(self.xdata)
+
+            self.ymax = np.nanmax(self.ydata)
+            self.ymin = np.nanmin(self.ydata)
+
+            self.tx = i
+            self.rxgrp = rxgrp[0]
+
+            if np.isnan(zmax):
+                self.zmin = np.nanmin(z)
+                self.zmax = np.nanmax(z) + np.abs(0.1 * np.nanmax(z))
+            else:
+                self.zmin = zmin
+                self.zmax = zmax
+
+            if plot or mkpng:
+                if iconvec is not None:
+                    f = mpl.figure(fidbase + i, constrained_layout=True)
+                else:
+                    f = mpl.figure(fidbase + i)
+
+                if iconvec is not None:
+                    gs_top = gsp.GridSpec(2, 1, figure=f, height_ratios=[5, 1])
+                    ax = f.add_subplot(gs_top[0, 0])
+                else:
+                    ax = mpl.gca()
+
+                mpl.sca(ax)
+
+                mpl.pcolor(np.transpose(x), np.transpose(y), z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
+                cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=5, endpoint=True).tolist())
+                cb.set_label('RX power, [dBm]')
+                cb.set_clim(vmin=self.zmin, vmax=self.zmax)
+                mpl.clim(vmin=self.zmin, vmax=self.zmax)
+                mpl.yticks(np.linspace(start=self.ymin, stop=self.ymax, num=5, endpoint=True).tolist())
+                if dispylabel:
+                    mpl.ylabel('Delay, [ns]')
+                if disptitle:
+                    mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i, rxgrp))
+
+                if iconvec is None:
+                    if dispxlabel:
+                        mpl.xlabel('RX Position')
+                    mpl.tight_layout()
+                else:
+                    ax, sf = f.add_subplot(gs_top[1, 0])
                     mpl.sca(ax)
+                    for i in iconvec:
+                        sax = sf.add_axes(0.1, 0.1, 0.1, 0.1)
+                        sax.set_frame_on(True)
 
-                    mpl.pcolor(np.transpose(x), np.transpose(y), z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
-                    cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=5, endpoint=True).tolist())
-                    cb.set_label('RX power, [dBm]')
-                    cb.set_clim(vmin=self.zmin, vmax=self.zmax)
-                    mpl.clim(vmin=self.zmin, vmax=self.zmax)
-                    mpl.yticks(np.linspace(start=self.ymin, stop=self.ymax, num=5, endpoint=True).tolist())
-                    if dispylabel:
-                        mpl.ylabel('Delay, [ns]')
-                    if disptitle:
-                        mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i, rxgrp))
+            if mkpng:
+                mpl.savefig('{3}{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0], title, fnappend))
 
-                    if iconvec is None:
-                        if dispxlabel:
-                            mpl.xlabel('RX Position')
-                        mpl.tight_layout()
-                    else:
-                        ax, sf = f.add_subplot(gs_top[1, 0])
-                        mpl.sca(ax)
-                        for i in iconvec:
-                            sax = sf.add_axes(0.1, 0.1, 0.1, 0.1)
-                            sax.set_frame_on(True)
+            if mkpdf:
+                mpl.savefig('{3}{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.pdf'.format(i, rxgrp[0], title, fnappend))
 
-                if mkpng:
-                    mpl.savefig('{3}{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.png'.format(i, rxgrp[0], title, fnappend))
+            if matsav:
+                sio.savemat('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'X': x, 'Y': y, 'Z': z})
 
-                if mkpdf:
-                    mpl.savefig('{3}{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.pdf'.format(i, rxgrp[0], title, fnappend))
-
-                if matsav:
-                    sio.savemat('{2}CIR3D_tx{0:03d}_rxgrp{1:03d}.mat'.format(i, rxgrp[0], title), {'X': x, 'Y': y, 'Z': z})
-
-                if not plot or not show:
-                    mpl.close(f)
+            if not plot or not show:
+                mpl.close(f)
 
         if mkpng is False and plot and show:
             mpl.show()
@@ -215,7 +200,7 @@ class CIR:
                     pow = []
 
                 if self.source.txs[i].chan_to(self.source.rxs[j]):
-                    for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                    for k in self.source.txs[i].chan_to[self.source.rxs[j]].paths.items():
                         if ceil > l2db(k[1].pow) > floor:
                             if nff and not k[1].near_field_failed:
                                 delay.append(k[1].delay)
@@ -303,8 +288,8 @@ class CIR:
                 delay = list()
                 power = list()
 
-                if self.source.txs[i].chan_to(self.source.rxs[j]):
-                    for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                if self.source.txs[i].chan_to(self.source.rxs[j].node_id):
+                    for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j].node_id].paths.items():
                         if ceil > l2db(k[1].pow) > floor:
                             if nff and not k[1].near_field_failed:
                                 delay.append(k[1].delay)
@@ -371,13 +356,10 @@ class CIR:
         #     mpl.show()
 
 if __name__ == "__main__":
-    DS = DataStorage()
-    DS.load_rxtx('/home/alexey/ownCloud/Bus_mod/TRX_Geom/Bus_geom_trx.TRX_Geom.sqlite')
-    DS.load_paths(npaths=250)
-    DS.load_interactions(store=True)
+    DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     cir = CIR(DS)
-    cir.export(txgrp=-1, rxgrp=4, nff=False, matsav=False, plot=True, mkpng=False, zmin=-160.0, zmax=-80.0)
-    cir.export(txgrp=-1, rxgrp=2, nff=False, matsav=False, plot=True, mkpng=False, zmin=-160.0, zmax=-80.0)
+    cir.export(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, zmin=-160.0, zmax=-80.0)
+    cir.export(txgrp=[-1], rxgrp=[2], nff=False, matsav=False, plot=True, mkpng=False, zmin=-160.0, zmax=-80.0)
     #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     exit()

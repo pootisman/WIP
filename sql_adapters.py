@@ -23,12 +23,12 @@ class Node:
     def chan_to(self, dest):
         if self.type == 'TX':
             for i in self.chans_to_pairs.keys():
-                if self.chans_to_pairs[i].dest == dest:
-                    return self.chans_to_pairs[i]
+                if self.chans_to_pairs[i.node_id].dest == dest.node_id:
+                    return self.chans_to_pairs[i.node_id]
         else:
             for i in self.chans_to_pairs.keys():
-                if self.chans_to_pairs[i].src == dest:
-                    return self.chans_to_pairs[i]
+                if self.chans_to_pairs[i.node_id].src == dest.node_id:
+                    return self.chans_to_pairs[i.node_id]
         return None
 
     def __repr__(self):
