@@ -56,7 +56,7 @@ class CHImageRX:
                         rr += 1
                         hist = PowHist2D(azbinc=36, elbinc=18)
 
-                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j].node_id].paths.items():
                             if nff and not k[1].near_field_failed:
                                 hist.append(k[1].aoa, k[1].eoa, k[1].pow)
                             elif not nff:
@@ -151,7 +151,7 @@ class CHImageTx:
                         rr += 1
                         hist = PowHist2D(azbinc=36, elbinc=18)
 
-                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j]].paths.items():
+                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j].node_id].paths.items():
                             if nff and not k[1].near_field_failed:
                                 hist.append(k[1].aod, k[1].eod, k[1].pow)
                             elif not nff:
@@ -209,13 +209,7 @@ class CHImageTx:
 
 
 if __name__ == "__main__":
-    DS = DataStorage()
-    DS.load_rxtx('BUS_geom.HHD.sqlite')
-    DS.load_paths(npaths=250)
-    #DS.load_interactions(store=False)
-
-    #from phys_path_procs import *
-    #check_data_nf(DS)
+    DS = DataStorage(conf='dbconf.txt', dbname='Bus_geom_HHD_sqlite')
 
     enable_latex(pt=22)
 

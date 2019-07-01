@@ -38,7 +38,7 @@ class DistancedHistExtractor:
         self.nffilt = nffilt
 
     def has_path(self, src: Node, dest: Node, typ: str):
-        if dest in src.chans_to_pairs:
+        if dest.node_id in src.chans_to_pairs:
             # Go over all paths
             for i in src.chans_to_pairs[dest].paths.items():
                 if not (i[1].near_field_failed and self.nffilt) or not self.nffilt:
@@ -198,9 +198,6 @@ class DistancedHistExtractor:
 
 if __name__ == "__main__":
     DS = DataStorage(conf='dbconf.txt', dbname='Bus_geom_HHD_sqlite')
-    DS.load_rxtx()
-    DS.load_paths()
-    #DS.load_interactions(store=True)
 
     from phys_path_procs import *
 

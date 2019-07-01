@@ -1,3 +1,4 @@
+PyWavelets
 numpy
 scikit-learn
 matplotlib

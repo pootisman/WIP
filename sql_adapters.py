@@ -134,6 +134,34 @@ class RXConnector:
 
         return output
 
+    def keys(self, grprange: list = [-1], rxrange: list = [-1]):
+        output = []
+
+        reqstr = list(RX_EXTR)
+
+        if grprange != [-1] and rxrange == [-1]:
+            reqstr[-1] = ''
+            reqstr = ''.join(reqstr) + ' WHERE rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
+        elif grprange == [-1] and rxrange != [-1]:
+            reqstr[-1] = ''
+            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {};'.format('({})'.format(','.join('%d' % i for i in rxrange)))
+        elif grprange != [-1] and rxrange != [-1]:
+            reqstr[-1] = ''
+            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {} AND rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in rxrange)),
+                                                                               '({})'.format(','.join('%d' % i for i in grprange)))
+        else:
+            reqstr = ''.join(reqstr)
+
+        self.dbcurs.execute(reqstr)
+        data = self.dbcurs.fetchall()
+
+        for i in data:
+            output.append(i[0])
+
+        print(output)
+
+        return output
+
     def __getitem__(self, key):
         reqstr = list(RX_EXTR)
         reqstr[-1] = ''
@@ -189,6 +217,34 @@ class TXConnector:
             n.coords = asarray([i[1], i[2], i[3]])
             n.setid = i[4]
             output.append((i[0], n))
+
+        print(output)
+
+        return output
+
+    def keys(self, grprange: list = [-1], txrange: list = [-1]):
+        output = []
+
+        reqstr = list(TX_EXTR)
+
+        if grprange != [-1] and txrange == [-1]:
+            reqstr[-1] = ''
+            reqstr = ''.join(reqstr) + ' WHERE tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
+        elif grprange == [-1] and txrange != [-1]:
+            reqstr[-1] = ''
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)))
+        elif grprange != [-1] and txrange != [-1]:
+            reqstr[-1] = ''
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {} AND tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)),
+                                                                               '({})'.format(','.join('%d' % i for i in grprange)))
+        else:
+            reqstr = ''.join(reqstr)
+
+        self.dbcurs.execute(reqstr)
+        data = self.dbcurs.fetchall()
+
+        for i in data:
+            output.append(i[0])
 
         print(output)
 
@@ -291,7 +347,7 @@ class ChannelConnector:
         data = self.dbcurs.fetchall()
 
         for i in data:
-            output.append(i[0])
+            output.append(self.master.master.rxs[i[6]])
 
         print(output)
 
@@ -335,6 +391,25 @@ class ChannelConnector:
         print(chan)
 
         return chan
+
+    def __contains__(self, item):
+        if self.origin.type == 'TX':
+            additional_filter = ' AND rx_id = {}'.format(item)
+            reqstr = TX_CHAN_CONNECTOR
+        else:
+            additional_filter = ' AND tx_id = {}'.format(item)
+            reqstr = RX_CHAN_CONNECTOR
+
+        reqstr = reqstr.format(self.origin.node_id, additional_filter, self.origin.node_id)
+
+        self.dbcurs.execute(reqstr)
+
+        data = self.dbcurs.fetchall()
+
+        if len(data) == 0:
+            return False
+        else:
+            return True
 
 
 class PathConnector:
