@@ -198,7 +198,7 @@ class CIR:
                 if not avg:
                     if plot:
                         f = mpl.figure((i[1].node_id+1)*(j[1].node_id+1))
-                        mpl.plot(delay, pow, '*')
+                        mpl.plot(delay, pow, '.')
                         mpl.xlabel('Delay, [s]')
                         mpl.ylabel('Power, [dBm]')
                         mpl.title('{}CIR@[TX{} $\\rightarrow$ RX{}]'.format(title, i[1].node_id, j[1].node_id))
@@ -332,6 +332,7 @@ class CIR:
         #     mpl.show()
 
 if __name__ == "__main__":
+    enable_latex(18)
     DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     cir = CIR(DS)
     cir.export_single(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0)

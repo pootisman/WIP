@@ -57,18 +57,13 @@ class PLPlot:
         self.typ = typ
         self.thrshld = threshold
 
-        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
-        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
-
         # TODO: Figure out what invalid Electric fields, delays and phases mean...
         # Prepare data for making the regression
-        for i in self.source.txs.items():
+        for i in self.source.txs.items(grprange=txgrp):
             # TX is in valid group or group is ignored?
-            if i[1].setid in txgrp or txgrp[0] == -1:
                 # Which RXes are reached by TX
-                for j in i[1].chans_to_pairs.items():
+                for j in i[1].chans_to_pairs.items(destrange=rxgrp):
                     # Destination in a valid group or group is ignored?
-                    if j[0].setid in rxgrp or rxgrp[0] == -1:
                         # Check paths for the RX-TX, only pick valid ones
                         best_pow = 0.0
                         best_dist = 0.0
