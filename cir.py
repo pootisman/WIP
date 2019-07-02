@@ -169,7 +169,7 @@ class CIR:
         if mkpng is False and plot and show:
             mpl.show()
 
-    def export_pdp(self, txrange: list = [-1], rxrange: list = [-1], nff: bool = True, avg: bool = False, floor: float = -110.0,
+    def export_single(self, txrange: list = [-1], rxrange: list = [-1], nff: bool = True, avg: bool = False, floor: float = -110.0,
                    matsav: bool = False, csvsav: bool = False, plot: bool = True, mkpng: bool = False,
                    ceil: float = -40.0, rxgrp: list = [-1], txgrp: list = [-1], title: str = ''):
 
@@ -182,8 +182,8 @@ class CIR:
                     delay = []
                     pow = []
 
-                if i.chan_to(j):
-                    for k in i.chan_to(j).paths.items():
+                if i[1].chan_to(j[1]):
+                    for k in i[1].chan_to(j[1]).paths.items():
                         if ceil > l2db(k[1].pow) > floor:
                             if nff and not k[1].near_field_failed:
                                 delay.append(k[1].delay)
@@ -192,30 +192,32 @@ class CIR:
                                 delay.append(k[1].delay)
                                 pow.append(l2db(k[1].pow))
                 else:
-                    print('Error, no route between TX {} and RX {}!'.format(i.node_id, j.node_id))
+                    print('Error, no route between TX {} and RX {}!'.format(i[1].node_id, j[1].node_id))
                     pass
 
                 if not avg:
                     if plot:
-                        f = mpl.figure((i.node_id+1)*(j.node_id+1))
-                        mpl.stem(delay, pow, bottom=-120)
+                        f = mpl.figure((i[1].node_id+1)*(j[1].node_id+1))
+                        mpl.plot(delay, pow, '*')
                         mpl.xlabel('Delay, [s]')
                         mpl.ylabel('Power, [dBm]')
-                        mpl.title('{}PDP@[TX{} $\\rightarrow$ RX{}]'.format(title, i.node_id, j.node_id))
+                        mpl.title('{}CIR@[TX{} $\\rightarrow$ RX{}]'.format(title, i[1].node_id, j[1].node_id))
                         offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                         mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                         mpl.grid(linestyle='--')
                         mpl.tight_layout()
 
                     if matsav:
-                        sio.savemat('{4}PDP@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].mat'.format(i.node_id, j.node_id, title),
+                        sio.savemat('{4}CIR@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].mat'.format(i[1].node_id, j[1].node_id, title),
                                     {'delay': delay, 'pow': pow})
 
                     if csvsav:
-                        file = open('{4}PDP@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].csv'.format(i.node_id, j.node_id, title), mode='w')
+                        file = open('{4}CIR@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].csv'.format(i[1].node_id, j[1].node_id, title), mode='w')
                         file.write('Delay [sec],Power [dBm]\n')
+
                         for k in range(pow.__len__()):
                             file.write('{},{}\n'.format(delay[k], pow[k]))
+
                         file.close()
 
         if avg:
@@ -224,24 +226,26 @@ class CIR:
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
                 mpl.ylabel('Power, [dBm]')
-                mpl.title('Average {}PDP\@[TX $\\rightarrow$ RX]'.format(title))
+                mpl.title('Average {}CIR\@[TX $\\rightarrow$ RX]'.format(title))
                 offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                 mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                 mpl.grid(linestyle='--')
                 mpl.tight_layout()
 
             if matsav:
-                sio.savemat('{}PDP\@[TX<->RX]_avg.mat'.format(title), {'delay': delay, 'pow': pow})
+                sio.savemat('{}CIR\@[TX<->RX]_avg.mat'.format(title), {'delay': delay, 'pow': pow})
 
             if csvsav:
-                file = open('{}PDP\@[TX<->RX]_avg.csv'.format(title), mode='w')
+                file = open('{}CIR\@[TX<->RX]_avg.csv'.format(title), mode='w')
                 file.write('Delay [sec],Power [dBm]\n')
+
                 for k in range(pow.__len__()):
                     file.write('{},{}\n'.format(delay[k], pow[k]))
+
                 file.close()
 
             if mkpng:
-                mpl.savefig('{}PDP\@[TX<->RX]_avg.png'.format(title))
+                mpl.savefig('{}CIR\@[TX<->RX]_avg.png'.format(title))
                 mpl.close(f)
 
         if mkpng is False and plot:
@@ -330,8 +334,8 @@ class CIR:
 if __name__ == "__main__":
     DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     cir = CIR(DS)
-    cir.export(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, zmin=-160.0, zmax=-80.0)
-    cir.export(txgrp=[-1], rxgrp=[2], nff=False, matsav=False, plot=True, mkpng=False, zmin=-160.0, zmax=-80.0)
+    cir.export_single(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0)
+    cir.export_single(txgrp=[-1], rxgrp=[2], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0)
     #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     exit()
