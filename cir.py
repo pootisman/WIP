@@ -171,7 +171,7 @@ class CIR:
 
     def export_single(self, txrange: list = [-1], rxrange: list = [-1], nff: bool = True, avg: bool = False, floor: float = -110.0,
                    matsav: bool = False, csvsav: bool = False, plot: bool = True, mkpng: bool = False,
-                   ceil: float = -40.0, rxgrp: list = [-1], txgrp: list = [-1], title: str = ''):
+                   ceil: float = -40.0, rxgrp: list = [-1], txgrp: list = [-1], title: str = '', mksvg: bool = False):
 
         delay = []
         pow = []
@@ -206,6 +206,11 @@ class CIR:
                         mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
                         mpl.grid(linestyle='--')
                         mpl.tight_layout()
+                        if mksvg:
+                            mpl.savefig('{}CIR@[TX{}-RX{}].svg'.format(title, i[1].node_id, j[1].node_id))
+
+                        if mkpng:
+                            mpl.savefig('{}CIR@[TX{}-RX{}].png'.format(title, i[1].node_id, j[1].node_id))
 
                     if matsav:
                         sio.savemat('{4}CIR@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].mat'.format(i[1].node_id, j[1].node_id, title),
@@ -244,11 +249,7 @@ class CIR:
 
                 file.close()
 
-            if mkpng:
-                mpl.savefig('{}CIR\@[TX<->RX]_avg.png'.format(title))
-                mpl.close(f)
-
-        if mkpng is False and plot:
+        if mksvg is False and mkpng is False and plot:
             mpl.show()
 
     def delay_spread_export(self, txgrp: list = [-1], rxgrp: list = [-1], mkpng: bool = False,
@@ -335,8 +336,8 @@ if __name__ == "__main__":
     enable_latex(18)
     DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     cir = CIR(DS)
-    cir.export_single(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0)
-    cir.export_single(txgrp=[-1], rxgrp=[2], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0)
+    cir.export_single(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0, mksvg=True)
+    cir.export_single(txgrp=[-1], rxgrp=[2], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0, mksvg=True)
     #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     exit()
