@@ -213,11 +213,11 @@ class CIR:
                             mpl.savefig('{}CIR@[TX{}-RX{}].png'.format(title, i[1].node_id, j[1].node_id))
 
                     if matsav:
-                        sio.savemat('{4}CIR@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].mat'.format(i[1].node_id, j[1].node_id, title),
+                        sio.savemat('{2}CIR@[TX{0:03d}<->RX{1:03d}].mat'.format(i[1].node_id, j[1].node_id, title),
                                     {'delay': delay, 'pow': pow})
 
                     if csvsav:
-                        file = open('{4}CIR@[TX{0:02d}{1:03d}<->RX{2:02d}{3:03d}].csv'.format(i[1].node_id, j[1].node_id, title), mode='w')
+                        file = open('{2}CIR@[TX{0:03d}<->RX{1:03d}].csv'.format(i[1].node_id, j[1].node_id, title), mode='w')
                         file.write('Delay [sec],Power [dBm]\n')
 
                         for k in range(pow.__len__()):
@@ -336,8 +336,8 @@ if __name__ == "__main__":
     enable_latex(18)
     DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     cir = CIR(DS)
-    cir.export_single(txgrp=[-1], rxgrp=[4], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0, mksvg=True)
-    cir.export_single(txgrp=[-1], rxgrp=[2], nff=False, matsav=False, plot=True, mkpng=False, floor=-140.0, mksvg=True)
+    cir.export_single(txgrp=[-1], rxgrp=[2], rxrange=[0,4,8,12,16,20,24,28,32,36], nff=False, matsav=True, plot=True, mkpng=False, floor=-140.0, mksvg=False)
+    cir.export_single(txgrp=[-1], rxgrp=[4], rxrange=[40,44,48,52,56,60,64,68,72,76], nff=False, matsav=True, plot=True, mkpng=False, floor=-140.0, mksvg=False)
     #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     exit()

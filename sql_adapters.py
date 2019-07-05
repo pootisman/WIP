@@ -97,7 +97,7 @@ class Interaction:
 
 
 class RXConnector:
-    def __init__(self, dbcursor: None, master = None):
+    def __init__(self, dbcursor: None, master=None):
         self.dbcurs = dbcursor
         self.master = master
 
