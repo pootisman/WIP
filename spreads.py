@@ -23,7 +23,7 @@ class DelaySpreadHist:
         self.binrange = brange
 
     def export(self, rxgrp: list = [-1], txgrp: list = [-1], xlims: tuple = (0, 10), ylims: tuple = (0, 10), figdims: tuple = (640, 480),
-               mkpng: bool = False, matsav: bool = False, plot: bool = True):
+               mkpng: bool = False, matsav: bool = False, plot: bool = True, mksvg: bool = False):
 
         rms_hist = PowHist(binc=self.binc, rstart=self.binrange[0], rstop=self.binrange[1], addfun=add_delay)
 
@@ -81,6 +81,9 @@ class DelaySpreadHist:
         mpl.tight_layout()
         ax.add_collection(rms_bc)
 
+        if mksvg:
+            mpl.savefig("DelSpread_{}_{}.svg".format(txgrp, rxgrp))
+
         if plot:
             mpl.show()
 
@@ -92,7 +95,7 @@ class AzSpreadHist:
         self.binrange = brange
 
     def export(self, rxgrp: list = [-1], txgrp: list = [-1], xlims: tuple = (0, 10), ylims: tuple = (0, 10), figdims: tuple = (640, 480),
-               mkpng: bool = False, matsav: bool = False, plot: bool = True):
+               mkpng: bool = False, matsav: bool = False, plot: bool = True, mksvg: bool = False):
 
         rms_hist = PowHist(binc=self.binc, rstart=self.binrange[0], rstop=self.binrange[1], addfun=add_delay)
 
@@ -150,15 +153,18 @@ class AzSpreadHist:
         mpl.tight_layout()
         ax.add_collection(rms_bc)
 
+        if mksvg:
+            mpl.savefig("AzSpread_{}_{}.svg".format(txgrp, rxgrp))
+
         if plot:
             mpl.show()
 
 
 if __name__ == '__main__':
     enable_latex(18)
-    DS = pairdata.DataStorage(dbname='Bus_geom.HHD.sqlite')
+    DS = pairdata.DataStorage(conf="dbconf.txt", dbname='Bus_geom_HHD_sqlite')
     dspr = DelaySpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[4])
+    dspr.export(matsav=True, plot=False, rxgrp=[-1], mksvg=True)
     dspr = AzSpreadHist(DS)
-    dspr.export(matsav=True, plot=True, rxgrp=[4])
+    dspr.export(matsav=True, plot=False, rxgrp=[-1], mksvg=True)
     exit()

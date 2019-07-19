@@ -133,13 +133,13 @@ class CIR:
 
                 mpl.pcolor(np.transpose(x), np.transpose(y), z, cmap=cmap, vmin=self.zmin, vmax=self.zmax)
                 cb = mpl.colorbar(ticks=np.linspace(start=self.zmin, stop=self.zmax, num=5, endpoint=True).tolist())
-                cb.set_label('RX power, [dBm]')
+                cb.set_label('RX power [dBm]')
                 cb.set_clim(vmin=self.zmin, vmax=self.zmax)
                 mpl.clim(vmin=self.zmin, vmax=self.zmax)
                 mpl.yticks(np.linspace(start=self.ymin, stop=self.ymax, num=5, endpoint=True).tolist())
 
                 if dispylabel:
-                    mpl.ylabel('Delay, [ns]')
+                    mpl.ylabel('Delay [ns]')
                 if disptitle:
                     mpl.title('{}CIR\@[TX{} $\\rightarrow$ RXg{}]'.format(title, i[1].node_id, rxgrp))
 
@@ -186,21 +186,21 @@ class CIR:
                     for k in i[1].chan_to(j[1]).paths.items():
                         if ceil > l2db(k[1].pow) > floor:
                             if nff and not k[1].near_field_failed:
-                                delay.append(k[1].delay)
+                                delay.append(k[1].delay*1e9)
                                 pow.append(l2db(k[1].pow))
                             elif not nff:
-                                delay.append(k[1].delay)
+                                delay.append(k[1].delay*1e9)
                                 pow.append(l2db(k[1].pow))
                 else:
                     print('Error, no route between TX {} and RX {}!'.format(i[1].node_id, j[1].node_id))
                     pass
 
                 if not avg:
-                    if plot:
+                    if plot or mksvg or mkpng:
                         f = mpl.figure((i[1].node_id+1)*(j[1].node_id+1))
                         mpl.plot(delay, pow, '.')
-                        mpl.xlabel('Delay, [s]')
-                        mpl.ylabel('Power, [dBm]')
+                        mpl.xlabel('Delay [ns]')
+                        mpl.ylabel('Power [dBm]')
                         mpl.title('{}CIR@[TX{} $\\rightarrow$ RX{}]'.format(title, i[1].node_id, j[1].node_id))
                         offset = 0.1 * (np.nanmax(pow) - np.nanmin(pow))
                         mpl.ylim([np.nanmin(pow) - offset, np.nanmax(pow) + offset])
@@ -226,7 +226,7 @@ class CIR:
                         file.close()
 
         if avg:
-            if plot or mkpng:
+            if plot or mkpng or mksvg:
                 f = mpl.figure(0)
                 mpl.stem(delay, pow, bottom=-120)
                 mpl.xlabel('Delay, [s]')
@@ -336,8 +336,8 @@ if __name__ == "__main__":
     enable_latex(18)
     DS = DataStorage(conf='dbconf.txt', dbname='BUSMOD')
     cir = CIR(DS)
-    cir.export_single(txgrp=[-1], rxgrp=[2], rxrange=[0,4,8,12,16,20,24,28,32,36], nff=False, matsav=True, plot=True, mkpng=False, floor=-140.0, mksvg=False)
-    cir.export_single(txgrp=[-1], rxgrp=[4], rxrange=[40,44,48,52,56,60,64,68,72,76], nff=False, matsav=True, plot=True, mkpng=False, floor=-140.0, mksvg=False)
+    cir.export_single(txgrp=[-1], rxgrp=[2], rxrange=[0,4,8,12,16,20,24,28,32,36], nff=False, matsav=False, plot=False, mkpng=False, floor=-140.0, mksvg=True)
+    cir.export_single(txgrp=[-1], rxgrp=[4], rxrange=[40,44,48,52,56,60,64,68,72,76], nff=False, matsav=False, plot=False, mkpng=False, floor=-140.0, mksvg=True)
     #cir.export(txgrp=-1, rxgrp=4, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     #cir.export(txgrp=-1, rxgrp=2, nff=True, matsav=False, plot=True, mkpng=False, zmin=-190.0, zmax=-40.0)
     exit()
