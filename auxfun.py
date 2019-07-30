@@ -19,7 +19,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.ndimage.filters import uniform_filter
 
-colors = ['m', 'k', 'r', 'g', 'b']
+colors = ['m', 'k', 'r', 'g', 'b', 'c', 'y']
 markers = ['*', '.', '+', '^', 'o', 'd', '1', '2', '3', '4', '8']
 styles = [':', '-', '-.', '--']
 

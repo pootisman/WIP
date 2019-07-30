@@ -156,7 +156,7 @@ for i in WI_TABLES.items():
 
             comm += 1
 
-        if (comm + 1) % stepping != 0:
+        if (comm + 1) % stepping != 0 and len(myreq) != 0:
             myreq[-1] = ';'
             while waiting >= max_waiting:
                 sleep(0.1)

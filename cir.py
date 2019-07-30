@@ -59,14 +59,14 @@ class CIR:
 
         self.title = title
 
-        for i in self.source.txs.items(txrange=txrange, grprange=txgrp):
+        for i in self.source.txs.items(noderange=txrange, grprange=txgrp):
             self.xdata = list()
             self.ydata = list()
             self.zdata = list()
 
             self.ydim = ydim
             self.xdim = 0
-            for j in self.source.rxs.items(rxrange=rxrange, grprange=rxgrp):
+            for j in self.source.rxs.items(noderange=rxrange, grprange=rxgrp):
                 self.xdim += 1
                 if i[1].chan_to(j[1]) is not None:
                     for k in i[1].chan_to(j[1]).paths.items():
@@ -176,8 +176,8 @@ class CIR:
         delay = []
         pow = []
 
-        for i in self.source.txs.items(grprange=txgrp, txrange=txrange):
-            for j in self.source.rxs.items(grprange=rxgrp, rxrange=rxrange):
+        for i in self.source.txs.items(grprange=txgrp, noderange=txrange):
+            for j in self.source.rxs.items(grprange=rxgrp, noderange=rxrange):
                 if not avg:
                     delay = []
                     pow = []

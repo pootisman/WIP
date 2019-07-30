@@ -101,20 +101,20 @@ class RXConnector:
         self.dbcurs = dbcursor
         self.master = master
 
-    def items(self, grprange: list = [-1], rxrange: list = [-1]):
+    def items(self, grprange: list = [-1], noderange: list = [-1]):
         output = []
 
         reqstr = list(RX_EXTR)
 
-        if grprange != [-1] and rxrange == [-1]:
+        if grprange != [-1] and noderange == [-1]:
             reqstr[-1] = ''
             reqstr = ''.join(reqstr) + ' WHERE rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
-        elif grprange == [-1] and rxrange != [-1]:
+        elif grprange == [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {};'.format('({})'.format(','.join('%d' % i for i in rxrange)))
-        elif grprange != [-1] and rxrange != [-1]:
+            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)))
+        elif grprange != [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {} AND rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in rxrange)),
+            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {} AND rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)),
                                                                                '({})'.format(','.join('%d' % i for i in grprange)))
         else:
             reqstr = ''.join(reqstr)
@@ -124,7 +124,7 @@ class RXConnector:
 
         for i in data:
             n = Node(typ='RX')
-            n.chans_to_pairs = ChannelConnector(dbcursor=self.dbcurs)
+            n.chans_to_pairs = ChannelConnector(dbcursor=self.dbcurs, origin=n, master=self)
             n.chans_to_pairs.origin = n
             n.node_id = i[0]
             n.coords = asarray([i[1], i[2], i[3]])
@@ -135,20 +135,20 @@ class RXConnector:
 
         return output
 
-    def keys(self, grprange: list = [-1], rxrange: list = [-1]):
+    def keys(self, grprange: list = [-1], noderange: list = [-1]):
         output = []
 
         reqstr = list(RX_EXTR)
 
-        if grprange != [-1] and rxrange == [-1]:
+        if grprange != [-1] and noderange == [-1]:
             reqstr[-1] = ''
             reqstr = ''.join(reqstr) + ' WHERE rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
-        elif grprange == [-1] and rxrange != [-1]:
+        elif grprange == [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {};'.format('({})'.format(','.join('%d' % i for i in rxrange)))
-        elif grprange != [-1] and rxrange != [-1]:
+            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)))
+        elif grprange != [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {} AND rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in rxrange)),
+            reqstr = ''.join(reqstr) + ' WHERE rx_id IN {} AND rx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)),
                                                                                '({})'.format(','.join('%d' % i for i in grprange)))
         else:
             reqstr = ''.join(reqstr)
@@ -189,20 +189,20 @@ class TXConnector:
         self.master = master
         self.dbcurs = dbcursor
 
-    def items(self, grprange: list = [-1], txrange: list = [-1]):
+    def items(self, grprange: list = [-1], noderange: list = [-1]):
         output = []
 
         reqstr = list(TX_EXTR)
 
-        if grprange != [-1] and txrange == [-1]:
+        if grprange != [-1] and noderange == [-1]:
             reqstr[-1] = ''
             reqstr = ''.join(reqstr) + ' WHERE tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
-        elif grprange == [-1] and txrange != [-1]:
+        elif grprange == [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)))
-        elif grprange != [-1] and txrange != [-1]:
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)))
+        elif grprange != [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {} AND tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)),
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {} AND tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)),
                                                                                '({})'.format(','.join('%d' % i for i in grprange)))
         else:
             reqstr = ''.join(reqstr)
@@ -223,20 +223,20 @@ class TXConnector:
 
         return output
 
-    def keys(self, grprange: list = [-1], txrange: list = [-1]):
+    def keys(self, grprange: list = [-1], noderange: list = [-1]):
         output = []
 
         reqstr = list(TX_EXTR)
 
-        if grprange != [-1] and txrange == [-1]:
+        if grprange != [-1] and noderange == [-1]:
             reqstr[-1] = ''
             reqstr = ''.join(reqstr) + ' WHERE tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in grprange)))
-        elif grprange == [-1] and txrange != [-1]:
+        elif grprange == [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)))
-        elif grprange != [-1] and txrange != [-1]:
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)))
+        elif grprange != [-1] and noderange != [-1]:
             reqstr[-1] = ''
-            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {} AND tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in txrange)),
+            reqstr = ''.join(reqstr) + ' WHERE tx_id IN {} AND tx_set_id IN {};'.format('({})'.format(','.join('%d' % i for i in noderange)),
                                                                                '({})'.format(','.join('%d' % i for i in grprange)))
         else:
             reqstr = ''.join(reqstr)
