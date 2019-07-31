@@ -22,8 +22,8 @@ class DelaySpreadHist:
         self.binc = binc
         self.binrange = brange
 
-    def export(self, rxgrp: list = [-1], txgrp: list = [-1], xlims: tuple = (0, 10), ylims: tuple = (0, 10), figdims: tuple = (640, 480),
-               mkpng: bool = False, matsav: bool = False, plot: bool = True, mksvg: bool = False):
+    def export(self, rxgrp: list = [-1], txgrp: list = [-1], mkpng: bool = False,
+               plot: bool = True, mksvg: bool = False):
 
         rms_hist = PowHist(binc=self.binc, rstart=self.binrange[0], rstop=self.binrange[1], addfun=add_delay)
 
@@ -84,6 +84,9 @@ class DelaySpreadHist:
         if mksvg:
             mpl.savefig("DelSpread_{}_{}.svg".format(txgrp, rxgrp))
 
+        if mkpng:
+            mpl.savefig("DelSpread_{}_{}.png".format(txgrp, rxgrp))
+
         if plot:
             mpl.show()
 
@@ -94,8 +97,8 @@ class AzSpreadHist:
         self.binc = binc
         self.binrange = brange
 
-    def export(self, rxgrp: list = [-1], txgrp: list = [-1], xlims: tuple = (0, 10), ylims: tuple = (0, 10), figdims: tuple = (640, 480),
-               mkpng: bool = False, matsav: bool = False, plot: bool = True, mksvg: bool = False):
+    def export(self, rxgrp: list = [-1], txgrp: list = [-1], mkpng: bool = False,
+               plot: bool = True, mksvg: bool = False):
 
         rms_hist = PowHist(binc=self.binc, rstart=self.binrange[0], rstop=self.binrange[1], addfun=add_delay)
 
@@ -155,6 +158,9 @@ class AzSpreadHist:
 
         if mksvg:
             mpl.savefig("AzSpread_{}_{}.svg".format(txgrp, rxgrp))
+
+        if mkpng:
+            mpl.savefig("AzSpread_{}_{}.png".format(txgrp, rxgrp))
 
         if plot:
             mpl.show()
