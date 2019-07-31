@@ -21,6 +21,7 @@ from pairdata import DataStorage
 from auxclass import *
 from auxfun import enable_latex, basint3, l2db
 
+
 class CHImageRX:
     def __init__(self, source):
         self.source = source
@@ -33,84 +34,85 @@ class CHImageRX:
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1], mkimg: str = '',
+    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1],
+               mkimg: str = '',
                cmap: str = 'viridis', nff: bool = True, matsav: bool = False, zmin: float = np.nan, show: bool = True,
-               zmax: float = np.nan, showtit: bool = False, cbar: bool = True, ylab: bool = True):
-        if txrange[0] == -1:
-            txrange = self.source.txs.keys()
+               zmax: float = np.nan, showtit: bool = False, cbar: bool = True, ylab: bool = True,
+               reverse: bool = False):
 
-        if rxrange[0] == -1:
-            rxrange = self.source.rxs.keys()
+        if not reverse:
+            r = self.source.rxs
+            t = self.source.txs
+        else:
+            t = self.source.rxs
+            r = self.source.txs
 
-        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
-        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+        rxs = r.items(grprange=rxgrp, noderange=rxrange)
 
-        for i in txrange:
-            if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
-                rr = 0
-                for j in rxrange:
-                    if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        if mkimg or show:
-                            f = mpl.figure(rr)
+        for i in t.items(grprange=txgrp, noderange=txrange):
+            rr = 0
+            for j in rxs:
+                if mkimg or show:
+                    f = mpl.figure(rr)
 
-                        rr += 1
-                        hist = PowHist2D(azbinc=36, elbinc=18)
+                rr += 1
+                hist = PowHist2D(azbinc=36, elbinc=18)
 
-                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j].node_id].paths.items():
-                            if nff and not k[1].near_field_failed:
-                                hist.append(k[1].aoa, k[1].eoa, k[1].pow)
-                            elif not nff:
-                                hist.append(k[1].aoa, k[1].eoa, k[1].pow)
+                if i[1].chan_to(j[1]):
+                    for k in i[1].chans_to_pairs[j[1].node_id].paths.items():
+                        if nff and not k[1].near_field_failed:
+                            hist.append(k[1].aoa, k[1].eoa, k[1].pow)
+                        elif not nff:
+                            hist.append(k[1].aoa, k[1].eoa, k[1].pow)
 
+                x = []
+                y = []
+                z = []
 
-                        x = []
-                        y = []
-                        z = []
+                for k in hist.bins.items():
+                    x.append(k[0][0])
+                    x.append(k[0][1])
+                    y.append(k[0][2])
+                    y.append(k[0][3])
+                    z.append(k[1] if k[1] > 0 else np.nan)
+                    z.append(z[-1])
 
-                        for k in hist.bins.items():
-                            x.append(k[0][0])
-                            x.append(k[0][1])
-                            y.append(k[0][2])
-                            y.append(k[0][3])
-                            z.append(k[1] if k[1] > 0 else np.nan)
-                            z.append(z[-1])
+                if np.isnan(zmin):
+                    zmin = np.nanmin(z) if not np.isnan(np.nanmin(z)) else np.finfo(float).eps
 
-                        if np.isnan(zmin):
-                            zmin = np.nanmin(z) if not np.isnan(np.nanmin(z)) else np.finfo(float).eps
+                if np.isnan(zmax):
+                    zmax = l2db(np.nanmax(z))
 
-                        if np.isnan(zmax):
-                            zmax = l2db(np.nanmax(z))
+                for k in range(z.__len__()):
+                    z[k] = l2db(z[k]) if not np.isnan(z[k]) else zmin
 
-                        for k in range(z.__len__()):
-                            z[k] = l2db(z[k]) if not np.isnan(z[k]) else zmin
+                x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
+                if mkimg != '' or show:
+                    pcol = mpl.pcolor(x, y, z.T, cmap=cmap, vmin=zmin, vmax=zmax, linewidth=1)
+                    pcol.set_edgecolor('face')
+                    mpl.grid(linestyle='--')
+                    if showtit:
+                        mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
+                    mpl.xlabel('Azimuth, [degrees]')
 
-                        if mkimg != '' or show:
-                            pcol = mpl.pcolor(x, y, z.T, cmap=cmap, vmin=zmin, vmax=zmax, linewidth=1)
-                            pcol.set_edgecolor('face')
-                            mpl.grid(linestyle='--')
-                            if showtit:
-                                mpl.title('Channel RX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
-                            mpl.xlabel('Azimuth, [degrees]')
+                    if ylab:
+                        mpl.ylabel('Elevation, [degrees]')
 
-                            if ylab:
-                                mpl.ylabel('Elevation, [degrees]')
+                    mpl.gca().invert_yaxis()
+                    if cbar:
+                        cbr = mpl.colorbar()
+                        cbr.set_label('RX Power, [dBm]')
+                    mpl.tight_layout()
 
-                            mpl.gca().invert_yaxis()
-                            if cbar:
-                                cbr = mpl.colorbar()
-                                cbr.set_label('RX Power, [dBm]')
-                            mpl.tight_layout()
-
-                        if mkimg != '':
-                            mpl.savefig('RXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}.{4:s}'.
-                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j, mkimg))
-                            mpl.close(f)
-                        if matsav:
-                            sio.savemat('RXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}].mat'.
-                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
-                                        {'X': x, 'Y': y, 'Z': z})
+                if mkimg != '':
+                    mpl.savefig('RXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}.{4:s}'.
+                                format(i[1].setid, i[1].node_id, j[1].setid, j[1].node_id, mkimg))
+                    mpl.close(f)
+                if matsav:
+                    sio.savemat('RXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}].mat'.
+                                format(i[1].setid, i[1].node_id, j[1].setid, j[1].node_id),
+                                {'X': x, 'Y': y, 'Z': z})
 
         if mkimg == '':
             mpl.show()
@@ -128,93 +130,96 @@ class CHImageTx:
         self.ydata = []
         self.zdata = []
 
-    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1], mkimg: str = '',
+    def export(self, txrange: list = [-1], rxrange: list = [-1], txgrp: list = [-1], rxgrp: list = [-1],
+               mkimg: str = '',
                cmap: str = 'viridis', nff: bool = True, matsav: bool = False, show: bool = True, zmin: float = np.nan,
-               zmax: float = np.nan, showtit: bool = False, cbar: bool = True, ylab: bool = True):
-        if txrange[0] == -1:
-            txrange = self.source.txs.keys()
+               zmax: float = np.nan, showtit: bool = False, cbar: bool = True, ylab: bool = True,
+               reverse: bool = False):
 
-        if rxrange[0] == -1:
-            rxrange = self.source.rxs.keys()
+        if not reverse:
+            r = self.source.rxs
+            t = self.source.txs
+        else:
+            t = self.source.rxs
+            r = self.source.txs
 
-        txgrp = [txgrp] if not isinstance(txgrp, list) else txgrp
-        rxgrp = [rxgrp] if not isinstance(rxgrp, list) else rxgrp
+        rxs = r.items(grprange=rxgrp, noderange=rxrange)
 
-        for i in txrange:
-            if self.source.txs[i].setid in txgrp or txgrp[0] == -1:
-                rr = 0
-                for j in rxrange:
-                    if self.source.rxs[j].setid in rxgrp or rxgrp[0] == -1:
-                        if mkimg or show:
-                            f = mpl.figure(rr)
+        for i in t.items(grprange=txgrp, noderange=txrange):
+            rr = 0
+            for j in rxs:
+                if mkimg or show:
+                    f = mpl.figure(rr)
 
-                        rr += 1
-                        hist = PowHist2D(azbinc=36, elbinc=18)
+                rr += 1
+                hist = PowHist2D(azbinc=36, elbinc=18)
 
-                        for k in self.source.txs[i].chans_to_pairs[self.source.rxs[j].node_id].paths.items():
-                            if nff and not k[1].near_field_failed:
-                                hist.append(k[1].aod, k[1].eod, k[1].pow)
-                            elif not nff:
-                                hist.append(k[1].aod, k[1].eod, k[1].pow)
-                        x = []
-                        y = []
-                        z = []
+                for k in i[1].chans_to_pairs[j[1].node_id].paths.items():
+                    if nff and not k[1].near_field_failed:
+                        hist.append(k[1].aod, k[1].eod, k[1].pow)
+                    elif not nff:
+                        hist.append(k[1].aod, k[1].eod, k[1].pow)
+                x = []
+                y = []
+                z = []
 
-                        for k in hist.bins.items():
-                            x.append(k[0][0])
-                            x.append(k[0][1])
-                            y.append(k[0][2])
-                            y.append(k[0][3])
-                            z.append(k[1] if k[1] > 0 else np.nan)
-                            z.append(z[-1])
+                for k in hist.bins.items():
+                    x.append(k[0][0])
+                    x.append(k[0][1])
+                    y.append(k[0][2])
+                    y.append(k[0][3])
+                    z.append(k[1] if k[1] > 0 else np.nan)
+                    z.append(z[-1])
 
-                        if np.isnan(zmin):
-                            zmin = np.nanmin(z) if not np.isnan(np.nanmin(z)) else np.finfo(float).eps
+                if np.isnan(zmin):
+                    zmin = np.nanmin(z) if not np.isnan(np.nanmin(z)) else np.finfo(float).eps
 
-                        if np.isnan(zmax):
-                            zmax = l2db(float(np.nanmax(z)))
+                if np.isnan(zmax):
+                    zmax = l2db(float(np.nanmax(z)))
 
-                        for k in range(z.__len__()):
-                            z[k] = l2db(z[k]) if not np.isnan(z[k]) else zmin
+                for k in range(z.__len__()):
+                    z[k] = l2db(z[k]) if not np.isnan(z[k]) else zmin
 
-                        x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
+                x, y, z = basint3(x, y, z, xc=hist.azbinc, yc=hist.elbinc)
 
-                        if mkimg != '' or show:
-                            pcol = mpl.pcolormesh(x, y, z.T,  cmap=cmap, vmin=zmin, vmax=zmax, linewidths=1)
-                            pcol.set_edgecolor('face')
-                            mpl.grid(linestyle='--')
-                            if showtit:
-                                mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
-                            mpl.xlabel('Azimuth, [degrees]')
-                            if ylab:
-                                mpl.ylabel('Elevation, [degrees]')
-                            if cbar:
-                                cbr = mpl.colorbar()
-                                cbr.set_label('RX Power, [dBm]')
-                            mpl.tight_layout()
-                            mpl.gca().invert_yaxis()
+                if mkimg != '' or show:
+                    pcol = mpl.pcolormesh(x, y, z.T, cmap=cmap, vmin=zmin, vmax=zmax, linewidths=1)
+                    pcol.set_edgecolor('face')
+                    mpl.grid(linestyle='--')
+                    if showtit:
+                        mpl.title('Channel TX Image\@[TX \#{} $\\rightarrow$ RX \#{}]'.format(i, j))
+                    mpl.xlabel('Azimuth, [degrees]')
+                    if ylab:
+                        mpl.ylabel('Elevation, [degrees]')
+                    if cbar:
+                        cbr = mpl.colorbar()
+                        cbr.set_label('RX Power, [dBm]')
+                    mpl.tight_layout()
+                    mpl.gca().invert_yaxis()
 
-                        if mkimg != '' or not show:
-                            mpl.savefig('TXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}.{4:s}'.
-                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j, mkimg))
-                            mpl.close(f)
+                if mkimg != '' or not show:
+                    mpl.savefig('TXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}.{4:s}'.
+                                format(i[1].setid, i[1].node_id, j[1].setid, j[1].node_id, mkimg))
+                    mpl.close(f)
 
-                        if matsav:
-                            sio.savemat('TXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}].mat'.
-                                        format(self.source.txs[i].setid, i, self.source.rxs[j].setid, j),
-                            {'X': x, 'Y': y, 'Z': z})
+                if matsav:
+                    sio.savemat('TXCImage,tx[{0:01d},{1:03d}]-rx[{2:01d},{3:03d}].mat'.
+                                format(i[1].setid, i[1].node_id, j[1].setid, j[1].node_id),
+                                {'X': x, 'Y': y, 'Z': z})
 
         if mkimg == '' and show:
             mpl.show()
 
 
 if __name__ == "__main__":
-    DS = DataStorage(conf='dbconf.txt', dbname='Bus_geom_HHD_sqlite')
+    DS = DataStorage(conf='dbconf.txt', dbname='Human_crawl_TEST_sqlite')
 
     enable_latex(pt=22)
 
     DE = CHImageRX(DS)
-    DE.export(rxgrp=[4], mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True, cbar=True, ylab=False)
+    DE.export(rxgrp=[3], mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True, cbar=True,
+              ylab=False, reverse=False)
     DT = CHImageTx(DS)
-    DT.export(rxgrp=[4], mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True, cbar=False, ylab=True)
+    DT.export(rxgrp=[3], mkimg='png', cmap='jet', nff=False, zmin=-160.0, zmax=-70.0, showtit=True, cbar=False,
+              ylab=True, reverse=False)
     exit()

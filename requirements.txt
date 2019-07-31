@@ -1,5 +1,6 @@
 PyWavelets
 numpy
+numba
 scikit-learn
 matplotlib
 mayavi

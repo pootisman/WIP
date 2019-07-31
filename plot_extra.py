@@ -10,7 +10,7 @@ AOD = 0x05
 EOD = 0x06
 DELAY = 0x07
 
-VALID = {PWRS: 'Power [dBm]', PHS: 'Phase [deg]', AOA: 'Azimuth of arrival [deg]', EOA: 'Arrival elevation [deg]', AOD: 'Elevation azimuth [deg]', EOD: 'Departure elevation [deg]', DELAY: 'Delay [ns]'}
+VALID = {PWRS: 'Power [dBm]', PHS: 'Phase [deg]', AOA: 'Arrival azimuth [deg]', EOA: 'Arrival elevation [deg]', AOD: 'Departure azimuth [deg]', EOD: 'Departure elevation [deg]', DELAY: 'Delay [ns]'}
 
 class ValPlotter:
     def __init__(self, src):
@@ -83,17 +83,17 @@ class ValPlotter:
 
 
 if __name__ == '__main__':
-    DS = DataStorage(conf='dbconf.txt', dbname='Human_crawl_Human_Crawl_X3D_Uncotrol_sqlite')
+    DS = DataStorage(conf='dbconf.txt', dbname='Human_crawl_TEST_sqlite')
     VP = ValPlotter(DS)
     enable_latex(18)
-    gg = [5]
+    gg = [2,3,5,6]
     q = False
 
     for g in gg:
-        VP.export(DELAY, rxgrp=[g], draw=q, reverse=True)
-        VP.export(PWRS, rxgrp=[g], draw=q, reverse=True)
-        VP.export(AOA, rxgrp=[g], draw=q, reverse=True)
-        VP.export(EOA, rxgrp=[g], draw=q, reverse=True)
-        VP.export(AOD, rxgrp=[g], draw=q, reverse=True)
-        VP.export(EOD, rxgrp=[g], draw=q, reverse=True)
-        VP.export(PHS, rxgrp=[g], draw=q, reverse=True)
+        VP.export(DELAY, rxgrp=[g], draw=q, reverse=False)
+        VP.export(PWRS, rxgrp=[g], draw=q, reverse=False)
+        VP.export(AOA, rxgrp=[g], draw=q, reverse=False)
+        VP.export(EOA, rxgrp=[g], draw=q, reverse=False)
+        VP.export(AOD, rxgrp=[g], draw=q, reverse=False)
+        VP.export(EOD, rxgrp=[g], draw=q, reverse=False)
+        VP.export(PHS, rxgrp=[g], draw=q, reverse=False)
