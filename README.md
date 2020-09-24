@@ -1,5 +1,9 @@
 # WIParse - generate pretty plots from Wireless Insite SBR results!
 
+## Description
+
+A small toolkit for analyzing/plotting the simulation results from Wireless Insite software. Apart from that, a set of utilities for shifting storage onto online DB is added for convenience. Package is still under development (contributions are welcome!) and is planned to be a subsystem of another tool for performing radio studies and simulations (not the actual simulation engine!).
+
 ## Capabilities
 
 * Multithreaded SQLite database uploader for MySQL databases (with authentication)
